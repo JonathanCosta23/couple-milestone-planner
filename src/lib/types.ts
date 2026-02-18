@@ -2,7 +2,7 @@ export interface Contributor {
   name: string;
   plannedSelic: number;
   plannedCDB: number;
-  age?: number; // current age for timeline
+  age?: number;
 }
 
 export interface PlanConfig {
@@ -39,6 +39,30 @@ export interface ProjectionRow {
   depositThisMonth: number;
 }
 
+export interface FinancialProfile {
+  incomeJonathan?: number;
+  incomeIsabella?: number;
+  monthlyExpenses?: number;
+  emergencyFund?: number;
+}
+
+export type EmotionalGoal =
+  | "liberdade-financeira"
+  | "casa-propria"
+  | "aposentadoria"
+  | "viagens"
+  | "familia"
+  | "outro";
+
+export const EMOTIONAL_GOAL_LABELS: Record<EmotionalGoal, string> = {
+  "liberdade-financeira": "Liberdade financeira",
+  "casa-propria": "Casa própria",
+  "aposentadoria": "Aposentadoria",
+  "viagens": "Viagens",
+  "familia": "Família",
+  "outro": "Outro",
+};
+
 export interface PlanData {
   config: PlanConfig;
   monthRecords: MonthRecord[];
@@ -48,9 +72,13 @@ export interface PlanData {
     monthlyReminder: boolean;
     annualReview: boolean;
   };
+  financialProfile?: FinancialProfile;
+  emotionalGoal?: EmotionalGoal;
+  emotionalGoalCustom?: string;
+  onboardingComplete?: boolean;
 }
 
-export const MILESTONES = [50_000, 100_000, 250_000, 500_000, 1_000_000];
+export const MILESTONES = [50_000, 100_000, 250_000, 500_000, 750_000, 1_000_000];
 
 export const DEFAULT_CONFIG: PlanConfig = {
   initialAmount: 9_000,
