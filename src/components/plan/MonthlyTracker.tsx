@@ -1,12 +1,17 @@
-import { useState, useMemo } from "react";
-import { PlanConfig, MonthRecord, MonthDeposit, EMPTY_DEPOSIT, formatBRL, generateMonthKeys, monthKeyToLabel, getCurrentMonthKey } from "@/lib/types";
-import { isMonthComplete, calculateStreak, calculateCompletionRate } from "@/lib/calculator";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { PlanConfig, MonthRecord, MonthDeposit, MonthStatus, EMPTY_DEPOSIT, formatBRL, generateMonthKeys, monthKeyToLabel, getCurrentMonthKey } from "@/lib/types";
+import { getMonthStatus, calculateStreak, calculateCompletionRate, calculateYearCompletion } from "@/lib/calculator";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2, Circle, Flame, Percent, ChevronLeft, ChevronRight, Filter, StickyNote } from "lucide-react";
+import {
+  CheckCircle2, Circle, AlertCircle, Flame, Percent, ChevronLeft, ChevronRight,
+  Filter, StickyNote, Wand2, ChevronDown, ChevronUp,
+} from "lucide-react";
+import { toast } from "sonner";
 
 interface TrackerProps {
   config: PlanConfig;
@@ -14,9 +19,57 @@ interface TrackerProps {
   startDate: string;
   onUpdateMonth: (monthKey: string, contributorIndex: 0 | 1, deposit: MonthDeposit, notes?: string) => void;
   onUpdateNotes: (monthKey: string, notes: string) => void;
+  onToggleCompleted: (monthKey: string) => void;
+  onGenerateAutoPlan: () => void;
 }
 
-export function MonthlyTracker({ config, monthRecords, startDate, onUpdateMonth, onUpdateNotes }: TrackerProps) {
+// Progress Ring SVG component
+function ProgressRing({ value, size = 80, stroke = 6, label }: { value: number; size?: number; stroke?: number; label: string }) {
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - value * circumference;
+
+  return (
+    <div className="relative inline-flex items-center justify-center">
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="hsl(var(--muted))" strokeWidth={stroke} />
+        <circle
+          cx={size / 2} cy={size / 2} r={radius} fill="none"
+          stroke="hsl(var(--primary))" strokeWidth={stroke}
+          strokeDasharray={circumference} strokeDashoffset={offset}
+          strokeLinecap="round"
+          className="transition-all duration-700 ease-out"
+        />
+      </svg>
+      <div className="absolute flex flex-col items-center">
+        <span className="text-sm font-bold">{(value * 100).toFixed(0)}%</span>
+        <span className="text-[10px] text-muted-foreground leading-none">{label}</span>
+      </div>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: MonthStatus }) {
+  const cfg = {
+    pending: { icon: Circle, text: "Pendente", cls: "bg-muted text-muted-foreground" },
+    partial: { icon: AlertCircle, text: "Parcial", cls: "bg-warning/15 text-warning border-warning/30" },
+    completed: { icon: CheckCircle2, text: "Concluído", cls: "bg-primary/15 text-primary border-primary/30" },
+  }[status];
+  const Icon = cfg.icon;
+  return (
+    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${cfg.cls}`}>
+      <Icon className="w-3 h-3" />
+      {cfg.text}
+    </span>
+  );
+}
+
+const BATCH_SIZE = 12;
+
+export function MonthlyTracker({
+  config, monthRecords, startDate,
+  onUpdateMonth, onUpdateNotes, onToggleCompleted, onGenerateAutoPlan,
+}: TrackerProps) {
   const currentMonth = getCurrentMonthKey();
   const allKeys = useMemo(() => generateMonthKeys(startDate, config.years * 12), [startDate, config.years]);
 
@@ -29,16 +82,47 @@ export function MonthlyTracker({ config, monthRecords, startDate, onUpdateMonth,
   const [yearIdx, setYearIdx] = useState(Math.max(0, currentYearIdx));
   const selectedYear = years[yearIdx] || years[0];
 
-  const [filterPending, setFilterPending] = useState(false);
+  const [filterMode, setFilterMode] = useState<"all" | "pending">("all");
   const [expandedMonth, setExpandedMonth] = useState<string | null>(currentMonth);
+  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
 
-  const monthsInYear = allKeys.filter((k) => k.startsWith(selectedYear));
-  const filteredMonths = filterPending
-    ? monthsInYear.filter((k) => !isMonthComplete(config, monthRecords, k) && k <= currentMonth)
-    : monthsInYear;
+  // Reset visible count when year changes
+  useEffect(() => {
+    setVisibleCount(BATCH_SIZE);
+  }, [selectedYear, filterMode]);
 
+  const monthsInYear = useMemo(() => allKeys.filter((k) => k.startsWith(selectedYear)), [allKeys, selectedYear]);
+  const filteredMonths = useMemo(() => {
+    if (filterMode === "pending") {
+      return monthsInYear.filter((k) => getMonthStatus(config, monthRecords, k) !== "completed");
+    }
+    return monthsInYear;
+  }, [monthsInYear, filterMode, config, monthRecords]);
+
+  const visibleMonths = filteredMonths.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredMonths.length;
+
+  // Infinite scroll sentinel
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          setVisibleCount((prev) => Math.min(prev + BATCH_SIZE, filteredMonths.length));
+        }
+      },
+      { threshold: 0.1 }
+    );
+    if (sentinelRef.current) observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, filteredMonths.length]);
+
+  // Stats
   const streak = useMemo(() => calculateStreak(config, monthRecords, startDate), [config, monthRecords, startDate]);
-  const completion = useMemo(() => calculateCompletionRate(config, monthRecords, startDate), [config, monthRecords, startDate]);
+  const completion12 = useMemo(() => calculateCompletionRate(config, monthRecords, startDate), [config, monthRecords, startDate]);
+  const yearCompletion = useMemo(() => calculateYearCompletion(config, monthRecords, selectedYear), [config, monthRecords, selectedYear]);
+
+  const hasAutoPlan = monthRecords.length >= allKeys.length * 0.9;
 
   function getRecord(key: string): MonthRecord | undefined {
     return monthRecords.find((r) => r.monthKey === key);
@@ -47,169 +131,267 @@ export function MonthlyTracker({ config, monthRecords, startDate, onUpdateMonth,
   return (
     <div className="space-y-6">
       {/* Stats bar */}
-      <div className="grid grid-cols-2 gap-3">
-        <Card className="glass-card p-4 flex items-center gap-3">
-          <Flame className="w-6 h-6 text-warning" />
-          <div>
-            <p className="text-xs text-muted-foreground">Sequência</p>
-            <p className="text-xl font-bold">{streak} {streak === 1 ? "mês" : "meses"}</p>
+      <div className="grid grid-cols-3 gap-3">
+        <Card className="glass-card p-3 flex items-center gap-3">
+          <Flame className="w-5 h-5 text-warning shrink-0" />
+          <div className="min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Sequência</p>
+            <p className="text-lg font-bold leading-tight">{streak}</p>
           </div>
         </Card>
-        <Card className="glass-card p-4 flex items-center gap-3">
-          <Percent className="w-6 h-6 text-primary" />
-          <div>
-            <p className="text-xs text-muted-foreground">Conclusão (12m)</p>
-            <p className="text-xl font-bold">{(completion * 100).toFixed(0)}%</p>
+        <Card className="glass-card p-3 flex items-center gap-3">
+          <Percent className="w-5 h-5 text-primary shrink-0" />
+          <div className="min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">12 meses</p>
+            <p className="text-lg font-bold leading-tight">{(completion12 * 100).toFixed(0)}%</p>
           </div>
+        </Card>
+        <Card className="glass-card p-3 flex items-center justify-center">
+          <ProgressRing value={yearCompletion} size={64} stroke={5} label={selectedYear} />
         </Card>
       </div>
 
+      {/* Auto-generate button */}
+      {!hasAutoPlan && (
+        <Button
+          variant="outline"
+          className="w-full border-dashed border-primary/40 text-primary hover:bg-primary/10"
+          onClick={() => {
+            onGenerateAutoPlan();
+            toast.success("Plano 2026–2046 gerado! Todos os meses preenchidos com aportes planejados.");
+          }}
+        >
+          <Wand2 className="w-4 h-4 mr-2" />
+          Gerar plano automático 2026–2046
+        </Button>
+      )}
+
       {/* Year nav + filter */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" disabled={yearIdx === 0} onClick={() => setYearIdx(yearIdx - 1)}>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8" disabled={yearIdx === 0} onClick={() => setYearIdx(yearIdx - 1)}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
           <span className="font-semibold text-lg min-w-[4ch] text-center">{selectedYear}</span>
-          <Button variant="ghost" size="icon" disabled={yearIdx >= years.length - 1} onClick={() => setYearIdx(yearIdx + 1)}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" disabled={yearIdx >= years.length - 1} onClick={() => setYearIdx(yearIdx + 1)}>
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
         <Button
-          variant={filterPending ? "default" : "outline"}
+          variant={filterMode === "pending" ? "default" : "outline"}
           size="sm"
-          onClick={() => setFilterPending(!filterPending)}
-          className="text-xs"
+          onClick={() => setFilterMode(filterMode === "all" ? "pending" : "all")}
+          className="text-xs h-8"
         >
           <Filter className="w-3 h-3 mr-1" />
-          {filterPending ? "Pendentes" : "Todos"}
+          {filterMode === "pending" ? "Pendentes" : "Todos"}
         </Button>
       </div>
 
-      {/* Month cards */}
+      {/* Month cards — infinite scroll */}
       <div className="space-y-3">
-        {filteredMonths.length === 0 && (
-          <p className="text-center text-muted-foreground py-8">Nenhum mês pendente neste ano 🎉</p>
+        {visibleMonths.length === 0 && (
+          <p className="text-center text-muted-foreground py-8">
+            {filterMode === "pending" ? "Nenhum mês pendente neste ano 🎉" : "Nenhum mês neste ano."}
+          </p>
         )}
-        {filteredMonths.map((key) => {
-          const record = getRecord(key);
-          const complete = isMonthComplete(config, monthRecords, key);
-          const isCurrent = key === currentMonth;
-          const isExpanded = expandedMonth === key;
-          const isFuture = key > currentMonth;
 
-          return (
-            <Card
-              key={key}
-              className={`glass-card overflow-hidden transition-all ${isCurrent ? "ring-2 ring-primary/50" : ""} ${
-                complete ? "border-primary/30" : ""
-              }`}
-            >
-              {/* Header */}
-              <button
-                className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/20 transition-colors"
-                onClick={() => setExpandedMonth(isExpanded ? null : key)}
-              >
-                <div className="flex items-center gap-3">
-                  {complete ? (
-                    <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
-                  ) : (
-                    <Circle className="w-5 h-5 text-muted-foreground shrink-0" />
-                  )}
-                  <div>
-                    <span className="font-semibold">{monthKeyToLabel(key)}</span>
-                    {isCurrent && (
-                      <span className="ml-2 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">atual</span>
-                    )}
-                    {isFuture && (
-                      <span className="ml-2 text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">futuro</span>
-                    )}
-                  </div>
-                </div>
-                <div className="text-right text-sm text-muted-foreground">
-                  {record && !complete && "Em andamento"}
-                  {complete && <span className="text-primary font-medium">Concluído ✓</span>}
-                </div>
-              </button>
+        {visibleMonths.map((key) => (
+          <MonthCard
+            key={key}
+            monthKey={key}
+            config={config}
+            record={getRecord(key)}
+            status={getMonthStatus(config, monthRecords, key)}
+            isCurrent={key === currentMonth}
+            isFuture={key > currentMonth}
+            isExpanded={expandedMonth === key}
+            onToggleExpand={() => setExpandedMonth(expandedMonth === key ? null : key)}
+            onUpdateDeposit={onUpdateMonth}
+            onUpdateNotes={onUpdateNotes}
+            onToggleCompleted={onToggleCompleted}
+          />
+        ))}
 
-              {/* Expanded content */}
-              {isExpanded && (
-                <div className="px-4 pb-4 space-y-4 border-t border-border/30 pt-4 animate-fade-in-up">
-                  {config.contributors.map((c, cIdx) => {
-                    const dep = record?.deposits[cIdx as 0 | 1] || EMPTY_DEPOSIT;
-                    const selicOk = c.plannedSelic <= 0 || dep.actualSelic >= c.plannedSelic;
-                    const cdbOk = c.plannedCDB <= 0 || dep.actualCDB >= c.plannedCDB;
-
-                    return (
-                      <div key={cIdx} className="space-y-2">
-                        <p className="text-sm font-medium">{c.name}</p>
-                        <div className="grid grid-cols-2 gap-3">
-                          {c.plannedSelic > 0 && (
-                            <div>
-                              <Label className="text-xs">
-                                Selic{" "}
-                                <span className="text-muted-foreground">(plan: {formatBRL(c.plannedSelic)})</span>
-                                {selicOk && dep.actualSelic > 0 && " ✓"}
-                              </Label>
-                              <Input
-                                type="number"
-                                min={0}
-                                step={100}
-                                value={dep.actualSelic || ""}
-                                onChange={(e) => {
-                                  const val = Number(e.target.value) || 0;
-                                  onUpdateMonth(key, cIdx as 0 | 1, { ...dep, actualSelic: val });
-                                }}
-                                className={`text-right text-sm ${selicOk && dep.actualSelic > 0 ? "border-primary/50" : ""}`}
-                              />
-                            </div>
-                          )}
-                          {c.plannedCDB > 0 && (
-                            <div>
-                              <Label className="text-xs">
-                                CDB{" "}
-                                <span className="text-muted-foreground">(plan: {formatBRL(c.plannedCDB)})</span>
-                                {cdbOk && dep.actualCDB > 0 && " ✓"}
-                              </Label>
-                              <Input
-                                type="number"
-                                min={0}
-                                step={100}
-                                value={dep.actualCDB || ""}
-                                onChange={(e) => {
-                                  const val = Number(e.target.value) || 0;
-                                  onUpdateMonth(key, cIdx as 0 | 1, { ...dep, actualCDB: val });
-                                }}
-                                className={`text-right text-sm ${cdbOk && dep.actualCDB > 0 ? "border-primary/50" : ""}`}
-                              />
-                            </div>
-                          )}
-                          {c.plannedSelic <= 0 && c.plannedCDB <= 0 && (
-                            <p className="text-xs text-muted-foreground col-span-2">Sem aporte planejado</p>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* Notes */}
-                  <div>
-                    <Label className="text-xs flex items-center gap-1">
-                      <StickyNote className="w-3 h-3" /> Notas
-                    </Label>
-                    <Textarea
-                      placeholder="Observações do mês..."
-                      value={record?.notes || ""}
-                      onChange={(e) => onUpdateNotes(key, e.target.value)}
-                      className="text-sm min-h-[60px]"
-                    />
-                  </div>
-                </div>
-              )}
-            </Card>
-          );
-        })}
+        {/* Infinite scroll sentinel */}
+        {hasMore && (
+          <div ref={sentinelRef} className="flex justify-center py-4">
+            <div className="w-6 h-6 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+// Individual month card
+interface MonthCardProps {
+  monthKey: string;
+  config: PlanConfig;
+  record: MonthRecord | undefined;
+  status: MonthStatus;
+  isCurrent: boolean;
+  isFuture: boolean;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onUpdateDeposit: (monthKey: string, idx: 0 | 1, deposit: MonthDeposit, notes?: string) => void;
+  onUpdateNotes: (monthKey: string, notes: string) => void;
+  onToggleCompleted: (monthKey: string) => void;
+}
+
+function MonthCard({
+  monthKey, config, record, status, isCurrent, isFuture, isExpanded,
+  onToggleExpand, onUpdateDeposit, onUpdateNotes, onToggleCompleted,
+}: MonthCardProps) {
+  const [c0, c1] = config.contributors;
+  const d0 = record?.deposits[0] || EMPTY_DEPOSIT;
+  const d1 = record?.deposits[1] || EMPTY_DEPOSIT;
+
+  const totalPlanned = c0.plannedSelic + c0.plannedCDB + c1.plannedSelic + c1.plannedCDB;
+  const totalActual = d0.actualSelic + d0.actualCDB + d1.actualSelic + d1.actualCDB;
+
+  return (
+    <Card
+      className={`glass-card overflow-hidden transition-all ${
+        isCurrent ? "ring-2 ring-primary/50" : ""
+      } ${status === "completed" ? "border-primary/30" : ""}`}
+    >
+      {/* Card header */}
+      <button
+        className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/10 transition-colors"
+        onClick={onToggleExpand}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex flex-col items-center min-w-[44px]">
+            <span className="text-lg font-bold leading-none">{monthKey.split("-")[1]}</span>
+            <span className="text-[10px] text-muted-foreground">{monthKey.split("-")[0]}</span>
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-sm">{monthKeyToLabel(monthKey)}</span>
+              {isCurrent && (
+                <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-medium">ATUAL</span>
+              )}
+              {isFuture && (
+                <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">FUTURO</span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {formatBRL(totalActual)} / {formatBRL(totalPlanned)}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <StatusBadge status={status} />
+          {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+        </div>
+      </button>
+
+      {/* Expanded card body */}
+      {isExpanded && (
+        <div className="px-4 pb-4 space-y-4 border-t border-border/30 pt-4 animate-fade-in-up">
+          {/* Contributor sections */}
+          {config.contributors.map((c, cIdx) => {
+            const dep = cIdx === 0 ? d0 : d1;
+            const hasSelic = c.plannedSelic > 0;
+            const hasCDB = c.plannedCDB > 0;
+            if (!hasSelic && !hasCDB) return null;
+
+            return (
+              <div key={cIdx} className="rounded-xl bg-muted/30 p-3 space-y-3">
+                <p className="text-sm font-semibold flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${cIdx === 0 ? "bg-primary" : "bg-accent"}`} />
+                  {c.name}
+                </p>
+
+                {/* Planned row */}
+                <div className="grid grid-cols-2 gap-2">
+                  {hasSelic && (
+                    <div className="text-xs">
+                      <span className="text-muted-foreground">Selic planejado</span>
+                      <p className="font-medium">{formatBRL(c.plannedSelic)}</p>
+                    </div>
+                  )}
+                  {hasCDB && (
+                    <div className="text-xs">
+                      <span className="text-muted-foreground">CDB planejado</span>
+                      <p className="font-medium">{formatBRL(c.plannedCDB)}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Actual inputs */}
+                <div className="grid grid-cols-2 gap-2">
+                  {hasSelic && (
+                    <div>
+                      <Label className="text-[11px] text-muted-foreground">Selic real</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        step={100}
+                        value={dep.actualSelic || ""}
+                        placeholder="0"
+                        onChange={(e) => {
+                          const val = Number(e.target.value) || 0;
+                          onUpdateDeposit(monthKey, cIdx as 0 | 1, { ...dep, actualSelic: val });
+                        }}
+                        className={`text-right text-sm h-9 ${
+                          dep.actualSelic >= c.plannedSelic && dep.actualSelic > 0 ? "border-primary/50 bg-primary/5" : ""
+                        }`}
+                      />
+                    </div>
+                  )}
+                  {hasCDB && (
+                    <div>
+                      <Label className="text-[11px] text-muted-foreground">CDB real</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        step={100}
+                        value={dep.actualCDB || ""}
+                        placeholder="0"
+                        onChange={(e) => {
+                          const val = Number(e.target.value) || 0;
+                          onUpdateDeposit(monthKey, cIdx as 0 | 1, { ...dep, actualCDB: val });
+                        }}
+                        className={`text-right text-sm h-9 ${
+                          dep.actualCDB >= c.plannedCDB && dep.actualCDB > 0 ? "border-primary/50 bg-primary/5" : ""
+                        }`}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Completed toggle */}
+          <div className="flex items-center justify-between py-2 px-1">
+            <Label htmlFor={`toggle-${monthKey}`} className="text-sm font-medium cursor-pointer flex items-center gap-2">
+              <CheckCircle2 className={`w-4 h-4 ${record?.completed ? "text-primary" : "text-muted-foreground"}`} />
+              Mês concluído
+            </Label>
+            <Switch
+              id={`toggle-${monthKey}`}
+              checked={!!record?.completed}
+              onCheckedChange={() => onToggleCompleted(monthKey)}
+            />
+          </div>
+
+          {/* Notes */}
+          <div>
+            <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <StickyNote className="w-3 h-3" /> Notas
+            </Label>
+            <Textarea
+              placeholder="Observações do mês..."
+              value={record?.notes || ""}
+              onChange={(e) => onUpdateNotes(monthKey, e.target.value)}
+              className="text-sm min-h-[50px] mt-1"
+            />
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }

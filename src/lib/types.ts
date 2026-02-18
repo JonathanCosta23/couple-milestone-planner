@@ -22,7 +22,10 @@ export interface MonthRecord {
   monthKey: string; // "2025-03"
   deposits: [MonthDeposit, MonthDeposit];
   notes: string;
+  completed?: boolean; // manual "Mês concluído" toggle
 }
+
+export type MonthStatus = "pending" | "partial" | "completed";
 
 export interface ProjectionRow {
   monthIndex: number;
@@ -47,7 +50,7 @@ export const MILESTONES = [50_000, 100_000, 250_000, 500_000, 1_000_000];
 export const DEFAULT_CONFIG: PlanConfig = {
   initialAmount: 9_000,
   targetAmount: 1_000_000,
-  years: 20,
+  years: 21, // Jan 2026 – Dec 2046
   selicRate: 0.1315,
   cdbRate: 1.0,
   contributors: [
@@ -55,6 +58,10 @@ export const DEFAULT_CONFIG: PlanConfig = {
     { name: "Isabella", plannedSelic: 0, plannedCDB: 0 },
   ],
 };
+
+export const PLAN_START = "2026-01";
+export const PLAN_END = "2046-12";
+export const PLAN_MONTHS = 252; // Jan 2026 – Dec 2046
 
 export const EMPTY_DEPOSIT: MonthDeposit = { actualSelic: 0, actualCDB: 0 };
 

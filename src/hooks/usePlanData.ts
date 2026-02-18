@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { PlanData, PlanConfig, MonthDeposit, MonthRecord, EMPTY_DEPOSIT } from "@/lib/types";
+import { PlanData, PlanConfig, MonthDeposit, MonthRecord, EMPTY_DEPOSIT, generateMonthKeys, PLAN_START, PLAN_MONTHS } from "@/lib/types";
 import { loadPlanData, savePlanData, exportPlanJSON, importPlanJSON } from "@/lib/storage";
 
 export function usePlanData() {
@@ -14,8 +14,7 @@ export function usePlanData() {
   }, []);
 
   const completeWizard = useCallback((config: PlanConfig) => {
-    const startDate = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
-    setData({ config, monthRecords: [], wizardComplete: true, startDate });
+    setData({ config, monthRecords: [], wizardComplete: true, startDate: PLAN_START });
   }, []);
 
   const updateMonthRecord = useCallback(
@@ -57,6 +56,56 @@ export function usePlanData() {
     });
   }, []);
 
+  const toggleMonthCompleted = useCallback((monthKey: string) => {
+    setData((prev) => {
+      const existing = prev.monthRecords.find((r) => r.monthKey === monthKey);
+      if (existing) {
+        return {
+          ...prev,
+          monthRecords: prev.monthRecords.map((r) =>
+            r.monthKey === monthKey ? { ...r, completed: !r.completed } : r
+          ),
+        };
+      }
+      return {
+        ...prev,
+        monthRecords: [
+          ...prev.monthRecords,
+          { monthKey, deposits: [{ ...EMPTY_DEPOSIT }, { ...EMPTY_DEPOSIT }], notes: "", completed: true },
+        ],
+      };
+    });
+  }, []);
+
+  const generateAutoPlan = useCallback(() => {
+    setData((prev) => {
+      const allKeys = generateMonthKeys(prev.startDate, prev.config.years * 12);
+      const existingKeys = new Set(prev.monthRecords.map((r) => r.monthKey));
+      const newRecords: MonthRecord[] = [];
+
+      for (const key of allKeys) {
+        if (!existingKeys.has(key)) {
+          newRecords.push({
+            monthKey: key,
+            deposits: [
+              {
+                actualSelic: prev.config.contributors[0].plannedSelic,
+                actualCDB: prev.config.contributors[0].plannedCDB,
+              },
+              {
+                actualSelic: prev.config.contributors[1].plannedSelic,
+                actualCDB: prev.config.contributors[1].plannedCDB,
+              },
+            ],
+            notes: "",
+          });
+        }
+      }
+
+      return { ...prev, monthRecords: [...prev.monthRecords, ...newRecords] };
+    });
+  }, []);
+
   const resetPlan = useCallback(() => {
     const fresh = loadPlanData();
     fresh.wizardComplete = false;
@@ -81,6 +130,8 @@ export function usePlanData() {
     completeWizard,
     updateMonthRecord,
     updateMonthNotes,
+    toggleMonthCompleted,
+    generateAutoPlan,
     resetPlan,
     exportJSON,
     importJSON,
