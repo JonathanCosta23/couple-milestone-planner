@@ -15,7 +15,7 @@ import { Download, Upload, RotateCcw, Calculator, CalendarCheck } from "lucide-r
 import { toast } from "sonner";
 
 const Index = () => {
-  const { data, completeWizard, updateConfig, updateMonthRecord, updateMonthNotes, resetPlan, exportJSON, importJSON } = usePlanData();
+  const { data, completeWizard, updateConfig, updateMonthRecord, updateMonthNotes, toggleMonthCompleted, generateAutoPlan, resetPlan, exportJSON, importJSON } = usePlanData();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dismissedMilestones, setDismissedMilestones] = useState<number[]>([]);
 
@@ -110,6 +110,8 @@ const Index = () => {
                 startDate={data.startDate}
                 onUpdateMonth={updateMonthRecord}
                 onUpdateNotes={updateMonthNotes}
+                onToggleCompleted={toggleMonthCompleted}
+                onGenerateAutoPlan={generateAutoPlan}
               />
             </TabsContent>
           </Tabs>

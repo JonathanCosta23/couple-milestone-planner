@@ -1,4 +1,4 @@
-import { PlanConfig, MonthRecord, ProjectionRow, generateMonthKeys, EMPTY_DEPOSIT } from "./types";
+import { PlanConfig, MonthRecord, MonthDeposit, MonthStatus, ProjectionRow, generateMonthKeys, EMPTY_DEPOSIT } from "./types";
 
 function monthlyRate(annualRate: number): number {
   return Math.pow(1 + annualRate, 1 / 12) - 1;
@@ -106,6 +106,7 @@ export function isMonthComplete(
 ): boolean {
   const record = monthRecords.find((r) => r.monthKey === monthKey);
   if (!record) return false;
+  if (record.completed) return true;
 
   return config.contributors.every((c, i) => {
     const d = record.deposits[i] || EMPTY_DEPOSIT;
@@ -113,6 +114,48 @@ export function isMonthComplete(
     const cdbOk = c.plannedCDB <= 0 || d.actualCDB >= c.plannedCDB;
     return selicOk && cdbOk;
   });
+}
+
+export function getMonthStatus(
+  config: PlanConfig,
+  monthRecords: MonthRecord[],
+  monthKey: string
+): MonthStatus {
+  const record = monthRecords.find((r) => r.monthKey === monthKey);
+  if (!record) return "pending";
+  if (record.completed) return "completed";
+
+  // Check if any actual deposit > 0
+  const hasAnyDeposit = record.deposits.some(
+    (d) => d.actualSelic > 0 || d.actualCDB > 0
+  );
+
+  const allComplete = config.contributors.every((c, i) => {
+    const d = record.deposits[i] || EMPTY_DEPOSIT;
+    const selicOk = c.plannedSelic <= 0 || d.actualSelic >= c.plannedSelic;
+    const cdbOk = c.plannedCDB <= 0 || d.actualCDB >= c.plannedCDB;
+    return selicOk && cdbOk;
+  });
+
+  if (allComplete) return "completed";
+  if (hasAnyDeposit) return "partial";
+  return "pending";
+}
+
+export function calculateYearCompletion(
+  config: PlanConfig,
+  monthRecords: MonthRecord[],
+  year: string
+): number {
+  const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+  const yearMonths: string[] = [];
+  for (let m = 1; m <= 12; m++) {
+    const key = `${year}-${String(m).padStart(2, "0")}`;
+    if (key <= currentMonth) yearMonths.push(key);
+  }
+  if (yearMonths.length === 0) return 0;
+  const completed = yearMonths.filter((k) => isMonthComplete(config, monthRecords, k)).length;
+  return completed / yearMonths.length;
 }
 
 export function getReachedMilestones(projection: ProjectionRow[], milestones: number[]): number[] {
