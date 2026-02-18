@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { PlanData, PlanConfig, MonthDeposit, MonthRecord, EMPTY_DEPOSIT, generateMonthKeys, PLAN_START, PLAN_MONTHS } from "@/lib/types";
+import { PlanData, PlanConfig, MonthDeposit, MonthRecord, EMPTY_DEPOSIT, generateMonthKeys, PLAN_START } from "@/lib/types";
 import { loadPlanData, savePlanData, exportPlanJSON, importPlanJSON } from "@/lib/storage";
 
 export function usePlanData() {
@@ -124,6 +124,10 @@ export function usePlanData() {
     return false;
   }, []);
 
+  const updateNotificationSettings = useCallback((settings: PlanData["notificationSettings"]) => {
+    setData((prev) => ({ ...prev, notificationSettings: settings }));
+  }, []);
+
   return {
     data,
     updateConfig,
@@ -135,5 +139,6 @@ export function usePlanData() {
     resetPlan,
     exportJSON,
     importJSON,
+    updateNotificationSettings,
   };
 }

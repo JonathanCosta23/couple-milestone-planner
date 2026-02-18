@@ -6,7 +6,7 @@ export function Hero() {
       <div className="container max-w-3xl mx-auto text-center">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-6">
           <TrendingUp className="w-4 h-4" />
-          <span>Versão 3.0 — Planejamento a Dois</span>
+          <span>V5 — Hábito & Execução</span>
         </div>
         <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-4">
           <span className="text-gradient">Plano do Milhão</span>
