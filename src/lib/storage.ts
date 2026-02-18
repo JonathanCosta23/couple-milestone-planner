@@ -1,6 +1,6 @@
 import { PlanData, DEFAULT_CONFIG, PLAN_START } from "./types";
 
-const STORAGE_KEY = "plano-do-milhao-v5";
+const STORAGE_KEY = "plano-do-milhao-v6";
 
 export function getDefaultPlanData(): PlanData {
   return {
@@ -9,6 +9,7 @@ export function getDefaultPlanData(): PlanData {
     wizardComplete: false,
     startDate: PLAN_START,
     notificationSettings: { monthlyReminder: true, annualReview: false },
+    onboardingComplete: false,
   };
 }
 
@@ -16,13 +17,13 @@ export function loadPlanData(): PlanData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      // Try migrating from v3
-      const v3 = localStorage.getItem("plano-do-milhao-v3");
-      if (v3) {
-        const parsed = JSON.parse(v3) as PlanData;
-        parsed.notificationSettings = { monthlyReminder: true, annualReview: false };
-        // Ensure ages exist
+      // Try migrating from v5
+      const v5 = localStorage.getItem("plano-do-milhao-v5");
+      if (v5) {
+        const parsed = JSON.parse(v5) as PlanData;
+        parsed.notificationSettings = parsed.notificationSettings || { monthlyReminder: true, annualReview: false };
         parsed.config.contributors.forEach((c) => { if (!c.age) c.age = 25; });
+        parsed.onboardingComplete = true; // existing users skip onboarding
         savePlanData(parsed);
         return parsed;
       }

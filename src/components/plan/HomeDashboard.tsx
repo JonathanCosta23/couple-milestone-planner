@@ -1,57 +1,43 @@
 import { useMemo, useState, useEffect } from "react";
-import { PlanConfig, MonthRecord, formatBRL, formatBRLCompact, getCurrentMonthKey, monthKeyToFullLabel, MOTIVATIONAL_MESSAGES, MILESTONES, EMPTY_DEPOSIT } from "@/lib/types";
-import { generateProjection, calculateStreak, calculateSkipMonthCost, getMissedMonths, calculateDelayMonths, getCurrentMonthDeposited, getContributionTotals, getAgeTimeline, getReachedMilestones, isMonthComplete } from "@/lib/calculator";
+import { PlanConfig, MonthRecord, FinancialProfile, EmotionalGoal, EMOTIONAL_GOAL_LABELS, formatBRL, formatBRLCompact, getCurrentMonthKey, monthKeyToFullLabel, MOTIVATIONAL_MESSAGES, MILESTONES, EMPTY_DEPOSIT } from "@/lib/types";
+import { generateProjection, calculateStreak, calculateSkipMonthCost, getMissedMonths, calculateDelayMonths, getCurrentMonthDeposited, getContributionTotals, getAgeTimeline, getReachedMilestones, isMonthComplete, getSavingsRate, getFinancialSafetyMonths } from "@/lib/calculator";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
-  Target, TrendingUp, AlertTriangle, Heart, Flame, Clock,
-  DollarSign, Users, CalendarClock, Trophy, Copy, Sparkles,
+  Target, TrendingUp, AlertTriangle, Heart, Clock,
+  DollarSign, Users, CalendarClock, Trophy, Copy, Sparkles, Shield, PieChart,
 } from "lucide-react";
 import { toast } from "sonner";
+import { AchievementTimeline } from "./AchievementTimeline";
+import { MonthlyInsights } from "./MonthlyInsights";
 
 interface HomeDashboardProps {
   config: PlanConfig;
   monthRecords: MonthRecord[];
   startDate: string;
   onNavigateToTracker: () => void;
+  onOpenQuickDeposit: () => void;
+  profile?: FinancialProfile;
+  emotionalGoal?: EmotionalGoal;
+  emotionalGoalCustom?: string;
 }
 
-// Animated counter hook
 function useAnimatedCounter(target: number, duration: number = 1500) {
   const [value, setValue] = useState(0);
   useEffect(() => {
     if (target === 0) { setValue(0); return; }
     const start = performance.now();
-    const startVal = 0;
     function tick(now: number) {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
-      // Ease out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
-      setValue(startVal + (target - startVal) * eased);
+      setValue(target * eased);
       if (progress < 1) requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
   }, [target, duration]);
   return value;
-}
-
-// Progress Ring SVG
-function ProgressRing({ value, size = 64, stroke = 5, children }: { value: number; size?: number; stroke?: number; children?: React.ReactNode }) {
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - value * circumference;
-  return (
-    <div className="relative inline-flex items-center justify-center">
-      <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="hsl(var(--muted))" strokeWidth={stroke} />
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="hsl(var(--primary))" strokeWidth={stroke}
-          strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="transition-all duration-700 ease-out" />
-      </svg>
-      <div className="absolute flex flex-col items-center">{children}</div>
-    </div>
-  );
 }
 
 function StreakDisplay({ streak }: { streak: number }) {
@@ -69,10 +55,9 @@ function StreakDisplay({ streak }: { streak: number }) {
   );
 }
 
-export function HomeDashboard({ config, monthRecords, startDate, onNavigateToTracker }: HomeDashboardProps) {
+export function HomeDashboard({ config, monthRecords, startDate, onNavigateToTracker, onOpenQuickDeposit, profile, emotionalGoal, emotionalGoalCustom }: HomeDashboardProps) {
   const currentKey = getCurrentMonthKey();
 
-  // Calculations
   const planned = useMemo(() => generateProjection(config, "planned", monthRecords, startDate), [config, monthRecords, startDate]);
   const actual = useMemo(() => generateProjection(config, "actual", monthRecords, startDate), [config, monthRecords, startDate]);
   const streak = useMemo(() => calculateStreak(config, monthRecords, startDate), [config, monthRecords, startDate]);
@@ -83,24 +68,24 @@ export function HomeDashboard({ config, monthRecords, startDate, onNavigateToTra
   const delayMonths = useMemo(() => calculateDelayMonths(config, monthRecords, startDate), [config, monthRecords, startDate]);
   const ageTimeline = useMemo(() => getAgeTimeline(config, monthRecords, startDate), [config, monthRecords, startDate]);
 
-  // Current balance from actual
   const currentActualIdx = monthRecords.length > 0 ? Math.min(monthRecords.length, actual.length) - 1 : -1;
   const currentBalance = currentActualIdx >= 0 ? actual[currentActualIdx].totalBalance : config.initialAmount;
   const animatedBalance = useAnimatedCounter(currentBalance);
 
-  // Months/years to target
   const plannedTargetIdx = planned.findIndex((r) => r.totalBalance >= config.targetAmount);
   const monthsToGoal = plannedTargetIdx >= 0 ? plannedTargetIdx + 1 : config.years * 12;
   const yearsToGoal = Math.ceil(monthsToGoal / 12);
   const targetYear = parseInt(startDate.split("-")[0]) + yearsToGoal;
 
-  // Motivational message (rotates daily)
   const messageIdx = Math.floor(Date.now() / 86400000) % MOTIVATIONAL_MESSAGES.length;
   const motivation = MOTIVATIONAL_MESSAGES[messageIdx];
 
   const isCurrentComplete = isMonthComplete(config, monthRecords, currentKey);
 
-  // Copy deposit values
+  const goalLabel = emotionalGoal
+    ? emotionalGoal === "outro" ? (emotionalGoalCustom || "Objetivo pessoal") : EMOTIONAL_GOAL_LABELS[emotionalGoal]
+    : null;
+
   const handleCopyDeposits = () => {
     const lines = config.contributors
       .filter((c) => c.plannedSelic > 0 || c.plannedCDB > 0)
@@ -111,11 +96,19 @@ export function HomeDashboard({ config, monthRecords, startDate, onNavigateToTra
         return `${c.name}: ${parts.join(" | ")}`;
       });
     navigator.clipboard.writeText(lines.join("\n"));
-    toast.success("Valores copiados para a área de transferência!");
+    toast.success("Valores copiados!");
   };
 
   return (
     <div className="space-y-4">
+      {/* Emotional goal banner */}
+      {goalLabel && (
+        <Card className="glass-card p-3 text-center border-primary/20">
+          <p className="text-xs text-muted-foreground">Plano rumo ao milhão para:</p>
+          <p className="text-sm font-semibold text-primary">{goalLabel}</p>
+        </Card>
+      )}
+
       {/* Motivational banner */}
       <Card className="glass-card p-4 text-center border-primary/20">
         <div className="flex items-center justify-center gap-2 text-sm">
@@ -134,6 +127,24 @@ export function HomeDashboard({ config, monthRecords, startDate, onNavigateToTra
           <StreakDisplay streak={streak} />
         </div>
       </Card>
+
+      {/* Financial Safety Indicators */}
+      {profile && ((profile.incomeJonathan || 0) > 0 || (profile.incomeIsabella || 0) > 0) && (
+        <div className="grid grid-cols-2 gap-3">
+          <Card className="glass-card p-3 text-center">
+            <PieChart className="w-4 h-4 text-primary mx-auto mb-1" />
+            <p className="text-[10px] text-muted-foreground uppercase">Taxa de Poupança</p>
+            <p className="text-lg font-bold text-primary">{(getSavingsRate(profile, config) * 100).toFixed(0)}%</p>
+          </Card>
+          {getFinancialSafetyMonths(profile) > 0 && (
+            <Card className="glass-card p-3 text-center">
+              <Shield className="w-4 h-4 text-accent mx-auto mb-1" />
+              <p className="text-[10px] text-muted-foreground uppercase">Segurança Financeira</p>
+              <p className="text-lg font-bold">{getFinancialSafetyMonths(profile).toFixed(1)} meses</p>
+            </Card>
+          )}
+        </div>
+      )}
 
       {/* Current Month Focus */}
       <Card className="glass-card p-4 space-y-3">
@@ -168,8 +179,8 @@ export function HomeDashboard({ config, monthRecords, startDate, onNavigateToTra
         <Progress value={currentMonth.progress * 100} className="h-2" />
 
         <div className="flex gap-2">
-          <Button size="sm" className="flex-1" onClick={onNavigateToTracker}>
-            <DollarSign className="w-4 h-4 mr-1" /> Registrar depósito
+          <Button size="sm" className="flex-1" onClick={onOpenQuickDeposit}>
+            <DollarSign className="w-4 h-4 mr-1" /> Registrar depósito do mês
           </Button>
           <Button size="sm" variant="outline" onClick={handleCopyDeposits}>
             <Copy className="w-4 h-4" />
@@ -199,7 +210,6 @@ export function HomeDashboard({ config, monthRecords, startDate, onNavigateToTra
           )
         ))}
 
-        {/* Contribution Split */}
         {contributions.some((c) => c.total > 0) && (
           <div className="pt-2 border-t border-border/30 space-y-1">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Contribuição Total</p>
@@ -215,6 +225,9 @@ export function HomeDashboard({ config, monthRecords, startDate, onNavigateToTra
           </div>
         )}
       </Card>
+
+      {/* Monthly Insights */}
+      <MonthlyInsights config={config} monthRecords={monthRecords} startDate={startDate} profile={profile} />
 
       {/* Countdown */}
       <Card className="glass-card p-4">
@@ -249,14 +262,13 @@ export function HomeDashboard({ config, monthRecords, startDate, onNavigateToTra
                 {delayMonths > 0 && <span> — nova previsão: <strong className="text-warning">+{delayMonths} meses</strong></span>}
               </p>
               <p className="text-xs text-muted-foreground">
-                Pular este mês pode custar <strong className="text-foreground">{formatBRL(skipCost)}</strong> no futuro (juros compostos perdidos).
+                Pular este mês pode custar <strong className="text-foreground">{formatBRL(skipCost)}</strong> no futuro.
               </p>
             </div>
           </div>
         </Card>
       )}
 
-      {/* Loss projection — always show for motivation */}
       {missedMonths === 0 && (
         <Card className="glass-card p-4 border-primary/20">
           <div className="flex items-start gap-3">
@@ -264,12 +276,15 @@ export function HomeDashboard({ config, monthRecords, startDate, onNavigateToTra
             <div>
               <p className="text-sm font-semibold">Vocês estão em dia! 🎉</p>
               <p className="text-xs text-muted-foreground">
-                Sabia que pular um único mês custaria <strong className="text-foreground">{formatBRL(skipCost)}</strong> em juros compostos perdidos? Continue assim!
+                Pular um mês custaria <strong className="text-foreground">{formatBRL(skipCost)}</strong> em juros compostos. Continue assim!
               </p>
             </div>
           </div>
         </Card>
       )}
+
+      {/* Achievement Timeline */}
+      <AchievementTimeline config={config} monthRecords={monthRecords} startDate={startDate} />
 
       {/* Age Timeline */}
       {ageTimeline.length > 0 && (
@@ -279,7 +294,6 @@ export function HomeDashboard({ config, monthRecords, startDate, onNavigateToTra
             <h3 className="font-semibold text-sm">Patrimônio por Idade</h3>
           </div>
           <div className="space-y-2">
-            {/* Group by age */}
             {Array.from(new Set(ageTimeline.map((t) => t.age))).map((age) => {
               const items = ageTimeline.filter((t) => t.age === age);
               return (
