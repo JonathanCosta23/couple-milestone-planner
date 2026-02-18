@@ -2,24 +2,30 @@ import { useState, useMemo, useRef } from "react";
 import { usePlanData } from "@/hooks/usePlanData";
 import { Hero } from "@/components/plan/Hero";
 import { Wizard } from "@/components/plan/Wizard";
+import { HomeDashboard } from "@/components/plan/HomeDashboard";
 import { Dashboard } from "@/components/plan/Dashboard";
 import { MonthlyTracker } from "@/components/plan/MonthlyTracker";
 import { MilestoneAlert } from "@/components/plan/MilestoneAlert";
 import { HowToUse } from "@/components/plan/HowToUse";
+import { NotificationSettings } from "@/components/plan/NotificationSettings";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { generateProjection, getReachedMilestones } from "@/lib/calculator";
 import { MILESTONES } from "@/lib/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Download, Upload, RotateCcw, Calculator, CalendarCheck } from "lucide-react";
+import { Download, Upload, RotateCcw, Calculator, CalendarCheck, Home } from "lucide-react";
 import { toast } from "sonner";
 
 const Index = () => {
-  const { data, completeWizard, updateConfig, updateMonthRecord, updateMonthNotes, toggleMonthCompleted, generateAutoPlan, resetPlan, exportJSON, importJSON } = usePlanData();
+  const {
+    data, completeWizard, updateConfig, updateMonthRecord, updateMonthNotes,
+    toggleMonthCompleted, generateAutoPlan, resetPlan, exportJSON, importJSON,
+    updateNotificationSettings,
+  } = usePlanData();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dismissedMilestones, setDismissedMilestones] = useState<number[]>([]);
+  const [activeTab, setActiveTab] = useState("home");
 
-  // Check for new milestones
   const planned = useMemo(
     () => data.wizardComplete ? generateProjection(data.config, "planned", data.monthRecords, data.startDate) : [],
     [data]
@@ -87,17 +93,36 @@ const Index = () => {
         {!data.wizardComplete ? (
           <Wizard onComplete={completeWizard} />
         ) : (
-          <Tabs defaultValue="simulador" className="space-y-6">
-            <TabsList className="w-full grid grid-cols-2 glass-card">
-              <TabsTrigger value="simulador" className="gap-2">
-                <Calculator className="w-4 h-4" />
-                Simulador
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="w-full grid grid-cols-3 glass-card">
+              <TabsTrigger value="home" className="gap-1.5 text-xs sm:text-sm">
+                <Home className="w-4 h-4" />
+                <span className="hidden sm:inline">Início</span>
               </TabsTrigger>
-              <TabsTrigger value="plano" className="gap-2">
+              <TabsTrigger value="simulador" className="gap-1.5 text-xs sm:text-sm">
+                <Calculator className="w-4 h-4" />
+                <span className="hidden sm:inline">Simulador</span>
+              </TabsTrigger>
+              <TabsTrigger value="plano" className="gap-1.5 text-xs sm:text-sm">
                 <CalendarCheck className="w-4 h-4" />
-                Plano Mensal
+                <span className="hidden sm:inline">Plano</span>
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="home">
+              <HomeDashboard
+                config={data.config}
+                monthRecords={data.monthRecords}
+                startDate={data.startDate}
+                onNavigateToTracker={() => setActiveTab("plano")}
+              />
+              <div className="mt-6">
+                <NotificationSettings
+                  settings={data.notificationSettings}
+                  onUpdate={updateNotificationSettings}
+                />
+              </div>
+            </TabsContent>
 
             <TabsContent value="simulador">
               <Dashboard config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />

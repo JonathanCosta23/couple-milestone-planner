@@ -2,14 +2,15 @@ export interface Contributor {
   name: string;
   plannedSelic: number;
   plannedCDB: number;
+  age?: number; // current age for timeline
 }
 
 export interface PlanConfig {
   initialAmount: number;
   targetAmount: number;
   years: number;
-  selicRate: number; // annual decimal, e.g. 0.1315
-  cdbRate: number; // fraction of CDI, e.g. 1.0 = 100%
+  selicRate: number;
+  cdbRate: number;
   contributors: [Contributor, Contributor];
 }
 
@@ -19,10 +20,10 @@ export interface MonthDeposit {
 }
 
 export interface MonthRecord {
-  monthKey: string; // "2025-03"
+  monthKey: string;
   deposits: [MonthDeposit, MonthDeposit];
   notes: string;
-  completed?: boolean; // manual "Mês concluído" toggle
+  completed?: boolean;
 }
 
 export type MonthStatus = "pending" | "partial" | "completed";
@@ -42,7 +43,11 @@ export interface PlanData {
   config: PlanConfig;
   monthRecords: MonthRecord[];
   wizardComplete: boolean;
-  startDate: string; // "2025-03"
+  startDate: string;
+  notificationSettings?: {
+    monthlyReminder: boolean;
+    annualReview: boolean;
+  };
 }
 
 export const MILESTONES = [50_000, 100_000, 250_000, 500_000, 1_000_000];
@@ -50,23 +55,40 @@ export const MILESTONES = [50_000, 100_000, 250_000, 500_000, 1_000_000];
 export const DEFAULT_CONFIG: PlanConfig = {
   initialAmount: 9_000,
   targetAmount: 1_000_000,
-  years: 21, // Jan 2026 – Dec 2046
+  years: 21,
   selicRate: 0.1315,
   cdbRate: 1.0,
   contributors: [
-    { name: "Jonathan", plannedSelic: 1_000, plannedCDB: 500 },
-    { name: "Isabella", plannedSelic: 0, plannedCDB: 0 },
+    { name: "Jonathan", plannedSelic: 1_000, plannedCDB: 500, age: 25 },
+    { name: "Isabella", plannedSelic: 0, plannedCDB: 0, age: 25 },
   ],
 };
 
 export const PLAN_START = "2026-01";
 export const PLAN_END = "2046-12";
-export const PLAN_MONTHS = 252; // Jan 2026 – Dec 2046
+export const PLAN_MONTHS = 252;
 
 export const EMPTY_DEPOSIT: MonthDeposit = { actualSelic: 0, actualCDB: 0 };
 
+export const MOTIVATIONAL_MESSAGES = [
+  "Vocês estão no caminho certo ❤️",
+  "Últimos meses foram consistentes! 🔥",
+  "Pequenos aportes, grandes resultados. 🌱",
+  "O poder dos juros compostos está com vocês! 📈",
+  "Cada mês conta. Vocês estão construindo o futuro! 💪",
+  "Consistência é o segredo do milhão! 🎯",
+  "Juntos vocês vão mais longe! 🚀",
+  "O hábito de investir já está formado! 🏆",
+];
+
 export function formatBRL(value: number): string {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+export function formatBRLCompact(value: number): string {
+  if (value >= 1_000_000) return `R$ ${(value / 1_000_000).toFixed(2)}M`;
+  if (value >= 1_000) return `R$ ${(value / 1_000).toFixed(1)}k`;
+  return formatBRL(value);
 }
 
 export function formatPercent(value: number): string {
@@ -77,6 +99,12 @@ export function monthKeyToLabel(key: string): string {
   const [y, m] = key.split("-");
   const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
   return `${months[parseInt(m) - 1]}/${y}`;
+}
+
+export function monthKeyToFullLabel(key: string): string {
+  const [y, m] = key.split("-");
+  const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  return `${months[parseInt(m) - 1]} de ${y}`;
 }
 
 export function generateMonthKeys(startDate: string, count: number): string[] {
@@ -93,4 +121,10 @@ export function generateMonthKeys(startDate: string, count: number): string[] {
 export function getCurrentMonthKey(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+export function monthsBetween(a: string, b: string): number {
+  const [ay, am] = a.split("-").map(Number);
+  const [by, bm] = b.split("-").map(Number);
+  return (by - ay) * 12 + (bm - am);
 }

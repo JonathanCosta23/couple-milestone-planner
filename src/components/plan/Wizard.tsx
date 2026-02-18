@@ -152,17 +152,38 @@ export function Wizard({ onComplete }: WizardProps) {
             <h2 className="text-xl font-bold">Aportes Mensais por Pessoa</h2>
             {config.contributors.map((c, idx) => (
               <div key={idx} className="p-4 rounded-xl bg-muted/50 space-y-3">
-                <div>
-                  <Label htmlFor={`name-${idx}`}>Nome</Label>
-                  <Input
-                    id={`name-${idx}`}
-                    value={c.name}
-                    onChange={(e) => {
-                      const updated = [...config.contributors] as [typeof c, typeof c];
-                      updated[idx] = { ...c, name: e.target.value };
-                      setConfig({ ...config, contributors: updated });
-                    }}
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor={`name-${idx}`}>Nome</Label>
+                    <Input
+                      id={`name-${idx}`}
+                      value={c.name}
+                      onChange={(e) => {
+                        const updated = [...config.contributors] as [typeof c, typeof c];
+                        updated[idx] = { ...c, name: e.target.value };
+                        setConfig({ ...config, contributors: updated });
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor={`age-${idx}`}>
+                      Idade
+                      <Tip text="Sua idade atual. Usada para projetar patrimônio por idade." />
+                    </Label>
+                    <Input
+                      id={`age-${idx}`}
+                      type="number"
+                      min={16}
+                      max={80}
+                      value={c.age || 25}
+                      onChange={(e) => {
+                        const updated = [...config.contributors] as [typeof c, typeof c];
+                        updated[idx] = { ...c, age: Number(e.target.value) || 25 };
+                        setConfig({ ...config, contributors: updated });
+                      }}
+                      className="text-right"
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>

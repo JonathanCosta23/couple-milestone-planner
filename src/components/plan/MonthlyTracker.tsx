@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   CheckCircle2, Circle, AlertCircle, Flame, Percent, ChevronLeft, ChevronRight,
-  Filter, StickyNote, Wand2, ChevronDown, ChevronUp,
+  Filter, StickyNote, Wand2, ChevronDown, ChevronUp, Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -132,8 +132,12 @@ export function MonthlyTracker({
     <div className="space-y-6">
       {/* Stats bar */}
       <div className="grid grid-cols-3 gap-3">
-        <Card className="glass-card p-3 flex items-center gap-3">
-          <Flame className="w-5 h-5 text-warning shrink-0" />
+        <Card className="glass-card p-3 flex items-center gap-2">
+          <div className="flex -space-x-0.5">
+            {Array.from({ length: Math.min(Math.max(1, streak), 3) }).map((_, i) => (
+              <span key={i} className="text-base" style={{ opacity: streak > 0 ? 1 : 0.3 }}>🔥</span>
+            ))}
+          </div>
           <div className="min-w-0">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Sequência</p>
             <p className="text-lg font-bold leading-tight">{streak}</p>
@@ -365,17 +369,39 @@ function MonthCard({
             );
           })}
 
-          {/* Completed toggle */}
+          {/* Completed toggle + Copy */}
           <div className="flex items-center justify-between py-2 px-1">
             <Label htmlFor={`toggle-${monthKey}`} className="text-sm font-medium cursor-pointer flex items-center gap-2">
               <CheckCircle2 className={`w-4 h-4 ${record?.completed ? "text-primary" : "text-muted-foreground"}`} />
               Mês concluído
             </Label>
-            <Switch
-              id={`toggle-${monthKey}`}
-              checked={!!record?.completed}
-              onCheckedChange={() => onToggleCompleted(monthKey)}
-            />
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const lines = config.contributors
+                    .filter((c) => c.plannedSelic > 0 || c.plannedCDB > 0)
+                    .map((c) => {
+                      const parts: string[] = [];
+                      if (c.plannedSelic > 0) parts.push(`Selic: ${formatBRL(c.plannedSelic)}`);
+                      if (c.plannedCDB > 0) parts.push(`CDB: ${formatBRL(c.plannedCDB)}`);
+                      return `${c.name}: ${parts.join(" | ")}`;
+                    });
+                  navigator.clipboard.writeText(lines.join("\n"));
+                  toast.success("Valores copiados!");
+                }}
+              >
+                <Copy className="w-3 h-3 mr-1" /> Copiar
+              </Button>
+              <Switch
+                id={`toggle-${monthKey}`}
+                checked={!!record?.completed}
+                onCheckedChange={() => onToggleCompleted(monthKey)}
+              />
+            </div>
           </div>
 
           {/* Notes */}

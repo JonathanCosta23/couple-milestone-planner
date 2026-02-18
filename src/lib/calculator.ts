@@ -1,4 +1,4 @@
-import { PlanConfig, MonthRecord, MonthDeposit, MonthStatus, ProjectionRow, generateMonthKeys, EMPTY_DEPOSIT } from "./types";
+import { PlanConfig, MonthRecord, MonthDeposit, MonthStatus, ProjectionRow, generateMonthKeys, getCurrentMonthKey, EMPTY_DEPOSIT, monthsBetween } from "./types";
 
 function monthlyRate(annualRate: number): number {
   return Math.pow(1 + annualRate, 1 / 12) - 1;
@@ -18,7 +18,6 @@ export function generateProjection(
   const totalPlannedSelic = config.contributors[0].plannedSelic + config.contributors[1].plannedSelic;
   const totalPlannedCDB = config.contributors[0].plannedCDB + config.contributors[1].plannedCDB;
 
-  // Initial split: half in each (or all selic if no CDB planned)
   const initialSelic = totalPlannedCDB > 0 ? config.initialAmount / 2 : config.initialAmount;
   const initialCDB = totalPlannedCDB > 0 ? config.initialAmount / 2 : 0;
 
@@ -42,7 +41,6 @@ export function generateProjection(
       depositCDB = totalPlannedCDB;
     }
 
-    // Apply interest then deposit
     selicBal = selicBal * (1 + mSelic) + depositSelic;
     cdbBal = cdbBal * (1 + mCDB) + depositCDB;
     totalDeposited += depositSelic + depositCDB;
@@ -68,8 +66,7 @@ export function calculateStreak(
   monthRecords: MonthRecord[],
   startDate: string
 ): number {
-  const now = new Date();
-  const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const currentKey = getCurrentMonthKey();
   const allKeys = generateMonthKeys(startDate, config.years * 12);
   const pastKeys = allKeys.filter((k) => k <= currentKey);
 
@@ -89,8 +86,7 @@ export function calculateCompletionRate(
   monthRecords: MonthRecord[],
   startDate: string
 ): number {
-  const now = new Date();
-  const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const currentKey = getCurrentMonthKey();
   const allKeys = generateMonthKeys(startDate, config.years * 12);
   const pastKeys = allKeys.filter((k) => k <= currentKey).slice(-12);
 
@@ -125,7 +121,6 @@ export function getMonthStatus(
   if (!record) return "pending";
   if (record.completed) return "completed";
 
-  // Check if any actual deposit > 0
   const hasAnyDeposit = record.deposits.some(
     (d) => d.actualSelic > 0 || d.actualCDB > 0
   );
@@ -147,7 +142,7 @@ export function calculateYearCompletion(
   monthRecords: MonthRecord[],
   year: string
 ): number {
-  const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+  const currentMonth = getCurrentMonthKey();
   const yearMonths: string[] = [];
   for (let m = 1; m <= 12; m++) {
     const key = `${year}-${String(m).padStart(2, "0")}`;
@@ -162,4 +157,133 @@ export function getReachedMilestones(projection: ProjectionRow[], milestones: nu
   if (projection.length === 0) return [];
   const maxBalance = Math.max(...projection.map((r) => r.totalBalance));
   return milestones.filter((m) => maxBalance >= m);
+}
+
+// ===== V5: Delay Impact Engine =====
+
+export function calculateMonthsToTarget(
+  config: PlanConfig,
+  mode: "planned" | "actual",
+  monthRecords: MonthRecord[],
+  startDate: string
+): number | null {
+  const projection = generateProjection(config, mode, monthRecords, startDate);
+  const idx = projection.findIndex((r) => r.totalBalance >= config.targetAmount);
+  return idx >= 0 ? idx + 1 : null;
+}
+
+export function calculateDelayMonths(
+  config: PlanConfig,
+  monthRecords: MonthRecord[],
+  startDate: string
+): number {
+  const planned = calculateMonthsToTarget(config, "planned", monthRecords, startDate);
+  const actual = calculateMonthsToTarget(config, "actual", monthRecords, startDate);
+  if (!planned || !actual) return 0;
+  return Math.max(0, actual - planned);
+}
+
+export function calculateSkipMonthCost(config: PlanConfig): number {
+  // Cost of skipping one month = that deposit + all compound interest it would have generated
+  const totalMonthly = config.contributors.reduce((s, c) => s + c.plannedSelic + c.plannedCDB, 0);
+  const avgRate = monthlyRate(config.selicRate);
+  // Future value of one month's deposit over remaining years
+  const remainingMonths = config.years * 12;
+  return totalMonthly * Math.pow(1 + avgRate, remainingMonths) - totalMonthly;
+}
+
+export function getMissedMonths(
+  config: PlanConfig,
+  monthRecords: MonthRecord[],
+  startDate: string
+): number {
+  const currentKey = getCurrentMonthKey();
+  const allKeys = generateMonthKeys(startDate, config.years * 12);
+  const pastKeys = allKeys.filter((k) => k < currentKey);
+  return pastKeys.filter((k) => !isMonthComplete(config, monthRecords, k)).length;
+}
+
+// ===== V5: Contribution Split =====
+
+export function getContributionTotals(
+  config: PlanConfig,
+  monthRecords: MonthRecord[]
+): { name: string; total: number; percentage: number }[] {
+  const totals = config.contributors.map((c, i) => {
+    const total = monthRecords.reduce((sum, r) => {
+      const d = r.deposits[i] || EMPTY_DEPOSIT;
+      return sum + d.actualSelic + d.actualCDB;
+    }, 0);
+    return { name: c.name, total };
+  });
+
+  const grandTotal = totals.reduce((s, t) => s + t.total, 0);
+  return totals.map((t) => ({
+    ...t,
+    percentage: grandTotal > 0 ? t.total / grandTotal : 0,
+  }));
+}
+
+// ===== V5: Current month helpers =====
+
+export function getCurrentMonthDeposited(
+  config: PlanConfig,
+  monthRecords: MonthRecord[]
+): { total: number; planned: number; remaining: number; progress: number; perPerson: { name: string; deposited: number; planned: number; pct: number }[] } {
+  const currentKey = getCurrentMonthKey();
+  const record = monthRecords.find((r) => r.monthKey === currentKey);
+
+  const planned = config.contributors.reduce((s, c) => s + c.plannedSelic + c.plannedCDB, 0);
+  const perPerson = config.contributors.map((c, i) => {
+    const d = record?.deposits[i] || EMPTY_DEPOSIT;
+    const deposited = d.actualSelic + d.actualCDB;
+    const personPlanned = c.plannedSelic + c.plannedCDB;
+    return {
+      name: c.name,
+      deposited,
+      planned: personPlanned,
+      pct: personPlanned > 0 ? Math.min(1, deposited / personPlanned) : deposited > 0 ? 1 : 0,
+    };
+  });
+
+  const total = perPerson.reduce((s, p) => s + p.deposited, 0);
+  return {
+    total,
+    planned,
+    remaining: Math.max(0, planned - total),
+    progress: planned > 0 ? Math.min(1, total / planned) : 0,
+    perPerson,
+  };
+}
+
+// ===== V5: Age Timeline =====
+
+export function getAgeTimeline(
+  config: PlanConfig,
+  monthRecords: MonthRecord[],
+  startDate: string
+): { age: number; name: string; balance: number; year: number }[] {
+  const projection = generateProjection(config, "planned", monthRecords, startDate);
+  const startYear = parseInt(startDate.split("-")[0]);
+  const milestoneAges = [30, 35, 40, 45, 50, 55, 60];
+  const results: { age: number; name: string; balance: number; year: number }[] = [];
+
+  config.contributors.forEach((c) => {
+    if (!c.age) return;
+    milestoneAges.forEach((targetAge) => {
+      const yearsUntil = targetAge - c.age!;
+      if (yearsUntil <= 0 || yearsUntil > config.years) return;
+      const monthIdx = yearsUntil * 12 - 1;
+      if (monthIdx < projection.length) {
+        results.push({
+          age: targetAge,
+          name: c.name,
+          balance: projection[monthIdx].totalBalance,
+          year: startYear + yearsUntil,
+        });
+      }
+    });
+  });
+
+  return results.sort((a, b) => a.age - b.age || a.name.localeCompare(b.name));
 }
