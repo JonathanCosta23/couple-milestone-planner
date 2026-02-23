@@ -206,9 +206,11 @@ const Index = () => {
           </Tabs>
         )}
 
-        <div className="mt-12">
-          <HowToUse />
-        </div>
+        {data.wizardComplete && (
+          <div className="mt-12">
+            <HowToUse />
+          </div>
+        )}
       </main>
 
       {/* Quick Deposit Modal */}

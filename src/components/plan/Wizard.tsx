@@ -23,16 +23,28 @@ function Tip({ text }: { text: string }) {
 }
 
 function CurrencyInput({ value, onChange, id }: { value: number; onChange: (v: number) => void; id: string }) {
+  const formatToDisplay = (val: number): string => {
+    if (!val) return "";
+    return val.toLocaleString("pt-BR");
+  };
+
+  const parseFromDisplay = (raw: string): number => {
+    const cleaned = raw.replace(/\D/g, "");
+    return Number(cleaned) || 0;
+  };
+
   return (
-    <Input
-      id={id}
-      type="number"
-      min={0}
-      step={100}
-      value={value || ""}
-      onChange={(e) => onChange(Number(e.target.value) || 0)}
-      className="text-right"
-    />
+    <div className="relative">
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+      <Input
+        id={id}
+        type="text"
+        inputMode="numeric"
+        value={formatToDisplay(value)}
+        onChange={(e) => onChange(parseFromDisplay(e.target.value))}
+        className="text-right pl-10"
+      />
+    </div>
   );
 }
 
