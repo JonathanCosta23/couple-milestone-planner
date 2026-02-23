@@ -13,9 +13,11 @@ import { NotificationSettings } from "@/components/plan/NotificationSettings";
 import { ScenarioSimulator } from "@/components/plan/ScenarioSimulator";
 import { SharePlan } from "@/components/plan/SharePlan";
 import { QuickDeposit } from "@/components/plan/QuickDeposit";
+import { ImportDialog } from "@/components/plan/ImportDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { generateProjection, getReachedMilestones } from "@/lib/calculator";
 import { MILESTONES, EMOTIONAL_GOAL_LABELS } from "@/lib/types";
+import { parseImportJSON, saveBackup, ImportPreview } from "@/lib/storage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Download, Upload, RotateCcw, Calculator, CalendarCheck, Home, Settings } from "lucide-react";
@@ -32,6 +34,8 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("home");
   const [showQuickDeposit, setShowQuickDeposit] = useState(false);
   const [showFinancialSetup, setShowFinancialSetup] = useState(false);
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   const planned = useMemo(
     () => data.wizardComplete ? generateProjection(data.config, "planned", data.monthRecords, data.startDate) : [],
@@ -62,14 +66,22 @@ const Index = () => {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const result = ev.target?.result as string;
-      if (importJSON(result)) {
-        toast.success("Plano importado com sucesso!");
-      } else {
-        toast.error("Arquivo inválido. Verifique o formato JSON.");
-      }
+      const preview = parseImportJSON(result);
+      setImportPreview(preview);
+      setShowImportDialog(true);
     };
     reader.readAsText(file);
     e.target.value = "";
+  };
+
+  const handleConfirmImport = () => {
+    if (importPreview?.valid && importPreview.data) {
+      saveBackup(data);
+      importJSON(JSON.stringify(importPreview.data));
+      toast.success("Plano importado com sucesso! Backup salvo automaticamente.");
+    }
+    setShowImportDialog(false);
+    setImportPreview(null);
   };
 
   // Show onboarding for first-time users
@@ -221,6 +233,13 @@ const Index = () => {
         monthRecords={data.monthRecords}
         onUpdateMonth={updateMonthRecord}
         onToggleCompleted={toggleMonthCompleted}
+      />
+
+      <ImportDialog
+        open={showImportDialog}
+        onOpenChange={(open) => { setShowImportDialog(open); if (!open) setImportPreview(null); }}
+        preview={importPreview}
+        onConfirm={handleConfirmImport}
       />
 
       <MilestoneAlert

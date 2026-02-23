@@ -63,7 +63,17 @@ export const EMOTIONAL_GOAL_LABELS: Record<EmotionalGoal, string> = {
   "outro": "Outro",
 };
 
+export const CURRENT_SCHEMA_VERSION = "6.1.0";
+
+export interface PlanDataExportMeta {
+  schemaVersion: string;
+  exportedAt: string;
+  planStart?: string;
+  planEnd?: string;
+}
+
 export interface PlanData {
+  schemaVersion?: string;
   config: PlanConfig;
   monthRecords: MonthRecord[];
   wizardComplete: boolean;
