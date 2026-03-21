@@ -1,16 +1,22 @@
 import { useState, useMemo, useRef } from "react";
 import { usePlanData } from "@/hooks/usePlanData";
+import { useAppData } from "@/hooks/useAppData";
 import { Hero } from "@/components/plan/Hero";
 import { Onboarding } from "@/components/plan/Onboarding";
 import { FinancialProfileSetup } from "@/components/plan/FinancialProfileSetup";
 import { Wizard } from "@/components/plan/Wizard";
-import { HomeDashboard } from "@/components/plan/HomeDashboard";
+import { StrategicHome } from "@/components/plan/StrategicHome";
+import { FinancialDiagnostic } from "@/components/plan/FinancialDiagnostic";
+import { JourneyPhases } from "@/components/plan/JourneyPhases";
+import { InvestmentGuide } from "@/components/plan/InvestmentGuide";
+import { AdvancedSimulator } from "@/components/plan/AdvancedSimulator";
+import { IncomePanel } from "@/components/plan/IncomePanel";
+import { WealthDistribution } from "@/components/plan/WealthDistribution";
 import { Dashboard } from "@/components/plan/Dashboard";
 import { MonthlyTracker } from "@/components/plan/MonthlyTracker";
 import { MilestoneAlert } from "@/components/plan/MilestoneAlert";
 import { HowToUse } from "@/components/plan/HowToUse";
 import { NotificationSettings } from "@/components/plan/NotificationSettings";
-import { ScenarioSimulator } from "@/components/plan/ScenarioSimulator";
 import { SharePlan } from "@/components/plan/SharePlan";
 import { QuickDeposit } from "@/components/plan/QuickDeposit";
 import { ImportDialog } from "@/components/plan/ImportDialog";
@@ -20,7 +26,10 @@ import { MILESTONES, EMOTIONAL_GOAL_LABELS } from "@/lib/types";
 import { parseImportJSON, saveBackup, ImportPreview } from "@/lib/storage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Download, Upload, RotateCcw, Calculator, CalendarCheck, Home, Settings } from "lucide-react";
+import {
+  Download, Upload, RotateCcw, Home, Activity, Map, BookOpen,
+  Calculator, DollarSign, PieChart, CalendarCheck, Settings,
+} from "lucide-react";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -29,6 +38,11 @@ const Index = () => {
     toggleMonthCompleted, generateAutoPlan, generateNextYear, resetPlan, exportJSON, importJSON,
     updateNotificationSettings, updateFinancialProfile, completeOnboarding,
   } = usePlanData();
+
+  const {
+    appData, addIncome, updateIncome, deleteIncome,
+  } = useAppData();
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dismissedMilestones, setDismissedMilestones] = useState<number[]>([]);
   const [activeTab, setActiveTab] = useState("home");
@@ -89,7 +103,7 @@ const Index = () => {
     return <Onboarding onComplete={completeOnboarding} />;
   }
 
-  // Show financial profile setup after wizard if not yet configured
+  // Show financial profile setup
   if (showFinancialSetup) {
     return (
       <div className="min-h-screen bg-background">
@@ -157,31 +171,54 @@ const Index = () => {
           }} />
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="w-full grid grid-cols-3 glass-card">
-              <TabsTrigger value="home" className="gap-1.5 text-xs sm:text-sm">
-                <Home className="w-4 h-4" />
-                <span className="hidden sm:inline">Início</span>
-              </TabsTrigger>
-              <TabsTrigger value="simulador" className="gap-1.5 text-xs sm:text-sm">
-                <Calculator className="w-4 h-4" />
-                <span className="hidden sm:inline">Simulador</span>
-              </TabsTrigger>
-              <TabsTrigger value="plano" className="gap-1.5 text-xs sm:text-sm">
-                <CalendarCheck className="w-4 h-4" />
-                <span className="hidden sm:inline">Plano</span>
-              </TabsTrigger>
-            </TabsList>
+            {/* Navigation — 2 rows for all tabs */}
+            <div className="space-y-1.5">
+              <TabsList className="w-full grid grid-cols-4 glass-card h-9">
+                <TabsTrigger value="home" className="gap-1 text-[10px] sm:text-xs px-1">
+                  <Home className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Início</span>
+                </TabsTrigger>
+                <TabsTrigger value="diagnostico" className="gap-1 text-[10px] sm:text-xs px-1">
+                  <Activity className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Diagnóstico</span>
+                </TabsTrigger>
+                <TabsTrigger value="jornada" className="gap-1 text-[10px] sm:text-xs px-1">
+                  <Map className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Jornada</span>
+                </TabsTrigger>
+                <TabsTrigger value="simulador" className="gap-1 text-[10px] sm:text-xs px-1">
+                  <Calculator className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Simulador</span>
+                </TabsTrigger>
+              </TabsList>
+              <TabsList className="w-full grid grid-cols-4 glass-card h-9">
+                <TabsTrigger value="investir" className="gap-1 text-[10px] sm:text-xs px-1">
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Investir</span>
+                </TabsTrigger>
+                <TabsTrigger value="renda" className="gap-1 text-[10px] sm:text-xs px-1">
+                  <DollarSign className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Renda</span>
+                </TabsTrigger>
+                <TabsTrigger value="patrimonio" className="gap-1 text-[10px] sm:text-xs px-1">
+                  <PieChart className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Patrimônio</span>
+                </TabsTrigger>
+                <TabsTrigger value="plano" className="gap-1 text-[10px] sm:text-xs px-1">
+                  <CalendarCheck className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Plano</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="home">
-              <HomeDashboard
+              <StrategicHome
+                appData={appData}
                 config={data.config}
                 monthRecords={data.monthRecords}
                 startDate={data.startDate}
-                onNavigateToTracker={() => setActiveTab("plano")}
+                onNavigateToTab={setActiveTab}
                 onOpenQuickDeposit={() => setShowQuickDeposit(true)}
-                profile={data.financialProfile}
-                emotionalGoal={data.emotionalGoal}
-                emotionalGoalCustom={data.emotionalGoalCustom}
               />
               <div className="mt-6 space-y-4">
                 <SharePlan
@@ -199,9 +236,51 @@ const Index = () => {
               </div>
             </TabsContent>
 
+            <TabsContent value="diagnostico">
+              <FinancialDiagnostic
+                appData={appData}
+                config={data.config}
+                monthRecords={data.monthRecords}
+                startDate={data.startDate}
+              />
+            </TabsContent>
+
+            <TabsContent value="jornada">
+              <JourneyPhases
+                appData={appData}
+                config={data.config}
+                monthRecords={data.monthRecords}
+                startDate={data.startDate}
+              />
+            </TabsContent>
+
             <TabsContent value="simulador" className="space-y-6">
+              <AdvancedSimulator
+                config={data.config}
+                monthRecords={data.monthRecords}
+                startDate={data.startDate}
+              />
               <Dashboard config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
-              <ScenarioSimulator config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+            </TabsContent>
+
+            <TabsContent value="investir">
+              <InvestmentGuide />
+            </TabsContent>
+
+            <TabsContent value="renda">
+              <IncomePanel
+                appData={appData}
+                config={data.config}
+                monthRecords={data.monthRecords}
+                startDate={data.startDate}
+                onAddIncome={addIncome}
+                onUpdateIncome={updateIncome}
+                onDeleteIncome={deleteIncome}
+              />
+            </TabsContent>
+
+            <TabsContent value="patrimonio">
+              <WealthDistribution appData={appData} config={data.config} />
             </TabsContent>
 
             <TabsContent value="plano">
