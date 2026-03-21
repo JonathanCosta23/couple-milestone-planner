@@ -83,7 +83,7 @@ export function useAppData() {
     return (item: T) => {
       setAppData((prev) => ({
         ...prev,
-        [key]: [...(prev[key] as T[]), item],
+        [key]: [...(prev[key] as unknown as T[]), item],
       }));
     };
   }
@@ -92,7 +92,7 @@ export function useAppData() {
     return (id: string, updates: Partial<T>) => {
       setAppData((prev) => ({
         ...prev,
-        [key]: (prev[key] as T[]).map((item) =>
+        [key]: (prev[key] as unknown as T[]).map((item) =>
           item.id === id ? { ...item, ...updates, updatedAt: new Date().toISOString() } : item
         ),
       }));
@@ -103,7 +103,7 @@ export function useAppData() {
     return (id: string) => {
       setAppData((prev) => ({
         ...prev,
-        [key]: (prev[key] as T[]).filter((item) => item.id !== id),
+        [key]: (prev[key] as unknown as T[]).filter((item) => item.id !== id),
       }));
     };
   }
