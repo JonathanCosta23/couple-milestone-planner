@@ -20,6 +20,10 @@ import { NotificationSettings } from "@/components/plan/NotificationSettings";
 import { SharePlan } from "@/components/plan/SharePlan";
 import { QuickDeposit } from "@/components/plan/QuickDeposit";
 import { ImportDialog } from "@/components/plan/ImportDialog";
+import { BehavioralPanel } from "@/components/plan/BehavioralPanel";
+import { TrapDetector } from "@/components/plan/TrapDetector";
+import { FinancialGlossary } from "@/components/plan/FinancialGlossary";
+import { MiniLessons } from "@/components/plan/MiniLessons";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { generateProjection, getReachedMilestones } from "@/lib/calculator";
 import { MILESTONES, EMOTIONAL_GOAL_LABELS } from "@/lib/types";
@@ -29,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import {
   Download, Upload, RotateCcw, Home, Activity, Map, BookOpen,
   Calculator, DollarSign, PieChart, CalendarCheck, Settings,
+  Brain, ShieldAlert, GraduationCap,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -98,12 +103,10 @@ const Index = () => {
     setImportPreview(null);
   };
 
-  // Show onboarding for first-time users
   if (!data.onboardingComplete) {
     return <Onboarding onComplete={completeOnboarding} />;
   }
 
-  // Show financial profile setup
   if (showFinancialSetup) {
     return (
       <div className="min-h-screen bg-background">
@@ -132,7 +135,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top bar */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
         <div className="container flex items-center justify-between h-14 px-4">
           <h1 className="text-sm font-bold text-gradient">Plano do Milhão</h1>
@@ -171,7 +173,7 @@ const Index = () => {
           }} />
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            {/* Navigation — 2 rows for all tabs */}
+            {/* Navigation — 3 rows */}
             <div className="space-y-1.5">
               <TabsList className="w-full grid grid-cols-4 glass-card h-9">
                 <TabsTrigger value="home" className="gap-1 text-[10px] sm:text-xs px-1">
@@ -207,6 +209,24 @@ const Index = () => {
                 <TabsTrigger value="plano" className="gap-1 text-[10px] sm:text-xs px-1">
                   <CalendarCheck className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Plano</span>
+                </TabsTrigger>
+              </TabsList>
+              <TabsList className="w-full grid grid-cols-4 glass-card h-9">
+                <TabsTrigger value="comportamento" className="gap-1 text-[10px] sm:text-xs px-1">
+                  <Brain className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Hábitos</span>
+                </TabsTrigger>
+                <TabsTrigger value="armadilhas" className="gap-1 text-[10px] sm:text-xs px-1">
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Armadilhas</span>
+                </TabsTrigger>
+                <TabsTrigger value="aprender" className="gap-1 text-[10px] sm:text-xs px-1">
+                  <GraduationCap className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Aprender</span>
+                </TabsTrigger>
+                <TabsTrigger value="glossario" className="gap-1 text-[10px] sm:text-xs px-1">
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Glossário</span>
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -294,6 +314,27 @@ const Index = () => {
                 onGenerateAutoPlan={generateAutoPlan}
               />
             </TabsContent>
+
+            <TabsContent value="comportamento">
+              <BehavioralPanel
+                appData={appData}
+                config={data.config}
+                monthRecords={data.monthRecords}
+                startDate={data.startDate}
+              />
+            </TabsContent>
+
+            <TabsContent value="armadilhas">
+              <TrapDetector />
+            </TabsContent>
+
+            <TabsContent value="aprender">
+              <MiniLessons />
+            </TabsContent>
+
+            <TabsContent value="glossario">
+              <FinancialGlossary />
+            </TabsContent>
           </Tabs>
         )}
 
@@ -304,7 +345,6 @@ const Index = () => {
         )}
       </main>
 
-      {/* Quick Deposit Modal */}
       <QuickDeposit
         open={showQuickDeposit}
         onOpenChange={setShowQuickDeposit}
