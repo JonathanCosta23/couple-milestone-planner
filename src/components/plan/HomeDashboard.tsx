@@ -1,330 +1,201 @@
-import { useMemo, useState, useEffect } from "react";
-import { PlanConfig, MonthRecord, FinancialProfile, EmotionalGoal, EMOTIONAL_GOAL_LABELS, formatBRL, formatBRLCompact, getCurrentMonthKey, monthKeyToFullLabel, MOTIVATIONAL_MESSAGES, MILESTONES, EMPTY_DEPOSIT } from "@/lib/types";
-import { generateProjection, calculateStreak, calculateSkipMonthCost, getMissedMonths, calculateDelayMonths, getCurrentMonthDeposited, getContributionTotals, getAgeTimeline, getReachedMilestones, isMonthComplete, getSavingsRate, getFinancialSafetyMonths } from "@/lib/calculator";
+import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { AppData, EXPENSE_CATEGORY_ICONS, EXPENSE_CATEGORY_LABELS, ExpenseCategory } from "@/lib/models";
+import { PlanConfig, MonthRecord, formatBRL, formatBRLCompact, getCurrentMonthKey, monthKeyToFullLabel } from "@/lib/types";
+import { calculateHealthScore, calculateDiagnostic } from "@/lib/financialEngine";
+import { calculateStreak, getCurrentMonthDeposited } from "@/lib/calculator";
 import {
-  Target, TrendingUp, AlertTriangle, Heart, Clock,
-  DollarSign, Users, CalendarClock, Trophy, Copy, Sparkles, Shield, PieChart,
+  Activity, DollarSign, Wallet, CreditCard, AlertTriangle,
+  TrendingUp, Shield, Target, CalendarClock, ArrowRight,
 } from "lucide-react";
-import { toast } from "sonner";
-import { AchievementTimeline } from "./AchievementTimeline";
-import { MonthlyInsights } from "./MonthlyInsights";
 
-interface HomeDashboardProps {
+interface Props {
+  appData: AppData;
   config: PlanConfig;
   monthRecords: MonthRecord[];
   startDate: string;
-  onNavigateToTracker: () => void;
+  onNavigateToTab: (tab: string) => void;
   onOpenQuickDeposit: () => void;
-  profile?: FinancialProfile;
-  emotionalGoal?: EmotionalGoal;
-  emotionalGoalCustom?: string;
 }
 
-function useAnimatedCounter(target: number, duration: number = 1500) {
-  const [value, setValue] = useState(0);
-  useEffect(() => {
-    if (target === 0) { setValue(0); return; }
-    const start = performance.now();
-    function tick(now: number) {
-      const elapsed = now - start;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setValue(target * eased);
-      if (progress < 1) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  }, [target, duration]);
-  return value;
-}
+export function HomeDashboard({ appData, config, monthRecords, startDate, onNavigateToTab, onOpenQuickDeposit }: Props) {
+  const currentKey = getCurrentMonthKey();
+  const score = useMemo(() => calculateHealthScore(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
+  const diag = useMemo(() => calculateDiagnostic(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
+  const currentMonth = useMemo(() => getCurrentMonthDeposited(config, monthRecords), [config, monthRecords]);
+  const streak = useMemo(() => calculateStreak(config, monthRecords, startDate), [config, monthRecords, startDate]);
 
-function StreakDisplay({ streak }: { streak: number }) {
-  const flames = Math.min(streak, 5);
+  const totalIncome = appData.incomes.filter(i => i.active).reduce((s, i) => s + i.amount, 0);
+  const monthExpenses = appData.expenses.filter(e => e.monthKey === currentKey);
+  const totalExpenses = monthExpenses.reduce((s, e) => s + e.amount, 0);
+  const fixedExpenses = monthExpenses.filter(e => e.type === "fixed").reduce((s, e) => s + e.amount, 0);
+  const variableExpenses = monthExpenses.filter(e => e.type === "variable").reduce((s, e) => s + e.amount, 0);
+  const totalDebtPayments = appData.debts.filter(d => d.active).reduce((s, d) => s + d.monthlyPayment, 0);
+  const balance = totalIncome - totalExpenses - totalDebtPayments;
+
+  const cardExpenses = monthExpenses.filter(e => e.category === "cartao").reduce((s, e) => s + e.amount, 0);
+
+  const today = new Date();
+  const upcomingDebts = appData.debts
+    .filter(d => d.active && d.dueDay >= today.getDate())
+    .sort((a, b) => a.dueDay - b.dueDay)
+    .slice(0, 3);
+  const upcomingExpenses = monthExpenses
+    .filter(e => e.status === "pending" && e.dueDate)
+    .sort((a, b) => (a.dueDate || "").localeCompare(b.dueDate || ""))
+    .slice(0, 3);
+
+  const byCategory: Partial<Record<ExpenseCategory, number>> = {};
+  monthExpenses.forEach(e => { byCategory[e.category] = (byCategory[e.category] || 0) + e.amount; });
+  const topCategories = Object.entries(byCategory).sort(([, a], [, b]) => (b as number) - (a as number)).slice(0, 4);
+
+  const scoreColor = score.total >= 70 ? "text-primary" : score.total >= 40 ? "text-warning" : "text-destructive";
+
   return (
-    <div className="flex items-center gap-1.5">
-      <div className="flex -space-x-1">
-        {Array.from({ length: Math.max(1, flames) }).map((_, i) => (
-          <span key={i} className="text-lg" style={{ opacity: streak > 0 ? 1 : 0.3 }}>🔥</span>
-        ))}
+    <div className="space-y-4">
+      <div className="text-center">
+        <p className="text-xs text-muted-foreground uppercase tracking-wider">{monthKeyToFullLabel(currentKey)}</p>
+        <p className="text-lg font-bold mt-0.5">Visão Geral do Mês</p>
       </div>
-      <span className="text-2xl font-bold">{streak}</span>
-      <span className="text-xs text-muted-foreground">{streak === 1 ? "mês" : "meses"}</span>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Card className="glass-card p-4 text-center cursor-pointer hover:ring-1 hover:ring-primary/20" onClick={() => onNavigateToTab("diagnostico")}>
+          <Activity className={`w-5 h-5 mx-auto mb-1 ${scoreColor}`} />
+          <p className={`text-3xl font-extrabold ${scoreColor}`}>{score.total}</p>
+          <p className="text-[10px] text-muted-foreground uppercase">Score</p>
+        </Card>
+        <Card className="glass-card p-4 text-center">
+          <Target className="w-5 h-5 mx-auto mb-1 text-primary" />
+          <p className="text-lg font-extrabold text-gradient">
+            {((diag.investedWealth / config.targetAmount) * 100).toFixed(1)}%
+          </p>
+          <p className="text-[10px] text-muted-foreground uppercase">Rumo ao Milhão</p>
+          <Progress value={Math.min(100, (diag.investedWealth / config.targetAmount) * 100)} className="h-1 mt-2" />
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        <StatCard icon={DollarSign} label="Receita" value={formatBRLCompact(totalIncome)} color="text-primary" onClick={() => onNavigateToTab("renda")} />
+        <StatCard icon={Wallet} label="Despesas" value={formatBRLCompact(totalExpenses)} color="text-foreground" onClick={() => onNavigateToTab("gastos")} />
+        <StatCard icon={TrendingUp} label="Saldo" value={formatBRLCompact(balance)} color={balance >= 0 ? "text-primary" : "text-destructive"} />
+      </div>
+
+      <div className="grid grid-cols-4 gap-2">
+        <MiniCard label="Fixos" value={formatBRLCompact(fixedExpenses)} />
+        <MiniCard label="Variáveis" value={formatBRLCompact(variableExpenses)} />
+        <MiniCard label="Dívidas" value={formatBRLCompact(totalDebtPayments)} accent={totalDebtPayments > 0 ? "text-destructive" : undefined} />
+        <MiniCard label="Cartão" value={formatBRLCompact(cardExpenses)} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <Card className="glass-card p-3 text-center cursor-pointer hover:ring-1 hover:ring-primary/20" onClick={() => onNavigateToTab("patrimonio")}>
+          <p className="text-sm font-bold">{formatBRLCompact(diag.investedWealth)}</p>
+          <p className="text-[9px] text-muted-foreground uppercase">Patrimônio Investido</p>
+        </Card>
+        <Card className="glass-card p-3 text-center">
+          <div className="flex items-center justify-center gap-1">
+            <Shield className={`w-3.5 h-3.5 ${diag.emergencyMonths >= 6 ? "text-primary" : diag.emergencyMonths >= 3 ? "text-warning" : "text-destructive"}`} />
+            <p className="text-sm font-bold">{diag.emergencyMonths.toFixed(1)} meses</p>
+          </div>
+          <p className="text-[9px] text-muted-foreground uppercase">Reserva</p>
+        </Card>
+      </div>
+
+      {topCategories.length > 0 && (
+        <Card className="glass-card p-3">
+          <p className="text-xs font-semibold mb-2">Maiores Gastos do Mês</p>
+          <div className="space-y-2">
+            {topCategories.map(([cat, amount]) => (
+              <div key={cat} className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1.5">
+                  <span>{EXPENSE_CATEGORY_ICONS[cat as ExpenseCategory]}</span>
+                  <span>{EXPENSE_CATEGORY_LABELS[cat as ExpenseCategory]}</span>
+                </div>
+                <span className="font-semibold">{formatBRL(amount as number)}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {(upcomingDebts.length > 0 || upcomingExpenses.length > 0) && (
+        <Card className="glass-card p-3">
+          <div className="flex items-center gap-1.5 mb-2">
+            <CalendarClock className="w-4 h-4 text-warning" />
+            <p className="text-xs font-semibold">Próximos Vencimentos</p>
+          </div>
+          <div className="space-y-1.5">
+            {upcomingDebts.map(d => (
+              <div key={d.id} className="flex items-center justify-between text-xs p-1.5 rounded bg-muted/30">
+                <span className="truncate">{d.name}</span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-muted-foreground">dia {d.dueDay}</span>
+                  <span className="font-semibold">{formatBRL(d.monthlyPayment)}</span>
+                </div>
+              </div>
+            ))}
+            {upcomingExpenses.map(e => (
+              <div key={e.id} className="flex items-center justify-between text-xs p-1.5 rounded bg-muted/30">
+                <span className="truncate">{e.name}</span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-muted-foreground">{e.dueDate?.slice(8)}/{e.dueDate?.slice(5, 7)}</span>
+                  <span className="font-semibold">{formatBRL(e.amount)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      <Card className="glass-card p-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🔥</span>
+            <div>
+              <p className="text-sm font-semibold">Aportes do Mês</p>
+              <p className="text-[10px] text-muted-foreground">Sequência: {streak} meses</p>
+            </div>
+          </div>
+          <p className="text-sm font-bold">{(currentMonth.progress * 100).toFixed(0)}%</p>
+        </div>
+        <Progress value={currentMonth.progress * 100} className="h-2 mb-2" />
+        <div className="flex justify-between text-xs text-muted-foreground mb-3">
+          <span>{formatBRL(currentMonth.total)} / {formatBRL(currentMonth.planned)}</span>
+        </div>
+        <Button size="sm" className="w-full" onClick={onOpenQuickDeposit}>
+          <DollarSign className="w-4 h-4 mr-1" /> Registrar depósito
+        </Button>
+      </Card>
+
+      <div className="grid grid-cols-2 gap-2">
+        <Button variant="outline" size="sm" className="text-xs justify-start" onClick={() => onNavigateToTab("gastos")}>
+          <Wallet className="w-3.5 h-3.5 mr-1.5" /> Gerenciar Gastos <ArrowRight className="w-3 h-3 ml-auto" />
+        </Button>
+        <Button variant="outline" size="sm" className="text-xs justify-start" onClick={() => onNavigateToTab("dividas")}>
+          <CreditCard className="w-3.5 h-3.5 mr-1.5" /> Ver Dívidas <ArrowRight className="w-3 h-3 ml-auto" />
+        </Button>
+      </div>
     </div>
   );
 }
 
-export function HomeDashboard({ config, monthRecords, startDate, onNavigateToTracker, onOpenQuickDeposit, profile, emotionalGoal, emotionalGoalCustom }: HomeDashboardProps) {
-  const currentKey = getCurrentMonthKey();
-
-  const planned = useMemo(() => generateProjection(config, "planned", monthRecords, startDate), [config, monthRecords, startDate]);
-  const actual = useMemo(() => generateProjection(config, "actual", monthRecords, startDate), [config, monthRecords, startDate]);
-  const streak = useMemo(() => calculateStreak(config, monthRecords, startDate), [config, monthRecords, startDate]);
-  const currentMonth = useMemo(() => getCurrentMonthDeposited(config, monthRecords), [config, monthRecords]);
-  const contributions = useMemo(() => getContributionTotals(config, monthRecords), [config, monthRecords]);
-  const skipCost = useMemo(() => calculateSkipMonthCost(config), [config]);
-  const missedMonths = useMemo(() => getMissedMonths(config, monthRecords, startDate), [config, monthRecords, startDate]);
-  const delayMonths = useMemo(() => calculateDelayMonths(config, monthRecords, startDate), [config, monthRecords, startDate]);
-  const ageTimeline = useMemo(() => getAgeTimeline(config, monthRecords, startDate), [config, monthRecords, startDate]);
-
-  const currentActualIdx = monthRecords.length > 0 ? Math.min(monthRecords.length, actual.length) - 1 : -1;
-  const currentBalance = currentActualIdx >= 0 ? actual[currentActualIdx].totalBalance : config.initialAmount;
-  const animatedBalance = useAnimatedCounter(currentBalance);
-
-  const plannedTargetIdx = planned.findIndex((r) => r.totalBalance >= config.targetAmount);
-  const monthsToGoal = plannedTargetIdx >= 0 ? plannedTargetIdx + 1 : config.years * 12;
-  const yearsToGoal = Math.ceil(monthsToGoal / 12);
-  const targetYear = parseInt(startDate.split("-")[0]) + yearsToGoal;
-
-  const messageIdx = Math.floor(Date.now() / 86400000) % MOTIVATIONAL_MESSAGES.length;
-  const motivation = MOTIVATIONAL_MESSAGES[messageIdx];
-
-  const isCurrentComplete = isMonthComplete(config, monthRecords, currentKey);
-
-  const goalLabel = emotionalGoal
-    ? emotionalGoal === "outro" ? (emotionalGoalCustom || "Objetivo pessoal") : EMOTIONAL_GOAL_LABELS[emotionalGoal]
-    : null;
-
-  const handleCopyDeposits = () => {
-    const lines = config.contributors
-      .filter((c) => c.plannedSelic > 0 || c.plannedCDB > 0)
-      .map((c) => {
-        const parts: string[] = [];
-        if (c.plannedSelic > 0) parts.push(`Selic: ${formatBRL(c.plannedSelic)}`);
-        if (c.plannedCDB > 0) parts.push(`CDB: ${formatBRL(c.plannedCDB)}`);
-        return `${c.name}: ${parts.join(" | ")}`;
-      });
-    navigator.clipboard.writeText(lines.join("\n"));
-    toast.success("Valores copiados!");
-  };
-
+function StatCard({ icon: Icon, label, value, color, onClick }: { icon: React.ElementType; label: string; value: string; color: string; onClick?: () => void }) {
   return (
-    <div className="space-y-4">
-      {/* Emotional goal banner */}
-      {goalLabel && (
-        <Card className="glass-card p-3 text-center border-primary/20">
-          <p className="text-xs text-muted-foreground">Plano rumo ao milhão para:</p>
-          <p className="text-sm font-semibold text-primary">{goalLabel}</p>
-        </Card>
-      )}
+    <Card className="glass-card p-3 text-center cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all" onClick={onClick}>
+      <Icon className={`w-4 h-4 mx-auto mb-0.5 ${color}`} />
+      <p className={`text-sm font-bold truncate ${color}`}>{value}</p>
+      <p className="text-[9px] text-muted-foreground uppercase">{label}</p>
+    </Card>
+  );
+}
 
-      {/* Motivational banner */}
-      <Card className="glass-card p-4 text-center border-primary/20">
-        <div className="flex items-center justify-center gap-2 text-sm">
-          <Heart className="w-4 h-4 text-primary animate-pulse" />
-          <span className="text-muted-foreground">{motivation}</span>
-        </div>
-      </Card>
-
-      {/* Animated Wealth Counter */}
-      <Card className="glass-card-strong p-6 text-center">
-        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Vocês já acumularam</p>
-        <p className="text-3xl md:text-4xl font-extrabold text-gradient leading-tight">
-          {formatBRL(Math.round(animatedBalance))}
-        </p>
-        <div className="mt-3">
-          <StreakDisplay streak={streak} />
-        </div>
-      </Card>
-
-      {/* Financial Safety Indicators */}
-      {profile && ((profile.incomeJonathan || 0) > 0 || (profile.incomeIsabella || 0) > 0) && (
-        <div className="grid grid-cols-2 gap-3">
-          <Card className="glass-card p-3 text-center">
-            <PieChart className="w-4 h-4 text-primary mx-auto mb-1" />
-            <p className="text-[10px] text-muted-foreground uppercase">Taxa de Poupança</p>
-            <p className="text-lg font-bold text-primary">{(getSavingsRate(profile, config) * 100).toFixed(0)}%</p>
-          </Card>
-          {getFinancialSafetyMonths(profile) > 0 && (
-            <Card className="glass-card p-3 text-center">
-              <Shield className="w-4 h-4 text-accent mx-auto mb-1" />
-              <p className="text-[10px] text-muted-foreground uppercase">Segurança Financeira</p>
-              <p className="text-lg font-bold">{getFinancialSafetyMonths(profile).toFixed(1)} meses</p>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {/* Current Month Focus */}
-      <Card className="glass-card p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Target className="w-5 h-5 text-primary" />
-            <div>
-              <h3 className="font-semibold text-sm">Meta do Mês</h3>
-              <p className="text-xs text-muted-foreground">{monthKeyToFullLabel(currentKey)}</p>
-            </div>
-          </div>
-          {isCurrentComplete && (
-            <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full font-medium">Concluído ✓</span>
-          )}
-        </div>
-
-        <div className="grid grid-cols-3 text-center gap-2">
-          <div>
-            <p className="text-[10px] text-muted-foreground uppercase">Planejado</p>
-            <p className="font-bold text-sm">{formatBRL(currentMonth.planned)}</p>
-          </div>
-          <div>
-            <p className="text-[10px] text-muted-foreground uppercase">Depositado</p>
-            <p className="font-bold text-sm text-primary">{formatBRL(currentMonth.total)}</p>
-          </div>
-          <div>
-            <p className="text-[10px] text-muted-foreground uppercase">Faltam</p>
-            <p className="font-bold text-sm">{formatBRL(currentMonth.remaining)}</p>
-          </div>
-        </div>
-
-        <Progress value={currentMonth.progress * 100} className="h-2" />
-
-        <div className="flex gap-2">
-          <Button size="sm" className="flex-1" onClick={onOpenQuickDeposit}>
-            <DollarSign className="w-4 h-4 mr-1" /> Registrar depósito do mês
-          </Button>
-          <Button size="sm" variant="outline" onClick={handleCopyDeposits}>
-            <Copy className="w-4 h-4" />
-          </Button>
-        </div>
-      </Card>
-
-      {/* Couple Progress */}
-      <Card className="glass-card p-4 space-y-3">
-        <div className="flex items-center gap-2 mb-1">
-          <Users className="w-5 h-5 text-accent" />
-          <h3 className="font-semibold text-sm">Progresso do Casal</h3>
-        </div>
-
-        {currentMonth.perPerson.map((p, i) => (
-          p.planned > 0 && (
-            <div key={i} className="space-y-1">
-              <div className="flex justify-between text-xs">
-                <span className="flex items-center gap-1.5">
-                  <span className={`w-2 h-2 rounded-full ${i === 0 ? "bg-primary" : "bg-accent"}`} />
-                  {p.name}
-                </span>
-                <span className="text-muted-foreground">{(p.pct * 100).toFixed(0)}% este mês</span>
-              </div>
-              <Progress value={p.pct * 100} className="h-1.5" />
-            </div>
-          )
-        ))}
-
-        {contributions.some((c) => c.total > 0) && (
-          <div className="pt-2 border-t border-border/30 space-y-1">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Contribuição Total</p>
-            {contributions.map((c, i) => (
-              <div key={i} className="flex justify-between text-xs">
-                <span className="flex items-center gap-1.5">
-                  <span className={`w-2 h-2 rounded-full ${i === 0 ? "bg-primary" : "bg-accent"}`} />
-                  {c.name}
-                </span>
-                <span>{formatBRL(c.total)} ({(c.percentage * 100).toFixed(0)}%)</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
-
-      {/* Monthly Insights */}
-      <MonthlyInsights config={config} monthRecords={monthRecords} startDate={startDate} profile={profile} />
-
-      {/* Countdown */}
-      <Card className="glass-card p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <CalendarClock className="w-5 h-5 text-primary" />
-          <h3 className="font-semibold text-sm">Contagem Regressiva para R$1M</h3>
-        </div>
-        <div className="grid grid-cols-3 text-center gap-3">
-          <div>
-            <p className="text-2xl font-bold text-foreground">{yearsToGoal}</p>
-            <p className="text-[10px] text-muted-foreground">anos</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-foreground">{monthsToGoal}</p>
-            <p className="text-[10px] text-muted-foreground">meses</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-primary">{targetYear}</p>
-            <p className="text-[10px] text-muted-foreground">ano previsto</p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Delay Impact Warning */}
-      {missedMonths > 0 && (
-        <Card className="glass-card p-4 border-warning/30">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
-            <div className="space-y-2">
-              <p className="text-sm font-semibold">
-                Vocês atrasaram {missedMonths} {missedMonths === 1 ? "mês" : "meses"}
-                {delayMonths > 0 && <span> — nova previsão: <strong className="text-warning">+{delayMonths} meses</strong></span>}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Pular este mês pode custar <strong className="text-foreground">{formatBRL(skipCost)}</strong> no futuro.
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {missedMonths === 0 && (
-        <Card className="glass-card p-4 border-primary/20">
-          <div className="flex items-start gap-3">
-            <Sparkles className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-semibold">Vocês estão em dia! 🎉</p>
-              <p className="text-xs text-muted-foreground">
-                Pular um mês custaria <strong className="text-foreground">{formatBRL(skipCost)}</strong> em juros compostos. Continue assim!
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Achievement Timeline */}
-      <AchievementTimeline config={config} monthRecords={monthRecords} startDate={startDate} />
-
-      {/* Age Timeline */}
-      {ageTimeline.length > 0 && (
-        <Card className="glass-card p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Clock className="w-5 h-5 text-accent" />
-            <h3 className="font-semibold text-sm">Patrimônio por Idade</h3>
-          </div>
-          <div className="space-y-2">
-            {Array.from(new Set(ageTimeline.map((t) => t.age))).map((age) => {
-              const items = ageTimeline.filter((t) => t.age === age);
-              return (
-                <div key={age} className="flex items-center justify-between py-1.5 border-b border-border/20 last:border-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs bg-muted px-2 py-0.5 rounded-full font-medium min-w-[45px] text-center">{age} anos</span>
-                    <span className="text-xs text-muted-foreground">({items[0].year})</span>
-                  </div>
-                  <span className="text-sm font-semibold">{formatBRLCompact(items[0].balance)}</span>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      )}
-
-      {/* Milestones */}
-      <div className="flex flex-wrap gap-2">
-        {MILESTONES.map((m) => {
-          const reached = getReachedMilestones(planned, [m]).length > 0;
-          return (
-            <div key={m} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${
-              reached ? "bg-primary/20 border-primary/30 text-primary" : "bg-muted border-border text-muted-foreground"
-            }`}>
-              <Trophy className="w-3 h-3" />
-              {formatBRLCompact(m)}
-              {reached && " ✓"}
-            </div>
-          );
-        })}
-      </div>
+function MiniCard({ label, value, accent }: { label: string; value: string; accent?: string }) {
+  return (
+    <div className="text-center p-2 rounded-lg bg-muted/30">
+      <p className={`text-xs font-bold truncate ${accent || ""}`}>{value}</p>
+      <p className="text-[9px] text-muted-foreground">{label}</p>
     </div>
   );
 }
