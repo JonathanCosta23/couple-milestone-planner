@@ -5,6 +5,7 @@ import { Hero } from "@/components/plan/Hero";
 import { Onboarding } from "@/components/plan/Onboarding";
 import { FinancialProfileSetup } from "@/components/plan/FinancialProfileSetup";
 import { Wizard } from "@/components/plan/Wizard";
+import { HomeDashboard } from "@/components/plan/HomeDashboard";
 import { StrategicHome } from "@/components/plan/StrategicHome";
 import { FinancialDiagnostic } from "@/components/plan/FinancialDiagnostic";
 import { JourneyPhases } from "@/components/plan/JourneyPhases";
@@ -12,6 +13,8 @@ import { InvestmentGuide } from "@/components/plan/InvestmentGuide";
 import { AdvancedSimulator } from "@/components/plan/AdvancedSimulator";
 import { IncomePanel } from "@/components/plan/IncomePanel";
 import { WealthDistribution } from "@/components/plan/WealthDistribution";
+import { ExpensePanel } from "@/components/plan/ExpensePanel";
+import { DebtModule } from "@/components/plan/DebtModule";
 import { Dashboard } from "@/components/plan/Dashboard";
 import { MonthlyTracker } from "@/components/plan/MonthlyTracker";
 import { MilestoneAlert } from "@/components/plan/MilestoneAlert";
@@ -33,7 +36,7 @@ import { Button } from "@/components/ui/button";
 import {
   Download, Upload, RotateCcw, Home, Activity, Map, BookOpen,
   Calculator, DollarSign, PieChart, CalendarCheck, Settings,
-  Brain, ShieldAlert, GraduationCap,
+  Brain, ShieldAlert, GraduationCap, Wallet, CreditCard, Compass,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -46,6 +49,8 @@ const Index = () => {
 
   const {
     appData, addIncome, updateIncome, deleteIncome,
+    addExpense, updateExpense, deleteExpense, duplicateExpense, markExpensePaid, convertToRecurring,
+    addDebt, updateDebt, deleteDebt,
   } = useAppData();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -173,13 +178,27 @@ const Index = () => {
           }} />
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            {/* Navigation — 3 rows */}
+            {/* Navigation — 4 rows */}
             <div className="space-y-1.5">
               <TabsList className="w-full grid grid-cols-4 glass-card h-9">
                 <TabsTrigger value="home" className="gap-1 text-[10px] sm:text-xs px-1">
                   <Home className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Início</span>
                 </TabsTrigger>
+                <TabsTrigger value="gastos" className="gap-1 text-[10px] sm:text-xs px-1">
+                  <Wallet className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Gastos</span>
+                </TabsTrigger>
+                <TabsTrigger value="dividas" className="gap-1 text-[10px] sm:text-xs px-1">
+                  <CreditCard className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Dívidas</span>
+                </TabsTrigger>
+                <TabsTrigger value="renda" className="gap-1 text-[10px] sm:text-xs px-1">
+                  <DollarSign className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Renda</span>
+                </TabsTrigger>
+              </TabsList>
+              <TabsList className="w-full grid grid-cols-4 glass-card h-9">
                 <TabsTrigger value="diagnostico" className="gap-1 text-[10px] sm:text-xs px-1">
                   <Activity className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Diagnóstico</span>
@@ -192,30 +211,30 @@ const Index = () => {
                   <Calculator className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Simulador</span>
                 </TabsTrigger>
+                <TabsTrigger value="patrimonio" className="gap-1 text-[10px] sm:text-xs px-1">
+                  <PieChart className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Patrimônio</span>
+                </TabsTrigger>
               </TabsList>
               <TabsList className="w-full grid grid-cols-4 glass-card h-9">
                 <TabsTrigger value="investir" className="gap-1 text-[10px] sm:text-xs px-1">
                   <BookOpen className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Investir</span>
                 </TabsTrigger>
-                <TabsTrigger value="renda" className="gap-1 text-[10px] sm:text-xs px-1">
-                  <DollarSign className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Renda</span>
+                <TabsTrigger value="estrategia" className="gap-1 text-[10px] sm:text-xs px-1">
+                  <Compass className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Estratégia</span>
                 </TabsTrigger>
-                <TabsTrigger value="patrimonio" className="gap-1 text-[10px] sm:text-xs px-1">
-                  <PieChart className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Patrimônio</span>
+                <TabsTrigger value="comportamento" className="gap-1 text-[10px] sm:text-xs px-1">
+                  <Brain className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Hábitos</span>
                 </TabsTrigger>
                 <TabsTrigger value="plano" className="gap-1 text-[10px] sm:text-xs px-1">
                   <CalendarCheck className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Plano</span>
                 </TabsTrigger>
               </TabsList>
-              <TabsList className="w-full grid grid-cols-4 glass-card h-9">
-                <TabsTrigger value="comportamento" className="gap-1 text-[10px] sm:text-xs px-1">
-                  <Brain className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Hábitos</span>
-                </TabsTrigger>
+              <TabsList className="w-full grid grid-cols-3 glass-card h-9">
                 <TabsTrigger value="armadilhas" className="gap-1 text-[10px] sm:text-xs px-1">
                   <ShieldAlert className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Armadilhas</span>
@@ -232,7 +251,7 @@ const Index = () => {
             </div>
 
             <TabsContent value="home">
-              <StrategicHome
+              <HomeDashboard
                 appData={appData}
                 config={data.config}
                 monthRecords={data.monthRecords}
@@ -254,6 +273,41 @@ const Index = () => {
                   onUpdate={updateNotificationSettings}
                 />
               </div>
+            </TabsContent>
+
+            <TabsContent value="gastos">
+              <ExpensePanel
+                appData={appData}
+                config={data.config}
+                onAddExpense={addExpense}
+                onUpdateExpense={updateExpense}
+                onDeleteExpense={deleteExpense}
+                onDuplicateExpense={duplicateExpense}
+                onMarkExpensePaid={markExpensePaid}
+                onConvertToRecurring={convertToRecurring}
+              />
+            </TabsContent>
+
+            <TabsContent value="dividas">
+              <DebtModule
+                appData={appData}
+                config={data.config}
+                onAddDebt={addDebt}
+                onUpdateDebt={updateDebt}
+                onDeleteDebt={deleteDebt}
+              />
+            </TabsContent>
+
+            <TabsContent value="renda">
+              <IncomePanel
+                appData={appData}
+                config={data.config}
+                monthRecords={data.monthRecords}
+                startDate={data.startDate}
+                onAddIncome={addIncome}
+                onUpdateIncome={updateIncome}
+                onDeleteIncome={deleteIncome}
+              />
             </TabsContent>
 
             <TabsContent value="diagnostico">
@@ -283,24 +337,32 @@ const Index = () => {
               <Dashboard config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
             </TabsContent>
 
+            <TabsContent value="patrimonio">
+              <WealthDistribution appData={appData} config={data.config} />
+            </TabsContent>
+
             <TabsContent value="investir">
               <InvestmentGuide />
             </TabsContent>
 
-            <TabsContent value="renda">
-              <IncomePanel
+            <TabsContent value="estrategia">
+              <StrategicHome
                 appData={appData}
                 config={data.config}
                 monthRecords={data.monthRecords}
                 startDate={data.startDate}
-                onAddIncome={addIncome}
-                onUpdateIncome={updateIncome}
-                onDeleteIncome={deleteIncome}
+                onNavigateToTab={setActiveTab}
+                onOpenQuickDeposit={() => setShowQuickDeposit(true)}
               />
             </TabsContent>
 
-            <TabsContent value="patrimonio">
-              <WealthDistribution appData={appData} config={data.config} />
+            <TabsContent value="comportamento">
+              <BehavioralPanel
+                appData={appData}
+                config={data.config}
+                monthRecords={data.monthRecords}
+                startDate={data.startDate}
+              />
             </TabsContent>
 
             <TabsContent value="plano">
@@ -312,15 +374,6 @@ const Index = () => {
                 onUpdateNotes={updateMonthNotes}
                 onToggleCompleted={toggleMonthCompleted}
                 onGenerateAutoPlan={generateAutoPlan}
-              />
-            </TabsContent>
-
-            <TabsContent value="comportamento">
-              <BehavioralPanel
-                appData={appData}
-                config={data.config}
-                monthRecords={data.monthRecords}
-                startDate={data.startDate}
               />
             </TabsContent>
 
