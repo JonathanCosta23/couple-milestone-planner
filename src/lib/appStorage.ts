@@ -47,22 +47,24 @@ export function normalizeAppData(parsed: Partial<AppData>): AppData {
 export function migrateFromLegacy(planData: PlanData): AppData {
   const appData = createDefaultAppData();
 
-  // Map contributor names/ages to profiles
+  // Map first contributor as primary profile
   const c0 = planData.config.contributors[0];
-  const c1 = planData.config.contributors[1];
-
   appData.primaryProfile = {
     id: generateId(),
-    name: c0.name || "Pessoa 1",
-    age: c0.age || 25,
+    name: c0?.name || "Pessoa 1",
+    age: c0?.age || 25,
     avatarColor: "hsl(var(--primary))",
   };
 
-  // Determine mode: if second contributor has deposits, it's couple mode
-  const hasPartnerContribution = c1.plannedSelic > 0 || c1.plannedCDB > 0;
-  appData.mode = hasPartnerContribution ? "couple" : "solo";
+  // Check if there are additional contributors with actual plans
+  const additionalContributors = planData.config.contributors.slice(1).filter(
+    c => c.plannedSelic > 0 || c.plannedCDB > 0
+  );
 
-  if (hasPartnerContribution) {
+  appData.mode = additionalContributors.length > 0 ? "couple" : "solo";
+
+  if (additionalContributors.length > 0) {
+    const c1 = additionalContributors[0];
     appData.partner = {
       profile: {
         id: generateId(),
