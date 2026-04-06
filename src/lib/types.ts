@@ -11,7 +11,7 @@ export interface PlanConfig {
   years: number;
   selicRate: number;
   cdbRate: number;
-  contributors: [Contributor, Contributor];
+  contributors: Contributor[];
 }
 
 export interface MonthDeposit {
@@ -21,7 +21,7 @@ export interface MonthDeposit {
 
 export interface MonthRecord {
   monthKey: string;
-  deposits: [MonthDeposit, MonthDeposit];
+  deposits: MonthDeposit[];
   notes: string;
   completed?: boolean;
 }
@@ -97,8 +97,7 @@ export const DEFAULT_CONFIG: PlanConfig = {
   selicRate: 0.1315,
   cdbRate: 1.0,
   contributors: [
-    { name: "Jonathan", plannedSelic: 1_000, plannedCDB: 500, age: 25 },
-    { name: "Isabella", plannedSelic: 0, plannedCDB: 0, age: 25 },
+    { name: "", plannedSelic: 1_000, plannedCDB: 500, age: 25 },
   ],
 };
 
