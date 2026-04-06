@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { PlanConfig, DEFAULT_CONFIG, formatBRL, formatPercent } from "@/lib/types";
+import { PlanConfig, Contributor, DEFAULT_CONFIG, formatBRL, formatPercent } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { ArrowRight, ArrowLeft, Check, HelpCircle, Users, Target, CalendarCheck } from "lucide-react";
+import { ArrowRight, ArrowLeft, Check, HelpCircle, Users, Target, CalendarCheck, UserPlus, Trash2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface WizardProps {
