@@ -18,22 +18,24 @@ export function usePlanData() {
   }, []);
 
   const updateMonthRecord = useCallback(
-    (monthKey: string, contributorIndex: 0 | 1, deposit: MonthDeposit, notes?: string) => {
+    (monthKey: string, contributorIndex: number, deposit: MonthDeposit, notes?: string) => {
       setData((prev) => {
+        const numContributors = prev.config.contributors.length;
         const existing = prev.monthRecords.find((r) => r.monthKey === monthKey);
         if (existing) {
+          const newDeposits = [...existing.deposits];
+          // Ensure array is large enough
+          while (newDeposits.length < numContributors) newDeposits.push({ ...EMPTY_DEPOSIT });
+          newDeposits[contributorIndex] = deposit;
           const updated: MonthRecord = {
             ...existing,
-            deposits: contributorIndex === 0
-              ? [deposit, existing.deposits[1]]
-              : [existing.deposits[0], deposit],
+            deposits: newDeposits,
             notes: notes !== undefined ? notes : existing.notes,
           };
           return { ...prev, monthRecords: prev.monthRecords.map((r) => (r.monthKey === monthKey ? updated : r)) };
         }
-        const deposits: [MonthDeposit, MonthDeposit] = contributorIndex === 0
-          ? [deposit, { ...EMPTY_DEPOSIT }]
-          : [{ ...EMPTY_DEPOSIT }, deposit];
+        const deposits: MonthDeposit[] = Array.from({ length: numContributors }, () => ({ ...EMPTY_DEPOSIT }));
+        deposits[contributorIndex] = deposit;
         return {
           ...prev,
           monthRecords: [...prev.monthRecords, { monthKey, deposits, notes: notes || "" }],
@@ -45,19 +47,21 @@ export function usePlanData() {
 
   const updateMonthNotes = useCallback((monthKey: string, notes: string) => {
     setData((prev) => {
+      const numContributors = prev.config.contributors.length;
       const existing = prev.monthRecords.find((r) => r.monthKey === monthKey);
       if (existing) {
         return { ...prev, monthRecords: prev.monthRecords.map((r) => (r.monthKey === monthKey ? { ...r, notes } : r)) };
       }
       return {
         ...prev,
-        monthRecords: [...prev.monthRecords, { monthKey, deposits: [{ ...EMPTY_DEPOSIT }, { ...EMPTY_DEPOSIT }], notes }],
+        monthRecords: [...prev.monthRecords, { monthKey, deposits: Array.from({ length: numContributors }, () => ({ ...EMPTY_DEPOSIT })), notes }],
       };
     });
   }, []);
 
   const toggleMonthCompleted = useCallback((monthKey: string) => {
     setData((prev) => {
+      const numContributors = prev.config.contributors.length;
       const existing = prev.monthRecords.find((r) => r.monthKey === monthKey);
       if (existing) {
         return {
@@ -71,7 +75,7 @@ export function usePlanData() {
         ...prev,
         monthRecords: [
           ...prev.monthRecords,
-          { monthKey, deposits: [{ ...EMPTY_DEPOSIT }, { ...EMPTY_DEPOSIT }], notes: "", completed: true },
+          { monthKey, deposits: Array.from({ length: numContributors }, () => ({ ...EMPTY_DEPOSIT })), notes: "", completed: true },
         ],
       };
     });
@@ -87,10 +91,10 @@ export function usePlanData() {
         if (!existingKeys.has(key)) {
           newRecords.push({
             monthKey: key,
-            deposits: [
-              { actualSelic: prev.config.contributors[0].plannedSelic, actualCDB: prev.config.contributors[0].plannedCDB },
-              { actualSelic: prev.config.contributors[1].plannedSelic, actualCDB: prev.config.contributors[1].plannedCDB },
-            ],
+            deposits: prev.config.contributors.map(c => ({
+              actualSelic: c.plannedSelic,
+              actualCDB: c.plannedCDB,
+            })),
             notes: "",
           });
         }
@@ -105,11 +109,9 @@ export function usePlanData() {
       const allKeys = generateMonthKeys(prev.startDate, prev.config.years * 12);
       const existingKeys = new Set(prev.monthRecords.map((r) => r.monthKey));
 
-      // Find the last existing month
       const existingMonths = prev.monthRecords.map((r) => r.monthKey).sort();
       const lastMonth = existingMonths[existingMonths.length - 1] || prev.startDate;
 
-      // Generate next 12 months after last existing
       const [ly, lm] = lastMonth.split("-").map(Number);
       const newRecords: MonthRecord[] = [];
 
@@ -120,10 +122,10 @@ export function usePlanData() {
         if (!existingKeys.has(key) && allKeys.includes(key)) {
           newRecords.push({
             monthKey: key,
-            deposits: [
-              { actualSelic: prev.config.contributors[0].plannedSelic, actualCDB: prev.config.contributors[0].plannedCDB },
-              { actualSelic: prev.config.contributors[1].plannedSelic, actualCDB: prev.config.contributors[1].plannedCDB },
-            ],
+            deposits: prev.config.contributors.map(c => ({
+              actualSelic: c.plannedSelic,
+              actualCDB: c.plannedCDB,
+            })),
             notes: "",
           });
         }
