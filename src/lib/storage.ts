@@ -1,4 +1,4 @@
-import { PlanData, DEFAULT_CONFIG, PLAN_START, CURRENT_SCHEMA_VERSION, PlanDataExportMeta } from "./types";
+import { PlanData, DEFAULT_CONFIG, PLAN_START, CURRENT_SCHEMA_VERSION, PlanDataExportMeta, EMPTY_DEPOSIT } from "./types";
 
 const STORAGE_KEY = "plano-do-milhao-v6";
 const BACKUP_KEY = "plano-do-milhao-backup";
@@ -6,7 +6,7 @@ const BACKUP_KEY = "plano-do-milhao-backup";
 export function getDefaultPlanData(): PlanData {
   return {
     schemaVersion: CURRENT_SCHEMA_VERSION,
-    config: { ...DEFAULT_CONFIG, contributors: [{ ...DEFAULT_CONFIG.contributors[0] }, { ...DEFAULT_CONFIG.contributors[1] }] },
+    config: { ...DEFAULT_CONFIG, contributors: DEFAULT_CONFIG.contributors.map(c => ({ ...c })) },
     monthRecords: [],
     wizardComplete: false,
     startDate: PLAN_START,
@@ -18,6 +18,40 @@ export function getDefaultPlanData(): PlanData {
 /** Normalize/migrate any PlanData to current schema, filling missing fields with defaults */
 export function normalizePlanData(parsed: Partial<PlanData>): PlanData {
   const defaults = getDefaultPlanData();
+
+  // Normalize contributors: merge with defaults or use parsed array
+  const parsedContributors = parsed.config?.contributors;
+  let contributors = defaults.config.contributors.map(c => ({ ...c }));
+  if (Array.isArray(parsedContributors) && parsedContributors.length > 0) {
+    contributors = parsedContributors.map((c: any) => ({
+      name: c?.name || "",
+      plannedSelic: c?.plannedSelic || 0,
+      plannedCDB: c?.plannedCDB || 0,
+      age: c?.age || 25,
+    }));
+  }
+
+  // Filter out empty contributors (no name, no plans) except the first one
+  contributors = contributors.filter((c, i) =>
+    i === 0 || c.name.trim() || c.plannedSelic > 0 || c.plannedCDB > 0
+  );
+  if (contributors.length === 0) {
+    contributors = [{ ...defaults.config.contributors[0] }];
+  }
+
+  // Normalize month records: ensure deposits array matches contributor count
+  const monthRecords = Array.isArray(parsed.monthRecords)
+    ? parsed.monthRecords.map(r => ({
+        ...r,
+        deposits: Array.isArray(r.deposits)
+          ? r.deposits.map(d => ({
+              actualSelic: d?.actualSelic || 0,
+              actualCDB: d?.actualCDB || 0,
+            }))
+          : contributors.map(() => ({ ...EMPTY_DEPOSIT })),
+      }))
+    : [];
+
   const data: PlanData = {
     ...defaults,
     ...parsed,
@@ -25,17 +59,15 @@ export function normalizePlanData(parsed: Partial<PlanData>): PlanData {
     config: {
       ...defaults.config,
       ...(parsed.config || {}),
-      contributors: [
-        { ...defaults.config.contributors[0], ...(parsed.config?.contributors?.[0] || {}) },
-        { ...defaults.config.contributors[1], ...(parsed.config?.contributors?.[1] || {}) },
-      ],
+      contributors,
     },
-    monthRecords: Array.isArray(parsed.monthRecords) ? parsed.monthRecords : [],
+    monthRecords,
     notificationSettings: {
       ...defaults.notificationSettings,
       ...(parsed.notificationSettings || {}),
     },
   };
+
   // Ensure contributor ages exist
   data.config.contributors.forEach((c) => { if (!c.age) c.age = 25; });
   return data;
@@ -122,7 +154,6 @@ export function parseImportJSON(json: string): ImportPreview {
     return { valid: false, errorMessage: "O arquivo não contém JSON válido.", version: "—", filledMonths: 0, exportedAt: null, data: null };
   }
 
-  // Minimal structure check
   if (!parsed || typeof parsed !== "object") {
     return { valid: false, errorMessage: "Formato de arquivo não reconhecido.", version: "—", filledMonths: 0, exportedAt: null, data: null };
   }
@@ -135,7 +166,6 @@ export function parseImportJSON(json: string): ImportPreview {
   const version = meta?.schemaVersion || parsed.schemaVersion || "legado";
   const exportedAt = meta?.exportedAt || null;
 
-  // Strip meta before normalizing
   const { _meta, _backupAt, ...rest } = parsed;
   const normalized = normalizePlanData(rest);
 

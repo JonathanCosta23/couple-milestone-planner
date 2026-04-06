@@ -48,15 +48,15 @@ function CurrencyInput({ value, onChange, id }: { value: number; onChange: (v: n
   );
 }
 
+const CONTRIBUTOR_COLORS = [
+  "bg-primary", "bg-accent", "bg-chart-3", "bg-chart-4", "bg-chart-5",
+];
+
 export function Wizard({ onComplete }: WizardProps) {
   const [step, setStep] = useState(0);
-  const [showSecond, setShowSecond] = useState(false);
   const [config, setConfig] = useState<PlanConfig>({
     ...DEFAULT_CONFIG,
-    contributors: [
-      { ...DEFAULT_CONFIG.contributors[0] },
-      { name: "", plannedSelic: 0, plannedCDB: 0, age: 25 },
-    ],
+    contributors: [{ ...DEFAULT_CONFIG.contributors[0] }],
   });
 
   const steps = [
@@ -65,11 +65,28 @@ export function Wizard({ onComplete }: WizardProps) {
     { icon: CalendarCheck, label: "Confirmar" },
   ];
 
-  const totalMonthly =
-    config.contributors[0].plannedSelic +
-    config.contributors[0].plannedCDB +
-    config.contributors[1].plannedSelic +
-    config.contributors[1].plannedCDB;
+  const totalMonthly = config.contributors.reduce((s, c) => s + c.plannedSelic + c.plannedCDB, 0);
+
+  const addContributor = () => {
+    setConfig(prev => ({
+      ...prev,
+      contributors: [...prev.contributors, { name: "", plannedSelic: 0, plannedCDB: 0, age: 25 }],
+    }));
+  };
+
+  const removeContributor = (idx: number) => {
+    setConfig(prev => ({
+      ...prev,
+      contributors: prev.contributors.filter((_, i) => i !== idx),
+    }));
+  };
+
+  const updateContributor = (idx: number, updates: Partial<Contributor>) => {
+    setConfig(prev => ({
+      ...prev,
+      contributors: prev.contributors.map((c, i) => i === idx ? { ...c, ...updates } : c),
+    }));
+  };
 
   return (
     <div className="max-w-lg mx-auto px-4">
@@ -98,7 +115,7 @@ export function Wizard({ onComplete }: WizardProps) {
               <div>
                 <Label htmlFor="initial">
                   Valor inicial
-                  <Tip text="Quanto vocês já têm investido ou podem aportar de imediato." />
+                  <Tip text="Quanto você já tem investido ou pode aportar de imediato." />
                 </Label>
                 <CurrencyInput
                   id="initial"
@@ -109,7 +126,7 @@ export function Wizard({ onComplete }: WizardProps) {
               <div>
                 <Label htmlFor="target">
                   Meta
-                  <Tip text="Objetivo financeiro do casal." />
+                  <Tip text="Objetivo financeiro." />
                 </Label>
                 <CurrencyInput
                   id="target"
@@ -166,103 +183,82 @@ export function Wizard({ onComplete }: WizardProps) {
         {step === 1 && (
           <div className="space-y-5">
             <h2 className="text-xl font-bold">Aportes Mensais por Pessoa</h2>
-            {config.contributors.map((c, idx) => {
-              if (idx === 1 && !showSecond) return null;
-              return (
-                <div key={idx} className="p-4 rounded-xl bg-muted/50 space-y-3 relative">
-                  {idx === 1 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute top-2 right-2 h-7 text-xs text-destructive hover:text-destructive"
-                      onClick={() => {
-                        const updated = [...config.contributors] as [Contributor, Contributor];
-                        updated[1] = { name: "", plannedSelic: 0, plannedCDB: 0, age: 25 };
-                        setConfig({ ...config, contributors: updated });
-                        setShowSecond(false);
-                      }}
-                    >
-                      <Trash2 className="w-3 h-3 mr-1" /> Remover
-                    </Button>
-                  )}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label htmlFor={`name-${idx}`}>Nome</Label>
-                      <Input
-                        id={`name-${idx}`}
-                        value={c.name}
-                        onChange={(e) => {
-                          const updated = [...config.contributors] as [Contributor, Contributor];
-                          updated[idx] = { ...c, name: e.target.value };
-                          setConfig({ ...config, contributors: updated });
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor={`age-${idx}`}>
-                        Idade
-                        <Tip text="Sua idade atual. Usada para projetar patrimônio por idade." />
-                      </Label>
-                      <Input
-                        id={`age-${idx}`}
-                        type="number"
-                        min={16}
-                        max={80}
-                        value={c.age || 25}
-                        onChange={(e) => {
-                          const updated = [...config.contributors] as [Contributor, Contributor];
-                          updated[idx] = { ...c, age: Number(e.target.value) || 25 };
-                          setConfig({ ...config, contributors: updated });
-                        }}
-                        className="text-right"
-                      />
-                    </div>
+            {config.contributors.map((c, idx) => (
+              <div key={idx} className="p-4 rounded-xl bg-muted/50 space-y-3 relative">
+                {config.contributors.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-2 right-2 h-7 text-xs text-destructive hover:text-destructive"
+                    onClick={() => removeContributor(idx)}
+                  >
+                    <Trash2 className="w-3 h-3 mr-1" /> Remover
+                  </Button>
+                )}
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`w-3 h-3 rounded-full ${CONTRIBUTOR_COLORS[idx % CONTRIBUTOR_COLORS.length]}`} />
+                  <span className="text-sm font-medium text-muted-foreground">Pessoa {idx + 1}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor={`name-${idx}`}>Nome</Label>
+                    <Input
+                      id={`name-${idx}`}
+                      value={c.name}
+                      placeholder={`Pessoa ${idx + 1}`}
+                      onChange={(e) => updateContributor(idx, { name: e.target.value })}
+                    />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label htmlFor={`selic-${idx}`}>
-                        Selic (R$)
-                        <Tip text="Aporte mensal no Tesouro Selic. Tem alta liquidez — pode resgatar a qualquer momento." />
-                      </Label>
-                      <CurrencyInput
-                        id={`selic-${idx}`}
-                        value={c.plannedSelic}
-                        onChange={(v) => {
-                          const updated = [...config.contributors] as [Contributor, Contributor];
-                          updated[idx] = { ...c, plannedSelic: v };
-                          setConfig({ ...config, contributors: updated });
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor={`cdb-${idx}`}>
-                        CDB (R$)
-                        <Tip text="Aporte mensal em CDB. Geralmente tem prazo de carência. Pode render mais que a Selic." />
-                      </Label>
-                      <CurrencyInput
-                        id={`cdb-${idx}`}
-                        value={c.plannedCDB}
-                        onChange={(v) => {
-                          const updated = [...config.contributors] as [Contributor, Contributor];
-                          updated[idx] = { ...c, plannedCDB: v };
-                          setConfig({ ...config, contributors: updated });
-                        }}
-                      />
-                    </div>
+                  <div>
+                    <Label htmlFor={`age-${idx}`}>
+                      Idade
+                      <Tip text="Sua idade atual. Usada para projetar patrimônio por idade." />
+                    </Label>
+                    <Input
+                      id={`age-${idx}`}
+                      type="number"
+                      min={16}
+                      max={80}
+                      value={c.age || 25}
+                      onChange={(e) => updateContributor(idx, { age: Number(e.target.value) || 25 })}
+                      className="text-right"
+                    />
                   </div>
                 </div>
-              );
-            })}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor={`selic-${idx}`}>
+                      Selic (R$)
+                      <Tip text="Aporte mensal no Tesouro Selic. Tem alta liquidez — pode resgatar a qualquer momento." />
+                    </Label>
+                    <CurrencyInput
+                      id={`selic-${idx}`}
+                      value={c.plannedSelic}
+                      onChange={(v) => updateContributor(idx, { plannedSelic: v })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor={`cdb-${idx}`}>
+                      CDB (R$)
+                      <Tip text="Aporte mensal em CDB. Geralmente tem prazo de carência. Pode render mais que a Selic." />
+                    </Label>
+                    <CurrencyInput
+                      id={`cdb-${idx}`}
+                      value={c.plannedCDB}
+                      onChange={(v) => updateContributor(idx, { plannedCDB: v })}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
 
-            {!showSecond && (
-              <Button
-                variant="outline"
-                className="w-full border-dashed"
-                onClick={() => setShowSecond(true)}
-              >
-                <UserPlus className="w-4 h-4 mr-2" /> Adicionar outra pessoa
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              className="w-full border-dashed"
+              onClick={addContributor}
+            >
+              <UserPlus className="w-4 h-4 mr-2" /> Adicionar outra pessoa
+            </Button>
 
             <p className="text-sm text-muted-foreground text-center">
               Aporte combinado: <strong className="text-foreground">{formatBRL(totalMonthly)}/mês</strong>
@@ -296,7 +292,7 @@ export function Wizard({ onComplete }: WizardProps) {
               </div>
               {config.contributors.map((c, i) => (
                 <div key={i} className="flex justify-between py-2 border-b border-border/50">
-                  <span className="text-muted-foreground">{c.name}</span>
+                  <span className="text-muted-foreground">{c.name || `Pessoa ${i + 1}`}</span>
                   <span className="font-semibold">
                     {formatBRL(c.plannedSelic)} Selic + {formatBRL(c.plannedCDB)} CDB
                   </span>

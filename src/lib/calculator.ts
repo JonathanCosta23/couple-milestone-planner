@@ -4,6 +4,10 @@ function monthlyRate(annualRate: number): number {
   return Math.pow(1 + annualRate, 1 / 12) - 1;
 }
 
+function getDeposit(record: MonthRecord | undefined, idx: number): MonthDeposit {
+  return record?.deposits[idx] || EMPTY_DEPOSIT;
+}
+
 export function generateProjection(
   config: PlanConfig,
   mode: "planned" | "actual",
@@ -15,8 +19,8 @@ export function generateProjection(
   const mSelic = monthlyRate(config.selicRate);
   const mCDB = monthlyRate(config.selicRate * config.cdbRate);
 
-  const totalPlannedSelic = config.contributors[0].plannedSelic + config.contributors[1].plannedSelic;
-  const totalPlannedCDB = config.contributors[0].plannedCDB + config.contributors[1].plannedCDB;
+  const totalPlannedSelic = config.contributors.reduce((s, c) => s + c.plannedSelic, 0);
+  const totalPlannedCDB = config.contributors.reduce((s, c) => s + c.plannedCDB, 0);
 
   const initialSelic = totalPlannedCDB > 0 ? config.initialAmount / 2 : config.initialAmount;
   const initialCDB = totalPlannedCDB > 0 ? config.initialAmount / 2 : 0;
@@ -34,8 +38,8 @@ export function generateProjection(
     let depositCDB: number;
 
     if (mode === "actual" && record) {
-      depositSelic = record.deposits[0].actualSelic + record.deposits[1].actualSelic;
-      depositCDB = record.deposits[0].actualCDB + record.deposits[1].actualCDB;
+      depositSelic = record.deposits.reduce((s, d) => s + (d.actualSelic || 0), 0);
+      depositCDB = record.deposits.reduce((s, d) => s + (d.actualCDB || 0), 0);
     } else {
       depositSelic = totalPlannedSelic;
       depositCDB = totalPlannedCDB;
@@ -86,7 +90,7 @@ export function isMonthComplete(config: PlanConfig, monthRecords: MonthRecord[],
   if (!record) return false;
   if (record.completed) return true;
   return config.contributors.every((c, i) => {
-    const d = record.deposits[i] || EMPTY_DEPOSIT;
+    const d = getDeposit(record, i);
     return (c.plannedSelic <= 0 || d.actualSelic >= c.plannedSelic) && (c.plannedCDB <= 0 || d.actualCDB >= c.plannedCDB);
   });
 }
@@ -97,7 +101,7 @@ export function getMonthStatus(config: PlanConfig, monthRecords: MonthRecord[], 
   if (record.completed) return "completed";
   const hasAny = record.deposits.some((d) => d.actualSelic > 0 || d.actualCDB > 0);
   const allComplete = config.contributors.every((c, i) => {
-    const d = record.deposits[i] || EMPTY_DEPOSIT;
+    const d = getDeposit(record, i);
     return (c.plannedSelic <= 0 || d.actualSelic >= c.plannedSelic) && (c.plannedCDB <= 0 || d.actualCDB >= c.plannedCDB);
   });
   if (allComplete) return "completed";
@@ -122,7 +126,6 @@ export function getReachedMilestones(projection: ProjectionRow[], milestones: nu
   return milestones.filter((m) => maxBalance >= m);
 }
 
-// Delay Impact
 export function calculateMonthsToTarget(config: PlanConfig, mode: "planned" | "actual", monthRecords: MonthRecord[], startDate: string): number | null {
   const projection = generateProjection(config, mode, monthRecords, startDate);
   const idx = projection.findIndex((r) => r.totalBalance >= config.targetAmount);
@@ -150,11 +153,10 @@ export function getMissedMonths(config: PlanConfig, monthRecords: MonthRecord[],
   return pastKeys.filter((k) => !isMonthComplete(config, monthRecords, k)).length;
 }
 
-// Contribution Split
 export function getContributionTotals(config: PlanConfig, monthRecords: MonthRecord[]): { name: string; total: number; percentage: number }[] {
   const totals = config.contributors.map((c, i) => {
     const total = monthRecords.reduce((sum, r) => {
-      const d = r.deposits[i] || EMPTY_DEPOSIT;
+      const d = getDeposit(r, i);
       return sum + d.actualSelic + d.actualCDB;
     }, 0);
     return { name: c.name, total };
@@ -163,13 +165,12 @@ export function getContributionTotals(config: PlanConfig, monthRecords: MonthRec
   return totals.map((t) => ({ ...t, percentage: grandTotal > 0 ? t.total / grandTotal : 0 }));
 }
 
-// Current month helpers
 export function getCurrentMonthDeposited(config: PlanConfig, monthRecords: MonthRecord[]) {
   const currentKey = getCurrentMonthKey();
   const record = monthRecords.find((r) => r.monthKey === currentKey);
   const planned = config.contributors.reduce((s, c) => s + c.plannedSelic + c.plannedCDB, 0);
   const perPerson = config.contributors.map((c, i) => {
-    const d = record?.deposits[i] || EMPTY_DEPOSIT;
+    const d = getDeposit(record, i);
     const deposited = d.actualSelic + d.actualCDB;
     const personPlanned = c.plannedSelic + c.plannedCDB;
     return {
@@ -181,7 +182,6 @@ export function getCurrentMonthDeposited(config: PlanConfig, monthRecords: Month
   return { total, planned, remaining: Math.max(0, planned - total), progress: planned > 0 ? Math.min(1, total / planned) : 0, perPerson };
 }
 
-// Age Timeline
 export function getAgeTimeline(config: PlanConfig, monthRecords: MonthRecord[], startDate: string) {
   const projection = generateProjection(config, "planned", monthRecords, startDate);
   const startYear = parseInt(startDate.split("-")[0]);
@@ -224,7 +224,7 @@ export function simulateScenario(
     const factor = modifier === "increase10" ? 1.1 : 0.8;
     modContributors = config.contributors.map((c) => ({
       ...c, plannedSelic: Math.round(c.plannedSelic * factor), plannedCDB: Math.round(c.plannedCDB * factor),
-    })) as [typeof config.contributors[0], typeof config.contributors[1]];
+    }));
   }
 
   let pauseMonths = modifier === "pause6" ? 6 : modifier === "pause12" ? 12 : 0;
@@ -235,8 +235,8 @@ export function simulateScenario(
   const mSelic = monthlyRate(config.selicRate);
   const mCDB = monthlyRate(config.selicRate * config.cdbRate);
 
-  const totalPlannedSelic = modContributors[0].plannedSelic + modContributors[1].plannedSelic;
-  const totalPlannedCDB = modContributors[0].plannedCDB + modContributors[1].plannedCDB;
+  const totalPlannedSelic = modContributors.reduce((s, c) => s + c.plannedSelic, 0);
+  const totalPlannedCDB = modContributors.reduce((s, c) => s + c.plannedCDB, 0);
   const initialSelic = totalPlannedCDB > 0 ? config.initialAmount / 2 : config.initialAmount;
   const initialCDB = totalPlannedCDB > 0 ? config.initialAmount / 2 : 0;
 
@@ -249,8 +249,8 @@ export function simulateScenario(
     let dS: number, dC: number;
 
     if (record) {
-      dS = record.deposits[0].actualSelic + record.deposits[1].actualSelic;
-      dC = record.deposits[0].actualCDB + record.deposits[1].actualCDB;
+      dS = record.deposits.reduce((s, d) => s + (d.actualSelic || 0), 0);
+      dC = record.deposits.reduce((s, d) => s + (d.actualCDB || 0), 0);
     } else if (pauseMonths > 0 && key > currentKey && pauseCounter < pauseMonths) {
       dS = 0; dC = 0; pauseCounter++;
     } else {

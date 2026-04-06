@@ -83,7 +83,7 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
           icon={TrendingUp}
           label="Aporte Mensal"
           value={formatBRL(totalMonthly)}
-          sub={`${config.contributors[0].name}: ${formatBRL(config.contributors[0].plannedSelic + config.contributors[0].plannedCDB)}`}
+          sub={config.contributors.filter(c => c.plannedSelic > 0 || c.plannedCDB > 0).map(c => `${c.name || "Pessoa"}: ${formatBRL(c.plannedSelic + c.plannedCDB)}`).join(" | ")}
           color="bg-accent/10 text-accent"
         />
         <StatCard

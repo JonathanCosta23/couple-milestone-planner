@@ -14,44 +14,38 @@ interface QuickDepositProps {
   onOpenChange: (open: boolean) => void;
   config: PlanConfig;
   monthRecords: MonthRecord[];
-  onUpdateMonth: (monthKey: string, contributorIndex: 0 | 1, deposit: MonthDeposit) => void;
+  onUpdateMonth: (monthKey: string, contributorIndex: number, deposit: MonthDeposit) => void;
   onToggleCompleted: (monthKey: string) => void;
 }
+
+const DOT_COLORS = ["bg-primary", "bg-accent", "bg-chart-3", "bg-chart-4", "bg-chart-5"];
 
 export function QuickDeposit({ open, onOpenChange, config, monthRecords, onUpdateMonth, onToggleCompleted }: QuickDepositProps) {
   const currentKey = getCurrentMonthKey();
   const record = monthRecords.find((r) => r.monthKey === currentKey);
-  const d0 = record?.deposits[0] || { ...EMPTY_DEPOSIT };
-  const d1 = record?.deposits[1] || { ...EMPTY_DEPOSIT };
 
-  const [val0, setVal0] = useState(() => (d0.actualSelic + d0.actualCDB) || 0);
-  const [val1, setVal1] = useState(() => (d1.actualSelic + d1.actualCDB) || 0);
+  const activeContributors = config.contributors.filter(c => c.plannedSelic > 0 || c.plannedCDB > 0);
+
+  const [values, setValues] = useState<number[]>(() =>
+    config.contributors.map((_, i) => {
+      const d = record?.deposits[i] || { ...EMPTY_DEPOSIT };
+      return (d.actualSelic + d.actualCDB) || 0;
+    })
+  );
   const [markComplete, setMarkComplete] = useState(!!record?.completed);
 
-  const c0 = config.contributors[0];
-  const c1 = config.contributors[1];
-  const c0HasPlan = c0.plannedSelic > 0 || c0.plannedCDB > 0;
-  const c1HasPlan = c1.plannedSelic > 0 || c1.plannedCDB > 0;
-
   const handleSave = () => {
-    // Split proportionally between Selic and CDB based on plan
-    if (c0HasPlan) {
-      const totalPlanned = c0.plannedSelic + c0.plannedCDB;
-      const selicRatio = totalPlanned > 0 ? c0.plannedSelic / totalPlanned : 1;
-      onUpdateMonth(currentKey, 0, {
-        actualSelic: Math.round(val0 * selicRatio),
-        actualCDB: Math.round(val0 * (1 - selicRatio)),
+    config.contributors.forEach((c, i) => {
+      const hasPlan = c.plannedSelic > 0 || c.plannedCDB > 0;
+      if (!hasPlan) return;
+      const val = values[i] || 0;
+      const totalPlanned = c.plannedSelic + c.plannedCDB;
+      const selicRatio = totalPlanned > 0 ? c.plannedSelic / totalPlanned : 1;
+      onUpdateMonth(currentKey, i, {
+        actualSelic: Math.round(val * selicRatio),
+        actualCDB: Math.round(val * (1 - selicRatio)),
       });
-    }
-
-    if (c1HasPlan) {
-      const totalPlanned = c1.plannedSelic + c1.plannedCDB;
-      const selicRatio = totalPlanned > 0 ? c1.plannedSelic / totalPlanned : 1;
-      onUpdateMonth(currentKey, 1, {
-        actualSelic: Math.round(val1 * selicRatio),
-        actualCDB: Math.round(val1 * (1 - selicRatio)),
-      });
-    }
+    });
 
     if (markComplete && !record?.completed) {
       onToggleCompleted(currentKey);
@@ -73,47 +67,34 @@ export function QuickDeposit({ open, onOpenChange, config, monthRecords, onUpdat
         </DialogHeader>
 
         <div className="space-y-4 pt-2">
-          {c0HasPlan && (
-            <div className="space-y-1.5">
-              <Label className="text-sm flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-primary" />
-                {c0.name}
-                <span className="text-xs text-muted-foreground ml-auto">
-                  Meta: {formatBRL(c0.plannedSelic + c0.plannedCDB)}
-                </span>
-              </Label>
-              <Input
-                type="number"
-                min={0}
-                step={100}
-                value={val0 || ""}
-                placeholder="0"
-                onChange={(e) => setVal0(Number(e.target.value) || 0)}
-                className="text-right"
-              />
-            </div>
-          )}
-
-          {c1HasPlan && (
-            <div className="space-y-1.5">
-              <Label className="text-sm flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-accent" />
-                {c1.name}
-                <span className="text-xs text-muted-foreground ml-auto">
-                  Meta: {formatBRL(c1.plannedSelic + c1.plannedCDB)}
-                </span>
-              </Label>
-              <Input
-                type="number"
-                min={0}
-                step={100}
-                value={val1 || ""}
-                placeholder="0"
-                onChange={(e) => setVal1(Number(e.target.value) || 0)}
-                className="text-right"
-              />
-            </div>
-          )}
+          {config.contributors.map((c, i) => {
+            const hasPlan = c.plannedSelic > 0 || c.plannedCDB > 0;
+            if (!hasPlan) return null;
+            return (
+              <div key={i} className="space-y-1.5">
+                <Label className="text-sm flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${DOT_COLORS[i % DOT_COLORS.length]}`} />
+                  {c.name || `Pessoa ${i + 1}`}
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    Meta: {formatBRL(c.plannedSelic + c.plannedCDB)}
+                  </span>
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step={100}
+                  value={values[i] || ""}
+                  placeholder="0"
+                  onChange={(e) => {
+                    const newVals = [...values];
+                    newVals[i] = Number(e.target.value) || 0;
+                    setValues(newVals);
+                  }}
+                  className="text-right"
+                />
+              </div>
+            );
+          })}
 
           <div className="flex items-center justify-between py-2">
             <Label htmlFor="quick-complete" className="text-sm flex items-center gap-2 cursor-pointer">
