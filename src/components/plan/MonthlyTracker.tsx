@@ -17,7 +17,7 @@ interface TrackerProps {
   config: PlanConfig;
   monthRecords: MonthRecord[];
   startDate: string;
-  onUpdateMonth: (monthKey: string, contributorIndex: 0 | 1, deposit: MonthDeposit, notes?: string) => void;
+  onUpdateMonth: (monthKey: string, contributorIndex: number, deposit: MonthDeposit, notes?: string) => void;
   onUpdateNotes: (monthKey: string, notes: string) => void;
   onToggleCompleted: (monthKey: string) => void;
   onGenerateAutoPlan: () => void;
@@ -238,7 +238,7 @@ interface MonthCardProps {
   isFuture: boolean;
   isExpanded: boolean;
   onToggleExpand: () => void;
-  onUpdateDeposit: (monthKey: string, idx: 0 | 1, deposit: MonthDeposit, notes?: string) => void;
+  onUpdateDeposit: (monthKey: string, idx: number, deposit: MonthDeposit, notes?: string) => void;
   onUpdateNotes: (monthKey: string, notes: string) => void;
   onToggleCompleted: (monthKey: string) => void;
 }
@@ -247,12 +247,11 @@ function MonthCard({
   monthKey, config, record, status, isCurrent, isFuture, isExpanded,
   onToggleExpand, onUpdateDeposit, onUpdateNotes, onToggleCompleted,
 }: MonthCardProps) {
-  const [c0, c1] = config.contributors;
-  const d0 = record?.deposits[0] || EMPTY_DEPOSIT;
-  const d1 = record?.deposits[1] || EMPTY_DEPOSIT;
-
-  const totalPlanned = c0.plannedSelic + c0.plannedCDB + c1.plannedSelic + c1.plannedCDB;
-  const totalActual = d0.actualSelic + d0.actualCDB + d1.actualSelic + d1.actualCDB;
+  const totalPlanned = config.contributors.reduce((s, c) => s + c.plannedSelic + c.plannedCDB, 0);
+  const totalActual = config.contributors.reduce((s, c, i) => {
+    const d = record?.deposits[i] || EMPTY_DEPOSIT;
+    return s + d.actualSelic + d.actualCDB;
+  }, 0);
 
   return (
     <Card
@@ -296,18 +295,20 @@ function MonthCard({
         <div className="px-4 pb-4 space-y-4 border-t border-border/30 pt-4 animate-fade-in-up">
           {/* Contributor sections */}
           {config.contributors.map((c, cIdx) => {
-            const dep = cIdx === 0 ? d0 : d1;
+            const dep = record?.deposits[cIdx] || EMPTY_DEPOSIT;
             const hasSelic = c.plannedSelic > 0;
             const hasCDB = c.plannedCDB > 0;
             const hasName = c.name.trim().length > 0;
             if (!hasSelic && !hasCDB && !hasName) return null;
             if (!hasSelic && !hasCDB) return null;
 
+            const dotColors = ["bg-primary", "bg-accent", "bg-chart-3", "bg-chart-4", "bg-chart-5"];
+
             return (
               <div key={cIdx} className="rounded-xl bg-muted/30 p-3 space-y-3">
                 <p className="text-sm font-semibold flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${cIdx === 0 ? "bg-primary" : "bg-accent"}`} />
-                  {c.name}
+                  <span className={`w-2 h-2 rounded-full ${dotColors[cIdx % dotColors.length]}`} />
+                  {c.name || `Pessoa ${cIdx + 1}`}
                 </p>
 
                 {/* Planned row */}
@@ -339,7 +340,7 @@ function MonthCard({
                         placeholder="0"
                         onChange={(e) => {
                           const val = Number(e.target.value) || 0;
-                          onUpdateDeposit(monthKey, cIdx as 0 | 1, { ...dep, actualSelic: val });
+                          onUpdateDeposit(monthKey, cIdx, { ...dep, actualSelic: val });
                         }}
                         className={`text-right text-sm h-9 ${
                           dep.actualSelic >= c.plannedSelic && dep.actualSelic > 0 ? "border-primary/50 bg-primary/5" : ""
@@ -358,7 +359,7 @@ function MonthCard({
                         placeholder="0"
                         onChange={(e) => {
                           const val = Number(e.target.value) || 0;
-                          onUpdateDeposit(monthKey, cIdx as 0 | 1, { ...dep, actualCDB: val });
+                          onUpdateDeposit(monthKey, cIdx, { ...dep, actualCDB: val });
                         }}
                         className={`text-right text-sm h-9 ${
                           dep.actualCDB >= c.plannedCDB && dep.actualCDB > 0 ? "border-primary/50 bg-primary/5" : ""
