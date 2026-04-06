@@ -299,6 +299,8 @@ function MonthCard({
             const dep = cIdx === 0 ? d0 : d1;
             const hasSelic = c.plannedSelic > 0;
             const hasCDB = c.plannedCDB > 0;
+            const hasName = c.name.trim().length > 0;
+            if (!hasSelic && !hasCDB && !hasName) return null;
             if (!hasSelic && !hasCDB) return null;
 
             return (
