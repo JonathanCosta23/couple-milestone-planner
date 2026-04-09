@@ -375,7 +375,7 @@ const Index = () => {
 
       <MilestoneAlert
         milestone={newMilestone}
-        onDismiss={(m) => setDismissedMilestones([...dismissedMilestones, m])}
+        onDismiss={() => { if (newMilestone) setDismissedMilestones([...dismissedMilestones, newMilestone]); }}
       />
     </div>
   );
