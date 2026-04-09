@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -330,12 +330,16 @@ function ExpenseFormDialog({ open, onOpenChange, expense, monthKey, profiles, co
   monthKey: string; profiles: { id: string; name: string }[]; coupleMode: boolean;
   onSave: (e: Expense) => void;
 }) {
-  const defaults = createDefaultExpense(monthKey, profiles[0]?.id) as Expense;
-  const [form, setForm] = useState<Expense>(expense || defaults);
+  const [form, setForm] = useState<Expense>(expense || createDefaultExpense(monthKey, profiles[0]?.id) as Expense);
 
-  // Reset form when dialog opens
+  // Reset form when dialog opens or expense changes
+  useEffect(() => {
+    if (open) {
+      setForm(expense || createDefaultExpense(monthKey, profiles[0]?.id) as Expense);
+    }
+  }, [open, expense, monthKey, profiles]);
+
   const handleOpenChange = (o: boolean) => {
-    if (o) setForm(expense || createDefaultExpense(monthKey, profiles[0]?.id) as Expense);
     onOpenChange(o);
   };
 

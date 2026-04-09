@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PlanConfig, MonthDeposit, EMPTY_DEPOSIT, formatBRL, getCurrentMonthKey, monthKeyToFullLabel } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -24,15 +24,21 @@ export function QuickDeposit({ open, onOpenChange, config, monthRecords, onUpdat
   const currentKey = getCurrentMonthKey();
   const record = monthRecords.find((r) => r.monthKey === currentKey);
 
-  const activeContributors = config.contributors.filter(c => c.plannedSelic > 0 || c.plannedCDB > 0);
+  const [values, setValues] = useState<number[]>([]);
+  const [markComplete, setMarkComplete] = useState(false);
 
-  const [values, setValues] = useState<number[]>(() =>
-    config.contributors.map((_, i) => {
-      const d = record?.deposits[i] || { ...EMPTY_DEPOSIT };
-      return (d.actualSelic + d.actualCDB) || 0;
-    })
-  );
-  const [markComplete, setMarkComplete] = useState(!!record?.completed);
+  // Refresh values every time dialog opens
+  useEffect(() => {
+    if (open) {
+      setValues(
+        config.contributors.map((_, i) => {
+          const d = record?.deposits[i] || { ...EMPTY_DEPOSIT };
+          return (d.actualSelic + d.actualCDB) || 0;
+        })
+      );
+      setMarkComplete(!!record?.completed);
+    }
+  }, [open, config.contributors, record]);
 
   const handleSave = () => {
     config.contributors.forEach((c, i) => {
