@@ -19,21 +19,21 @@ export function BehavioralPanel({ appData, config, monthRecords, startDate }: Pr
 
   const trendIcon = habits.trend === "improving" ? TrendingUp : habits.trend === "declining" ? TrendingDown : Minus;
   const trendColor = habits.trend === "improving" ? "text-primary" : habits.trend === "declining" ? "text-destructive" : "text-muted-foreground";
-  const trendLabel = habits.trend === "improving" ? "Melhorando" : habits.trend === "declining" ? "Piorando" : "Estável";
+  const trendLabel = habits.trend === "improving" ? "Melhorando" : habits.trend === "declining" ? "Precisa de atenção" : "Estável";
   const TrendIcon = trendIcon;
 
   return (
     <div className="space-y-4 lg:space-y-6">
       <Card className="glass-card-strong p-4 lg:p-6 text-center">
         <Brain className="w-6 h-6 lg:w-8 lg:h-8 text-primary mx-auto mb-2" />
-        <h3 className="font-bold lg:text-lg">Inteligência Comportamental</h3>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-1">Insights sobre seus hábitos financeiros</p>
+        <h3 className="font-bold lg:text-lg">Seus hábitos financeiros</h3>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">Como seu comportamento impacta sua meta — e o que melhorar</p>
       </Card>
 
       {/* Discipline Overview */}
       <Card className="glass-card p-4 lg:p-6">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-semibold">Disciplina Geral</p>
+          <p className="text-sm font-semibold">Nível de disciplina</p>
           <div className="flex items-center gap-1.5">
             <TrendIcon className={`w-4 h-4 ${trendColor}`} />
             <span className={`text-xs font-medium ${trendColor}`}>{trendLabel}</span>
@@ -44,18 +44,18 @@ export function BehavioralPanel({ appData, config, monthRecords, startDate }: Pr
           <p className="text-[10px] sm:text-xs text-muted-foreground uppercase">de 100</p>
         </div>
         <div className="space-y-3">
-          <HabitBar icon={Flame} label="Sequência de aportes" value={Math.min(100, habits.contributionStreak * 12)} detail={`${habits.contributionStreak} meses`} />
-          <HabitBar icon={Target} label="Disciplina mensal" value={habits.monthlyDiscipline} />
+          <HabitBar icon={Flame} label="Aportes consecutivos" value={Math.min(100, habits.contributionStreak * 12)} detail={`${habits.contributionStreak} meses`} />
+          <HabitBar icon={Target} label="Compromisso com o plano" value={habits.monthlyDiscipline} />
           <HabitBar icon={Eye} label="Controle de gastos" value={habits.expenseTracking} />
-          <HabitBar icon={CreditCard} label="Controle do cartão" value={habits.cardControl} />
-          <HabitBar icon={Calendar} label="Dias sem impulso" value={Math.min(100, habits.impulseFreedays * 3.3)} detail={`~${habits.impulseFreedays} dias`} />
+          <HabitBar icon={CreditCard} label="Uso consciente do cartão" value={habits.cardControl} />
+          <HabitBar icon={Calendar} label="Dias sem compra por impulso" value={Math.min(100, habits.impulseFreedays * 3.3)} detail={`~${habits.impulseFreedays} dias`} />
         </div>
       </Card>
 
       {/* Nudges */}
       {nudges.length > 0 && (
         <Card className="glass-card p-4 space-y-3">
-          <p className="text-sm font-semibold">Alertas e Insights</p>
+          <p className="text-sm font-semibold">O que o app percebeu</p>
           {nudges.slice(0, 5).map(nudge => (
             <NudgeCard key={nudge.id} nudge={nudge} />
           ))}
@@ -65,8 +65,8 @@ export function BehavioralPanel({ appData, config, monthRecords, startDate }: Pr
       {nudges.length === 0 && (
         <Card className="glass-card p-6 text-center">
           <p className="text-2xl mb-2">🎯</p>
-          <p className="text-sm font-semibold">Tudo certo por aqui!</p>
-          <p className="text-xs text-muted-foreground">Continue cadastrando dados para insights mais precisos.</p>
+          <p className="text-sm font-semibold">Tudo em ordem por aqui</p>
+          <p className="text-xs text-muted-foreground">Continue cadastrando seus dados — quanto mais informação, melhores os insights.</p>
         </Card>
       )}
     </div>
