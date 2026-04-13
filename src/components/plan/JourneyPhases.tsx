@@ -3,8 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { PlanConfig, MonthRecord } from "@/lib/types";
 import { AppData } from "@/lib/models";
-import { detectCurrentPhase, JOURNEY_PHASES, JourneyPhase, calculateHealthScore, calculateDiagnostic, calculatePortfolioSecurity } from "@/lib/financialEngine";
-import { calculateStreak } from "@/lib/calculator";
+import type { FinancialCoreState } from "@/hooks/useFinancialCore";
+import { JOURNEY_PHASES as OLD_PHASES } from "@/lib/financialEngine";
 import { ChevronRight, Check, Lock, TrendingUp, TrendingDown, Shield, Activity, Target } from "lucide-react";
 
 interface Props {
@@ -12,123 +12,84 @@ interface Props {
   config: PlanConfig;
   monthRecords: MonthRecord[];
   startDate: string;
+  core: FinancialCoreState;
 }
 
-// Evolution stages based on structural quality, not just total
-type EvolutionStage = "desorganizado" | "em-ajuste" | "protegendo" | "consistente" | "acumulando" | "estruturado" | "diversificado" | "estrategico";
+const PHASE_ORDER = ["chaos", "control", "protection", "accumulation", "acceleration", "consolidation", "passive-income", "functional-wealth"] as const;
 
-const EVOLUTION_STAGES: { id: EvolutionStage; label: string; emoji: string; description: string }[] = [
-  { id: "desorganizado", label: "Desorganizado", emoji: "🌪️", description: "Ainda sem visão clara do fluxo financeiro" },
-  { id: "em-ajuste", label: "Em ajuste", emoji: "🔧", description: "Começando a organizar receitas e gastos" },
-  { id: "protegendo", label: "Protegendo a base", emoji: "🛡️", description: "Construindo reserva e eliminando dívidas" },
-  { id: "consistente", label: "Consistente", emoji: "🎯", description: "Aportando com regularidade e disciplina" },
-  { id: "acumulando", label: "Acumulando com segurança", emoji: "📈", description: "Patrimônio crescendo com estrutura" },
-  { id: "estruturado", label: "Estruturado", emoji: "🏗️", description: "Buckets equilibrados e proteção adequada" },
-  { id: "diversificado", label: "Diversificado", emoji: "💎", description: "Patrimônio distribuído e protegido" },
-  { id: "estrategico", label: "Estratégico", emoji: "👑", description: "Arquitetura madura e renda passiva" },
-];
+export function JourneyPhases({ appData, config, monthRecords, startDate, core }: Props) {
+  const { journey, metrics, allocation } = core;
+  const currentPhase = journey.currentPhase;
+  const currentIdx = PHASE_ORDER.indexOf(currentPhase as any);
 
-function detectEvolutionStage(
-  appData: AppData, config: PlanConfig, monthRecords: MonthRecord[], startDate: string
-): EvolutionStage {
-  const score = calculateHealthScore(appData, config, monthRecords, startDate);
-  const diag = calculateDiagnostic(appData, config, monthRecords, startDate);
-  const security = calculatePortfolioSecurity(appData, config);
-  const streak = calculateStreak(config, monthRecords, startDate);
-  const hasData = appData.incomes.length > 0 || appData.expenses.length > 0;
+  // Use old phase info for detailed content (priorities, recommendations etc)
+  const phaseInfo = OLD_PHASES.find(p => p.id === currentPhase) || OLD_PHASES[0];
 
-  if (!hasData && score.total < 30) return "desorganizado";
-  if (score.flowClarityScore < 60) return "em-ajuste";
-  if (diag.emergencyMonths < 3 || score.debtScore < 50) return "protegendo";
-  if (streak < 3 || score.consistencyScore < 50) return "consistente";
-  if (diag.investedWealth < 100_000) return "acumulando";
-  if (security.total < 60 || security.concentrationLevel === "high") return "estruturado";
-  if (diag.investedWealth < 500_000) return "diversificado";
-  return "estrategico";
-}
-
-const PHASE_ORDER: JourneyPhase[] = ["chaos", "control", "protection", "accumulation", "acceleration", "consolidation", "passive-income", "functional-wealth"];
-
-export function JourneyPhases({ appData, config, monthRecords, startDate }: Props) {
-  const currentPhase = useMemo(
-    () => detectCurrentPhase(appData, config, monthRecords, startDate),
-    [appData, config, monthRecords, startDate]
-  );
-  const evolutionStage = useMemo(
-    () => detectEvolutionStage(appData, config, monthRecords, startDate),
-    [appData, config, monthRecords, startDate]
-  );
-  const score = useMemo(() => calculateHealthScore(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
-  const security = useMemo(() => calculatePortfolioSecurity(appData, config), [appData, config]);
-  const streak = useMemo(() => calculateStreak(config, monthRecords, startDate), [config, monthRecords, startDate]);
-
-  const currentIdx = PHASE_ORDER.indexOf(currentPhase);
-  const phaseInfo = JOURNEY_PHASES.find(p => p.id === currentPhase)!;
-  const evolutionInfo = EVOLUTION_STAGES.find(s => s.id === evolutionStage)!;
-  const evolutionIdx = EVOLUTION_STAGES.findIndex(s => s.id === evolutionStage);
-
-  // What accelerates and what delays
+  // Accelerators & delays derived from centralized metrics
   const accelerators: string[] = [];
   const delays: string[] = [];
 
-  if (streak >= 3) accelerators.push("Consistência de aportes");
-  if (score.emergencyScore >= 70) accelerators.push("Reserva de emergência sólida");
-  if (security.protectedPercentage >= 0.6) accelerators.push("Boa proteção patrimonial");
-  if (score.balanceScore >= 70) accelerators.push("Equilíbrio entre renda e gastos");
+  if (metrics.streak >= 3) accelerators.push("Consistência de aportes");
+  if (metrics.reserveMonths >= 6) accelerators.push("Reserva de emergência completa");
+  if (metrics.protectedRatio >= 0.6) accelerators.push("Boa proteção patrimonial");
+  if (metrics.savingsRate >= 0.15) accelerators.push("Boa taxa de poupança");
 
-  if (streak < 2) delays.push("Falta de regularidade nos aportes");
-  if (score.debtScore < 50) delays.push("Peso das dívidas na renda");
-  if (score.emergencyScore < 40) delays.push("Reserva de emergência fraca");
-  if (security.concentrationLevel === "high") delays.push("Concentração excessiva");
-  if (score.flowClarityScore < 50) delays.push("Falta de dados cadastrados");
+  if (metrics.streak < 2) delays.push("Falta de regularidade nos aportes");
+  if (metrics.toxicDebtCount > 0) delays.push("Dívidas tóxicas pesando na renda");
+  if (metrics.reserveMonths < 3) delays.push("Reserva de emergência fraca");
+  if (allocation.concentrationRisk === "high" || allocation.concentrationRisk === "critical") delays.push("Concentração excessiva");
 
   return (
     <div className="space-y-4 lg:space-y-6">
       {/* Current Phase Banner */}
       <Card className="glass-card-strong p-5 lg:p-8 text-center">
-        <p className="text-4xl lg:text-5xl mb-2">{phaseInfo.emoji}</p>
-        <h3 className="text-lg lg:text-xl font-bold">Fase: {phaseInfo.name}</h3>
-        <p className="text-sm lg:text-base text-muted-foreground mt-1 max-w-md mx-auto">{phaseInfo.description}</p>
+        <p className="text-4xl lg:text-5xl mb-2">{journey.phaseEmoji}</p>
+        <h3 className="text-lg lg:text-xl font-bold">Fase: {journey.phaseName}</h3>
+        <p className="text-sm lg:text-base text-muted-foreground mt-1 max-w-md mx-auto">{journey.phaseDescription}</p>
       </Card>
 
-      {/* Evolution Stage (behavioral) */}
-      <Card className="glass-card p-4 lg:p-6">
-        <h4 className="section-label mb-3">Seu estágio de evolução</h4>
-        <div className="flex items-center gap-3 mb-3">
-          <span className="text-2xl">{evolutionInfo.emoji}</span>
-          <div>
-            <p className="text-sm font-bold">{evolutionInfo.label}</p>
-            <p className="text-xs text-muted-foreground">{evolutionInfo.description}</p>
+      {/* Progress to next */}
+      {journey.nextPhase && (
+        <Card className="glass-card p-4 lg:p-6">
+          <h4 className="section-label mb-3">Progresso para a próxima fase</h4>
+          <Progress value={journey.progressToNext * 100} className="h-2 mb-3" />
+          <div className="grid grid-cols-2 gap-3">
+            {journey.completedCriteria.length > 0 && (
+              <div>
+                <p className="text-[10px] text-primary uppercase font-bold mb-1">✅ Conquistado</p>
+                {journey.completedCriteria.map((c, i) => (
+                  <p key={i} className="text-xs text-muted-foreground flex items-center gap-1.5 mb-1">
+                    <Check className="w-3 h-3 text-primary" />{c}
+                  </p>
+                ))}
+              </div>
+            )}
+            {journey.pendingCriteria.length > 0 && (
+              <div>
+                <p className="text-[10px] text-warning uppercase font-bold mb-1">⏳ Pendente</p>
+                {journey.pendingCriteria.map((c, i) => (
+                  <p key={i} className="text-xs text-muted-foreground flex items-center gap-1.5 mb-1">
+                    <ChevronRight className="w-3 h-3 text-warning" />{c}
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-        <div className="flex gap-1 mb-2">
-          {EVOLUTION_STAGES.map((stage, i) => (
-            <div
-              key={stage.id}
-              className={`h-2 flex-1 rounded-full transition-all ${
-                i <= evolutionIdx ? "bg-primary" : "bg-muted/40"
-              }`}
-              title={stage.label}
-            />
-          ))}
-        </div>
-        <p className="text-[10px] sm:text-xs text-muted-foreground text-center">
-          {evolutionIdx + 1} de {EVOLUTION_STAGES.length} estágios
-        </p>
-      </Card>
+        </Card>
+      )}
 
-      {/* Structural quality indicators */}
+      {/* Quality indicators — from centralized metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <QualityCard icon={Activity} label="Saúde" value={score.total} />
-        <QualityCard icon={Shield} label="Proteção" value={security.total} />
-        <QualityCard icon={Target} label="Disciplina" value={score.disciplineScore} />
-        <QualityCard icon={TrendingUp} label="Constância" value={score.consistencyScore} />
+        <QualityCard icon={Activity} label="Estrutura" value={allocation.structuralScore} />
+        <QualityCard icon={Shield} label="Proteção" value={Math.round(metrics.protectedRatio * 100)} />
+        <QualityCard icon={Target} label="Disciplina" value={Math.min(100, Math.round(metrics.streak * 12))} />
+        <QualityCard icon={TrendingUp} label="Poupança" value={Math.min(100, Math.round(metrics.savingsRate * 250))} />
       </div>
 
       {/* Phase Progress */}
       <div className="flex items-center justify-between px-2">
         {PHASE_ORDER.map((phase, i) => {
-          const info = JOURNEY_PHASES.find(p => p.id === phase)!;
+          const info = OLD_PHASES.find(p => p.id === phase)!;
           const isActive = i === currentIdx;
           const isPast = i < currentIdx;
           const isFuture = i > currentIdx;
@@ -189,7 +150,7 @@ export function JourneyPhases({ appData, config, monthRecords, startDate }: Prop
 
       {/* Details */}
       <Card className="glass-card p-4 lg:p-6 space-y-4 lg:space-y-5">
-        <Section title="🎯 O que focar agora" items={phaseInfo.priorities} />
+        <Section title="🎯 O que focar agora" items={journey.priorities} />
         <Section title="✅ Seus próximos passos" items={phaseInfo.nextSteps} />
         <Section title="💡 Dicas para esta fase" items={phaseInfo.recommendations} />
         <Section title="⚠️ Cuidado com" items={phaseInfo.commonRisks} variant="warning" />
@@ -198,11 +159,11 @@ export function JourneyPhases({ appData, config, monthRecords, startDate }: Prop
         )}
       </Card>
 
-      {/* All Phases Mini List */}
+      {/* All Phases */}
       <Card className="glass-card p-4 lg:p-6">
         <h4 className="section-label mb-3">As 8 fases da jornada</h4>
         <div className="space-y-2">
-          {JOURNEY_PHASES.map((phase, i) => {
+          {OLD_PHASES.map((phase, i) => {
             const isActive = phase.id === currentPhase;
             const isPast = i < currentIdx;
             return (

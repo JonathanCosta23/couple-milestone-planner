@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { AppData } from "@/lib/models";
 import { PlanConfig, MonthRecord, formatBRL, formatBRLCompact, getCurrentMonthKey, monthKeyToFullLabel } from "@/lib/types";
-import { calculateHealthScore, calculateDiagnostic, generateStructuralAlerts, getNextBestAction, calculatePortfolioSecurity } from "@/lib/financialEngine";
-import { calculateStreak, getCurrentMonthDeposited } from "@/lib/calculator";
-import { generateMentorRecommendations, generateNudges } from "@/lib/behavioralEngine";
+import { getCurrentMonthDeposited } from "@/lib/calculator";
+import { generateNudges } from "@/lib/behavioralEngine";
 import { ContextualEducation } from "./ContextualEducation";
+import type { FinancialCoreState } from "@/hooks/useFinancialCore";
 import {
   DollarSign, Target, TrendingUp, Zap, AlertTriangle, Lightbulb, ArrowRight,
   Wallet, Shield, ChevronDown, ChevronUp, Eye, CheckCircle,
@@ -20,13 +20,12 @@ interface Props {
   startDate: string;
   onNavigateToTab: (tab: string) => void;
   onOpenQuickDeposit: () => void;
+  core: FinancialCoreState;
 }
 
-// Activation checklist
 function getActivationSteps(appData: AppData, monthRecords: MonthRecord[]) {
   const hasIncome = appData.incomes.length > 0;
   const hasExpenses = appData.expenses.length > 0;
-  const hasDebt = appData.debts.length > 0;
   const hasAporte = monthRecords.some(m => m.deposits.some(d => d.actualSelic > 0 || d.actualCDB > 0));
   const hasInvestment = appData.investments.length > 0;
 
@@ -38,77 +37,44 @@ function getActivationSteps(appData: AppData, monthRecords: MonthRecord[]) {
   ];
 }
 
-// Invisible risk detection
-function detectInvisibleRisk(appData: AppData, config: PlanConfig, diag: ReturnType<typeof calculateDiagnostic>): { risk: string; explanation: string } | null {
-  const investments = appData.investments.filter(i => i.active);
-  const totalInvested = investments.reduce((s, i) => s + i.currentBalance, 0) + config.initialAmount;
-
-  // FGC concentration
-  const byInstitution = new Map<string, number>();
-  investments.filter(i => ["cdb", "lci-lca", "poupanca"].includes(i.type)).forEach(i => {
-    byInstitution.set(i.institution, (byInstitution.get(i.institution) || 0) + i.currentBalance);
-  });
-  for (const [inst, bal] of byInstitution) {
-    if (bal > 200_000) {
-      return { risk: `Limite FGC quase atingido em ${inst}`, explanation: "Acima de R$ 250 mil, o FGC não protege mais. Distribua entre instituições." };
-    }
-  }
-
-  // Investing without emergency fund
-  if (diag.emergencyMonths < 2 && totalInvested > 10_000) {
-    return { risk: "Crescendo sem rede de segurança", explanation: "Seu patrimônio cresce, mas sem reserva de emergência um imprevisto pode forçar vendas com prejuízo." };
-  }
-
-  // High concentration in single institution
-  const byInst = new Map<string, number>();
-  investments.forEach(i => byInst.set(i.institution, (byInst.get(i.institution) || 0) + i.currentBalance));
-  const maxConc = totalInvested > 0 ? Math.max(...(byInst.size > 0 ? [...byInst.values()] : [0])) / totalInvested : 0;
-  if (maxConc > 0.8 && totalInvested > 30_000) {
-    return { risk: "Patrimônio concentrado em uma só instituição", explanation: "Se algo acontecer com essa instituição, seu patrimônio inteiro está exposto." };
-  }
-
-  // Nominal ≠ Real gap warning
-  if (totalInvested > 50_000) {
-    return { risk: "Sua meta nominal não é sua meta real", explanation: "R$ 1 milhão daqui a 20 anos vale menos que R$ 1 milhão hoje. Considere a inflação no planejamento." };
-  }
-
-  return null;
-}
-
-export function UnifiedHome({ appData, config, monthRecords, startDate, onNavigateToTab, onOpenQuickDeposit }: Props) {
+export function UnifiedHome({ appData, config, monthRecords, startDate, onNavigateToTab, onOpenQuickDeposit, core }: Props) {
   const currentKey = getCurrentMonthKey();
   const [showFinancials, setShowFinancials] = useState(false);
+  const { metrics, insights, allocation, projection } = core;
 
-  const score = useMemo(() => calculateHealthScore(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
-  const diag = useMemo(() => calculateDiagnostic(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
   const currentMonth = useMemo(() => getCurrentMonthDeposited(config, monthRecords), [config, monthRecords]);
-  const streak = useMemo(() => calculateStreak(config, monthRecords, startDate), [config, monthRecords, startDate]);
-  const recs = useMemo(() => generateMentorRecommendations(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
   const nudges = useMemo(() => generateNudges(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
-  const structuralAlerts = useMemo(() => generateStructuralAlerts(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
-  const nextBestAction = useMemo(() => getNextBestAction(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
-  const portfolioSecurity = useMemo(() => calculatePortfolioSecurity(appData, config), [appData, config]);
-  const isCouple = config.contributors.length > 1;
 
-  const totalIncome = appData.incomes.filter(i => i.active).reduce((s, i) => s + i.amount, 0);
-  const monthExpenses = appData.expenses.filter(e => e.monthKey === currentKey);
-  const totalExpenses = monthExpenses.reduce((s, e) => s + e.amount, 0);
-  const totalDebtPayments = appData.debts.filter(d => d.active).reduce((s, d) => s + d.monthlyPayment, 0);
-  const balance = totalIncome - totalExpenses - totalDebtPayments;
-  const progressPct = Math.min(100, (diag.investedWealth / config.targetAmount) * 100);
-  const nextStep = recs[0] || null;
+  const progressPct = Math.min(100, (metrics.grossWealth / config.targetAmount) * 100);
   const topNudge = nudges[0] || null;
+  const nextBestAction = insights.nextBestAction;
+  const biggestBottleneck = insights.biggestBottleneck;
 
-  const scoreColor = score.total >= 70 ? "text-primary" : score.total >= 40 ? "text-warning" : "text-destructive";
-  const scoreLabel = score.total >= 70 ? "Saudável" : score.total >= 40 ? "Atenção" : "Crítico";
+  const scoreColor = core.metrics.streak >= 3 ? "text-primary" : metrics.savingsRate >= 0.1 ? "text-warning" : "text-destructive";
+
+  // Health score from allocation structural score
+  const healthScore = allocation.structuralScore;
+  const healthLabel = healthScore >= 70 ? "Saudável" : healthScore >= 40 ? "Atenção" : "Crítico";
+  const healthColor = healthScore >= 70 ? "text-primary" : healthScore >= 40 ? "text-warning" : "text-destructive";
 
   const activationSteps = useMemo(() => getActivationSteps(appData, monthRecords), [appData, monthRecords]);
   const completedSteps = activationSteps.filter(s => s.done).length;
   const allStepsComplete = completedSteps === activationSteps.length;
-  const invisibleRisk = useMemo(() => detectInvisibleRisk(appData, config, diag), [appData, config, diag]);
+
+  // Invisible risk from insights
+  const riskInsight = insights.biggestRisk;
+  const invisibleRisk = riskInsight && riskInsight.severity === "critical"
+    ? { risk: riskInsight.title, explanation: riskInsight.message }
+    : null;
+
+  const balance = metrics.totalIncome - metrics.totalExpenses - metrics.totalDebtPayment;
+  const isCouple = metrics.isCouple;
+
+  // Time to target
+  const monthsToTarget = projection.monthsToTargetNominal;
 
   // Empty state
-  if (totalIncome === 0 && monthExpenses.length === 0 && diag.investedWealth === 0) {
+  if (metrics.totalIncome === 0 && metrics.totalExpenses === 0 && metrics.grossWealth === 0) {
     return <EmptyHomeState onNavigateToTab={onNavigateToTab} onOpenQuickDeposit={onOpenQuickDeposit} activationSteps={activationSteps} />;
   }
 
@@ -120,8 +86,8 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
         <Card className="glass-card-hero p-5 lg:p-6 animate-fade-in-up">
           <div className="flex items-center justify-between mb-1">
             <p className="text-xs sm:text-sm text-muted-foreground">{monthKeyToFullLabel(currentKey)}</p>
-            {streak > 0 && (
-              <span className="text-xs font-medium text-primary">🔥 {streak} {streak === 1 ? "mês seguido" : "meses seguidos"}</span>
+            {metrics.streak > 0 && (
+              <span className="text-xs font-medium text-primary">🔥 {metrics.streak} {metrics.streak === 1 ? "mês seguido" : "meses seguidos"}</span>
             )}
           </div>
           <p className="section-title lg:text-lg mb-1">Aporte do mês</p>
@@ -156,7 +122,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
                 </div>
                 <div>
                   <p className="text-xs sm:text-sm text-muted-foreground">Total investido</p>
-                  <p className="text-lg lg:text-2xl font-extrabold text-gradient">{formatBRLCompact(diag.investedWealth)}</p>
+                  <p className="text-lg lg:text-2xl font-extrabold text-gradient">{formatBRLCompact(metrics.grossWealth)}</p>
                 </div>
               </div>
               <div className="text-right">
@@ -166,9 +132,10 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
             </div>
             <Progress value={progressPct} className="h-1.5 rounded-full mt-3" />
           </div>
-          {diag.monthsToMillion && (
+          {monthsToTarget && (
             <p className="text-[11px] sm:text-xs text-muted-foreground mt-3">
-              No ritmo atual, {isCouple ? "vocês chegam" : "você chega"} em {formatBRLCompact(config.targetAmount)} em ~{Math.ceil(diag.monthsToMillion / 12)} anos
+              No ritmo atual, {isCouple ? "vocês chegam" : "você chega"} em {formatBRLCompact(config.targetAmount)} em ~{Math.ceil(monthsToTarget / 12)} anos
+              <span className="text-[10px] opacity-70"> (cenário base nominal)</span>
             </p>
           )}
         </Card>
@@ -177,7 +144,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
       {/* ── Desktop: Two-column action cards ── */}
       <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-5 lg:space-y-0">
         {/* ── 3. Próximo melhor passo ── */}
-        {nextStep && (
+        {nextBestAction && (
           <Card className="action-card animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
             <div className="flex items-start gap-3">
               <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -185,25 +152,27 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] sm:text-xs text-primary font-bold uppercase tracking-wider mb-0.5">Próximo passo</p>
-                <p className="text-sm lg:text-base font-semibold leading-snug">{nextStep.title}</p>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">{nextStep.description}</p>
+                <p className="text-sm lg:text-base font-semibold leading-snug">{nextBestAction.title}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">{nextBestAction.message}</p>
               </div>
             </div>
           </Card>
         )}
 
         {/* ── 4. Principal gargalo ── */}
-        <Card className="alert-card animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-xl bg-warning/10 flex items-center justify-center shrink-0">
-              <AlertTriangle className="w-5 h-5 text-warning" />
+        {biggestBottleneck && (
+          <Card className="alert-card animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-xl bg-warning/10 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-warning" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs text-warning font-bold uppercase tracking-wider mb-0.5">Maior obstáculo agora</p>
+                <p className="text-sm lg:text-base leading-snug">{biggestBottleneck.title}</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-[10px] sm:text-xs text-warning font-bold uppercase tracking-wider mb-0.5">Maior obstáculo agora</p>
-              <p className="text-sm lg:text-base leading-snug">{diag.biggestBottleneck}</p>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        )}
       </div>
 
       {/* ── 5. Risco invisível ── */}
@@ -222,42 +191,23 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
         </Card>
       )}
 
-      {/* ── 5b. Structural Alert ── */}
-      {structuralAlerts.length > 0 && !invisibleRisk && (
-        <Card className="glass-card p-4 lg:p-5 border-primary/20 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-              <Shield className="w-5 h-5 text-primary" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] sm:text-xs text-primary font-bold uppercase tracking-wider mb-0.5">Estrutura do Patrimônio</p>
-              <p className="text-sm lg:text-base font-medium">{nextBestAction.action}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{nextBestAction.reason}</p>
-              <Button variant="link" size="sm" className="px-0 h-auto text-xs text-primary mt-1" onClick={() => onNavigateToTab("estrutura")}>
-                Ver arquitetura completa →
-              </Button>
-            </div>
-          </div>
-        </Card>
-      )}
-
       {/* ── 6. Indicadores rápidos ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-4">
-        <IndicatorCard icon="💪" label="Saúde financeira" value={`${score.total}`} sub={scoreLabel} valueColor={scoreColor}
+        <IndicatorCard icon="💪" label="Estrutura" value={`${healthScore}`} sub={healthLabel} valueColor={healthColor}
           onClick={() => onNavigateToTab("diagnostico")} />
-        <IndicatorCard icon="🛡️" label="Reserva" value={`${diag.emergencyMonths.toFixed(1)}m`}
-          sub={diag.emergencyMonths >= 6 ? "Segura" : diag.emergencyMonths >= 3 ? "Em construção" : "Insuficiente"}
-          valueColor={diag.emergencyMonths >= 6 ? "text-primary" : diag.emergencyMonths >= 3 ? "text-warning" : "text-destructive"} />
-        <IndicatorCard icon="📈" label="Poupança" value={totalIncome > 0 ? `${(diag.savingsRate * 100).toFixed(0)}%` : "—"}
-          sub={diag.savingsRate >= 0.2 ? "Excelente" : diag.savingsRate >= 0.1 ? "Bom começo" : "Pode melhorar"}
-          valueColor={diag.savingsRate >= 0.2 ? "text-primary" : diag.savingsRate >= 0.1 ? "text-warning" : "text-destructive"} />
-        <IndicatorCard icon="🏛️" label="Proteção" value={`${(portfolioSecurity.protectedPercentage * 100).toFixed(0)}%`}
-          sub={portfolioSecurity.overallStatus === "strong" ? "Sólida" : portfolioSecurity.overallStatus === "moderate" ? "Moderada" : "Frágil"}
-          valueColor={portfolioSecurity.overallStatus === "strong" ? "text-primary" : portfolioSecurity.overallStatus === "moderate" ? "text-warning" : "text-destructive"}
+        <IndicatorCard icon="🛡️" label="Reserva" value={`${metrics.reserveMonths.toFixed(1)}m`}
+          sub={metrics.reserveStatus === "complete" ? "Completa" : metrics.reserveStatus === "partial" ? "Em construção" : "Insuficiente"}
+          valueColor={metrics.reserveStatus === "complete" ? "text-primary" : metrics.reserveStatus === "partial" ? "text-warning" : "text-destructive"} />
+        <IndicatorCard icon="📈" label="Poupança" value={metrics.totalIncome > 0 ? `${(metrics.savingsRate * 100).toFixed(0)}%` : "—"}
+          sub={metrics.savingsRate >= 0.2 ? "Excelente" : metrics.savingsRate >= 0.1 ? "Bom começo" : "Pode melhorar"}
+          valueColor={metrics.savingsRate >= 0.2 ? "text-primary" : metrics.savingsRate >= 0.1 ? "text-warning" : "text-destructive"} />
+        <IndicatorCard icon="🏛️" label="Proteção" value={`${(metrics.protectedRatio * 100).toFixed(0)}%`}
+          sub={metrics.protectedRatio >= 0.6 ? "Sólida" : metrics.protectedRatio >= 0.3 ? "Moderada" : "Frágil"}
+          valueColor={metrics.protectedRatio >= 0.6 ? "text-primary" : metrics.protectedRatio >= 0.3 ? "text-warning" : "text-destructive"}
           onClick={() => onNavigateToTab("estrutura")} />
       </div>
 
-      {/* ── Activation checklist (if not all done) ── */}
+      {/* ── Activation checklist ── */}
       {!allStepsComplete && (
         <Card className="glass-card p-4 lg:p-5 animate-fade-in-up">
           <div className="flex items-center justify-between mb-3">
@@ -294,7 +244,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
       )}
 
       {/* ── Resumo financeiro (colapsável) ── */}
-      {(totalIncome > 0 || totalExpenses > 0) && (
+      {(metrics.totalIncome > 0 || metrics.totalExpenses > 0) && (
         <Card className="glass-card overflow-hidden">
           <button className="w-full p-4 lg:p-5 flex items-center justify-between touch-target"
             onClick={() => setShowFinancials(!showFinancials)}>
@@ -313,16 +263,16 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
             <div className="px-4 lg:px-5 pb-4 lg:pb-5 space-y-2 animate-fade-in-up">
               <div className="flex justify-between text-sm lg:text-base">
                 <span className="text-muted-foreground">O que entra</span>
-                <span className="font-semibold text-primary">{formatBRL(totalIncome)}</span>
+                <span className="font-semibold text-primary">{formatBRL(metrics.totalIncome)}</span>
               </div>
               <div className="flex justify-between text-sm lg:text-base">
                 <span className="text-muted-foreground">O que sai (gastos)</span>
-                <span className="font-semibold">{formatBRL(totalExpenses)}</span>
+                <span className="font-semibold">{formatBRL(metrics.totalExpenses)}</span>
               </div>
-              {totalDebtPayments > 0 && (
+              {metrics.totalDebtPayment > 0 && (
                 <div className="flex justify-between text-sm lg:text-base">
                   <span className="text-muted-foreground">O que sai (dívidas)</span>
-                  <span className="font-semibold text-destructive">{formatBRL(totalDebtPayments)}</span>
+                  <span className="font-semibold text-destructive">{formatBRL(metrics.totalDebtPayment)}</span>
                 </div>
               )}
               <div className="h-px bg-border/60 my-1" />
@@ -388,7 +338,6 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
   );
 }
 
-/* ── Indicator Card ── */
 function IndicatorCard({ icon, label, value, sub, valueColor, onClick }: {
   icon: string; label: string; value: string; sub: string; valueColor: string; onClick?: () => void;
 }) {
@@ -405,7 +354,6 @@ function IndicatorCard({ icon, label, value, sub, valueColor, onClick }: {
   );
 }
 
-/* ── Empty Home State ── */
 function EmptyHomeState({ onNavigateToTab, onOpenQuickDeposit, activationSteps }: {
   onNavigateToTab: (tab: string) => void; onOpenQuickDeposit: () => void;
   activationSteps: ReturnType<typeof getActivationSteps>;
