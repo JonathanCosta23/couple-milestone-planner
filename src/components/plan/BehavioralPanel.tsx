@@ -23,15 +23,15 @@ export function BehavioralPanel({ appData, config, monthRecords, startDate }: Pr
   const TrendIcon = trendIcon;
 
   return (
-    <div className="space-y-4">
-      <Card className="glass-card-strong p-4 text-center">
-        <Brain className="w-6 h-6 text-primary mx-auto mb-2" />
-        <h3 className="font-bold">Inteligência Comportamental</h3>
-        <p className="text-xs text-muted-foreground mt-1">Insights sobre seus hábitos financeiros</p>
+    <div className="space-y-4 lg:space-y-6">
+      <Card className="glass-card-strong p-4 lg:p-6 text-center">
+        <Brain className="w-6 h-6 lg:w-8 lg:h-8 text-primary mx-auto mb-2" />
+        <h3 className="font-bold lg:text-lg">Inteligência Comportamental</h3>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">Insights sobre seus hábitos financeiros</p>
       </Card>
 
       {/* Discipline Overview */}
-      <Card className="glass-card p-4">
+      <Card className="glass-card p-4 lg:p-6">
         <div className="flex items-center justify-between mb-3">
           <p className="text-sm font-semibold">Disciplina Geral</p>
           <div className="flex items-center gap-1.5">
@@ -40,8 +40,8 @@ export function BehavioralPanel({ appData, config, monthRecords, startDate }: Pr
           </div>
         </div>
         <div className="text-center mb-3">
-          <p className="text-3xl font-extrabold text-primary">{habits.overallDiscipline}</p>
-          <p className="text-[10px] text-muted-foreground uppercase">de 100</p>
+          <p className="text-3xl lg:text-4xl font-extrabold text-primary">{habits.overallDiscipline}</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground uppercase">de 100</p>
         </div>
         <div className="space-y-3">
           <HabitBar icon={Flame} label="Sequência de aportes" value={Math.min(100, habits.contributionStreak * 12)} detail={`${habits.contributionStreak} meses`} />

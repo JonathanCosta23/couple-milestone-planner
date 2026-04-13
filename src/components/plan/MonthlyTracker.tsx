@@ -129,9 +129,9 @@ export function MonthlyTracker({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 lg:space-y-8">
       {/* Stats bar */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-3 lg:gap-4">
         <Card className="glass-card p-3 flex items-center gap-2">
           <div className="flex -space-x-0.5">
             {Array.from({ length: Math.min(Math.max(1, streak), 3) }).map((_, i) => (
