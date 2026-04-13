@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { AppData } from "@/lib/models";
-import { PlanConfig, MonthRecord, formatBRL, formatBRLCompact, getCurrentMonthKey, monthKeyToFullLabel, MILESTONES, MOTIVATIONAL_MESSAGES } from "@/lib/types";
+import { PlanConfig, MonthRecord, formatBRL, formatBRLCompact, getCurrentMonthKey, monthKeyToFullLabel, MILESTONES, getMotivationalMessages } from "@/lib/types";
 import { calculateHealthScore, calculateDiagnostic, detectCurrentPhase, JOURNEY_PHASES, generateIncomeInsights } from "@/lib/financialEngine";
 import { generateProjection, calculateStreak, getCurrentMonthDeposited, getReachedMilestones } from "@/lib/calculator";
 import { generateNudges } from "@/lib/behavioralEngine";
@@ -41,7 +41,9 @@ export function StrategicHome({ appData, config, monthRecords, startDate, onNavi
 
   const scoreColor = score.total >= 70 ? "text-primary" : score.total >= 40 ? "text-warning" : "text-destructive";
 
-  const messageIdx = Math.floor(Date.now() / 86400000) % MOTIVATIONAL_MESSAGES.length;
+  const isCouple = config.contributors.length > 1;
+  const messages = getMotivationalMessages(isCouple);
+  const messageIdx = Math.floor(Date.now() / 86400000) % messages.length;
 
   const closerToMillion: string[] = [];
   const awayFromMillion: string[] = [];
@@ -63,7 +65,7 @@ export function StrategicHome({ appData, config, monthRecords, startDate, onNavi
       <Card className="glass-card p-3 text-center border-primary/20">
         <div className="flex items-center justify-center gap-2 text-sm">
           <Heart className="w-4 h-4 text-primary animate-pulse" />
-          <span className="text-muted-foreground">{MOTIVATIONAL_MESSAGES[messageIdx]}</span>
+          <span className="text-muted-foreground">{messages[messageIdx]}</span>
         </div>
       </Card>
 
