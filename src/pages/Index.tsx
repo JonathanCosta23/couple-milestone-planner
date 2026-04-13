@@ -239,6 +239,12 @@ const Index = () => {
             {planoSub === "simulador" && (
               <AdvancedSimulator appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
             )}
+            {planoSub === "estrutura" && (
+              <PatrimonialArchitecture appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+            )}
+            {planoSub === "projecao" && (
+              <ProjectionRealistic appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+            )}
             {planoSub === "diagnostico" && (
               <FinancialDiagnostic appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
             )}
@@ -250,6 +256,12 @@ const Index = () => {
             )}
             {planoSub === "patrimonio" && (
               <WealthDistribution appData={appData} config={data.config} />
+            )}
+            {planoSub === "concentracao" && (
+              <ConcentrationMap appData={appData} config={data.config} />
+            )}
+            {planoSub === "governanca" && (
+              <CoupleGovernance appData={appData} config={data.config} />
             )}
           </div>
         );
