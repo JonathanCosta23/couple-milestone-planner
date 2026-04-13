@@ -8,6 +8,7 @@ import {
   Activity, TrendingUp, TrendingDown, Shield, AlertTriangle,
   PieChart, Wallet, Target, ArrowUpRight, ArrowDownRight, Lightbulb,
 } from "lucide-react";
+import { ContextualEducation } from "./ContextualEducation";
 
 interface Props {
   appData: AppData;
@@ -136,6 +137,16 @@ export function FinancialDiagnostic({ appData, config, monthRecords, startDate }
           </div>
         </Card>
       </div>
+
+      {/* Contextual Education */}
+      <ContextualEducation
+        appData={appData}
+        config={config}
+        monthRecords={monthRecords}
+        startDate={startDate}
+        context="diagnostic"
+        maxSuggestions={2}
+      />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { calculateStreak, getCurrentMonthDeposited } from "@/lib/calculator";
 import { generateMentorRecommendations } from "@/lib/behavioralEngine";
 import { generateNudges } from "@/lib/behavioralEngine";
 import { EducationalTooltip } from "./EducationalTooltip";
+import { ContextualEducation } from "./ContextualEducation";
 import {
   DollarSign, Target, TrendingUp, Zap, AlertTriangle, Lightbulb, ArrowRight,
   Wallet, Shield, ChevronDown, ChevronUp,
@@ -231,7 +232,17 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
         </Card>
       )}
 
-      {/* ── 8. Atalhos ── */}
+      {/* ── 8. Educação contextual ── */}
+      <ContextualEducation
+        appData={appData}
+        config={config}
+        monthRecords={monthRecords}
+        startDate={startDate}
+        context="home"
+        maxSuggestions={1}
+      />
+
+      {/* ── 9. Atalhos ── */}
       <div className="grid grid-cols-2 gap-3">
         <Button variant="outline" size="sm" className="h-11 text-xs justify-between rounded-xl px-4 touch-target"
           onClick={() => onNavigateToTab("simulador")}>
