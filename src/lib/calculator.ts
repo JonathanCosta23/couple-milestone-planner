@@ -328,19 +328,21 @@ export function getMonthlyInsights(config: PlanConfig, monthRecords: MonthRecord
   const insights: string[] = [];
   const currentKey = getCurrentMonthKey();
   const record = monthRecords.find((r) => r.monthKey === currentKey);
+  const isCouple = config.contributors.length > 1;
+  const subject = isCouple ? "Vocês" : "Você";
 
   if (profile) {
     const totalIncome = (profile.incomeJonathan || 0) + (profile.incomeIsabella || 0);
     if (totalIncome > 0 && record) {
       const deposited = record.deposits.reduce((s, d) => s + d.actualSelic + d.actualCDB, 0);
-      insights.push(`Vocês investiram ${((deposited / totalIncome) * 100).toFixed(0)}% da renda este mês`);
+      insights.push(`${subject} investiram ${((deposited / totalIncome) * 100).toFixed(0)}% da renda este mês`);
     }
     const safety = getFinancialSafetyMonths(profile);
-    if (safety > 0) insights.push(`Vocês têm ${safety.toFixed(1)} meses de segurança financeira`);
+    if (safety > 0) insights.push(`${subject} ${isCouple ? "têm" : "tem"} ${safety.toFixed(1)} meses de segurança financeira`);
   }
 
   const streak = calculateStreak(config, monthRecords, startDate);
-  if (streak > 0) insights.push(`Vocês estão com ${streak} ${streak === 1 ? "mês consecutivo" : "meses consecutivos"} ✅`);
+  if (streak > 0) insights.push(`${subject} ${isCouple ? "estão" : "está"} com ${streak} ${streak === 1 ? "mês consecutivo" : "meses consecutivos"} ✅`);
 
   const missed = getMissedMonths(config, monthRecords, startDate);
   if (missed > 0) insights.push(`${missed} ${missed === 1 ? "mês pendente" : "meses pendentes"} — hora de regularizar! ⚡`);
