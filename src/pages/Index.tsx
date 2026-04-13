@@ -229,7 +229,7 @@ const Index = () => {
               </div>
             )}
             {planoSub === "simulador" && (
-              <AdvancedSimulator config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+              <AdvancedSimulator appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
             )}
             {planoSub === "diagnostico" && (
               <FinancialDiagnostic appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />

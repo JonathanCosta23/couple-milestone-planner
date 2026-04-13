@@ -147,3 +147,77 @@ export const MINI_LESSONS: MiniLesson[] = [
     relatedTerms: ["patrimonio", "renda-passiva", "aporte"],
   },
 ];
+
+// ===== Contextual Education Suggestions =====
+
+import { AppData } from "@/lib/models";
+import { PlanConfig, MonthRecord } from "@/lib/types";
+import { calculateDiagnostic, calculateHealthScore } from "@/lib/financialEngine";
+
+export interface ContextualSuggestion {
+  lessonId: string;
+  reason: string;
+  priority: number; // lower = higher priority
+}
+
+export function getContextualLessonSuggestions(
+  appData: AppData,
+  config: PlanConfig,
+  monthRecords: MonthRecord[],
+  startDate: string,
+  context: "home" | "diagnostic" | "simulator" = "home",
+  simulatorRate?: number,
+): ContextualSuggestion[] {
+  const diag = calculateDiagnostic(appData, config, monthRecords, startDate);
+  const score = calculateHealthScore(appData, config, monthRecords, startDate);
+  const suggestions: ContextualSuggestion[] = [];
+
+  // Emergency fund low
+  if (diag.emergencyMonths < 3) {
+    suggestions.push({ lessonId: "emergency-101", reason: "Sua reserva está baixa", priority: 1 });
+  }
+
+  // Debt weight high or has active debts
+  if (diag.debtWeight > 0.15 || appData.debts.some(d => d.active)) {
+    suggestions.push({ lessonId: "good-vs-bad-debt", reason: "Você tem dívidas ativas", priority: 2 });
+  }
+
+  // High wealth — FGC awareness
+  if (diag.investedWealth > 100000 || appData.investments.length > 0) {
+    suggestions.push({ lessonId: "fgc-guide", reason: "Proteja seu patrimônio", priority: 4 });
+  }
+
+  // Low savings rate
+  if (diag.savingsRate < 0.1) {
+    suggestions.push({ lessonId: "patrimonio-vs-renda", reason: "Aumente seu potencial de poupança", priority: 3 });
+  }
+
+  // Simulator: unrealistic rate warning
+  if (context === "simulator" && simulatorRate && simulatorRate > 0.20) {
+    suggestions.push({ lessonId: "traps-101", reason: "Cuidado com promessas irreais", priority: 0 });
+  }
+
+  // Diagnostic: based on lowest scores
+  if (context === "diagnostic") {
+    if (score.disciplineScore < 50) {
+      suggestions.push({ lessonId: "compound-magic", reason: "Consistência é o motor do crescimento", priority: 3 });
+    }
+    if (score.allocationRiskScore < 50) {
+      suggestions.push({ lessonId: "fgc-guide", reason: "Sua alocação precisa de atenção", priority: 3 });
+    }
+  }
+
+  // Always available as fallback
+  suggestions.push({ lessonId: "compound-magic", reason: "Entenda o motor do crescimento", priority: 10 });
+
+  // Deduplicate by lessonId, keep highest priority (lowest number)
+  const seen = new Map<string, ContextualSuggestion>();
+  for (const s of suggestions) {
+    const existing = seen.get(s.lessonId);
+    if (!existing || s.priority < existing.priority) {
+      seen.set(s.lessonId, s);
+    }
+  }
+
+  return Array.from(seen.values()).sort((a, b) => a.priority - b.priority);
+}

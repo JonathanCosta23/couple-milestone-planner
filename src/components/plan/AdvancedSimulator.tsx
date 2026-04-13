@@ -5,8 +5,11 @@ import { Label } from "@/components/ui/label";
 import { PlanConfig, MonthRecord, formatBRL, formatBRLCompact } from "@/lib/types";
 import { generateScenarioSuite, AdvancedScenarioResult, simulateAdvancedScenario } from "@/lib/financialEngine";
 import { Calculator, TrendingUp, Clock, DollarSign, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { ContextualEducation } from "./ContextualEducation";
+import { AppData } from "@/lib/models";
 
 interface Props {
+  appData: AppData;
   config: PlanConfig;
   monthRecords: MonthRecord[];
   startDate: string;
@@ -27,7 +30,7 @@ function CurrencyInput({ value, onChange, id, label }: { value: number; onChange
   );
 }
 
-export function AdvancedSimulator({ config, monthRecords, startDate }: Props) {
+export function AdvancedSimulator({ appData, config, monthRecords, startDate }: Props) {
   const monthly = config.contributors.reduce((s, c) => s + c.plannedSelic + c.plannedCDB, 0);
   const [customWealth, setCustomWealth] = useState(config.initialAmount);
   const [customMonthly, setCustomMonthly] = useState(monthly);
@@ -91,6 +94,17 @@ export function AdvancedSimulator({ config, monthRecords, startDate }: Props) {
           ))}
         </div>
       </Card>
+
+      {/* Contextual Education */}
+      <ContextualEducation
+        appData={appData}
+        config={config}
+        monthRecords={monthRecords}
+        startDate={startDate}
+        context="simulator"
+        maxSuggestions={1}
+        simulatorRate={customRate / 100}
+      />
     </div>
   );
 }
