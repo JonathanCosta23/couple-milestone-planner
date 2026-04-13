@@ -261,7 +261,7 @@ export function Wizard({ onComplete }: WizardProps) {
             </Button>
 
             <p className="text-sm text-muted-foreground text-center">
-              Aporte combinado: <strong className="text-foreground">{formatBRL(totalMonthly)}/mês</strong>
+              Aporte {config.contributors.length > 1 ? "combinado" : "mensal"}: <strong className="text-foreground">{formatBRL(totalMonthly)}/mês</strong>
             </p>
           </div>
         )}
