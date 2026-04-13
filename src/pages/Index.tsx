@@ -33,36 +33,35 @@ import { generateProjection, getReachedMilestones } from "@/lib/calculator";
 import { MILESTONES, EMOTIONAL_GOAL_LABELS } from "@/lib/types";
 import { parseImportJSON, saveBackup, ImportPreview } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
-import { Download, Upload, RotateCcw, Settings } from "lucide-react";
+import { Download, Upload, RotateCcw, Settings, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
-// Sub-nav definitions per section
-const FINANCAS_SUBS = [
-  { id: "gastos", label: "Gastos", icon: "💰" },
-  { id: "renda", label: "Renda", icon: "💵" },
-  { id: "dividas", label: "Dívidas", icon: "📋" },
-  { id: "plano", label: "Aportes", icon: "📅" },
-];
-
-const INTELIGENCIA_SUBS = [
-  { id: "diagnostico", label: "Diagnóstico", icon: "📊" },
+// Sub-nav definitions for Plano section
+const PLANO_SUBS = [
+  { id: "aportes", label: "Aportes", icon: "💰" },
+  { id: "simulador", label: "Simulador", icon: "📊" },
+  { id: "diagnostico", label: "Diagnóstico", icon: "🏥" },
   { id: "jornada", label: "Jornada", icon: "🗺️" },
   { id: "comportamento", label: "Hábitos", icon: "🧠" },
-  { id: "simulador", label: "Simulador", icon: "🔬" },
   { id: "patrimonio", label: "Patrimônio", icon: "💎" },
 ];
 
-const APRENDER_SUBS = [
-  { id: "aulas", label: "Aulas", icon: "📚" },
-  { id: "glossario", label: "Glossário", icon: "📖" },
-  { id: "investir", label: "Investir", icon: "📈" },
-  { id: "armadilhas", label: "Armadilhas", icon: "🛡️" },
+// Sub-nav definitions for Historico section
+const HISTORICO_SUBS = [
+  { id: "tracker", label: "Meses", icon: "📅" },
+  { id: "gastos", label: "Gastos", icon: "🛒" },
+  { id: "renda", label: "Renda", icon: "💵" },
+  { id: "dividas", label: "Dívidas", icon: "📋" },
 ];
 
-const CONFIG_SUBS = [
+// Sub-nav definitions for Perfil section
+const PERFIL_SUBS = [
+  { id: "aprender", label: "Aprender", icon: "📚" },
+  { id: "glossario", label: "Glossário", icon: "📖" },
+  { id: "armadilhas", label: "Armadilhas", icon: "🛡️" },
+  { id: "investir", label: "Investir", icon: "📈" },
   { id: "compartilhar", label: "Compartilhar", icon: "📤" },
-  { id: "notificacoes", label: "Alertas", icon: "🔔" },
-  { id: "ajuda", label: "Como usar", icon: "❓" },
+  { id: "ajuda", label: "Ajuda", icon: "❓" },
   { id: "dados", label: "Dados", icon: "💾" },
 ];
 
@@ -86,12 +85,11 @@ const Index = () => {
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
   const [showImportDialog, setShowImportDialog] = useState(false);
 
-  // Navigation state
+  // Navigation state — 4 tabs
   const [navSection, setNavSection] = useState<NavSection>("home");
-  const [financasSub, setFinancasSub] = useState("gastos");
-  const [inteligenciaSub, setInteligenciaSub] = useState("diagnostico");
-  const [aprenderSub, setAprenderSub] = useState("aulas");
-  const [configSub, setConfigSub] = useState("compartilhar");
+  const [planoSub, setPlanoSub] = useState("aportes");
+  const [historicoSub, setHistoricoSub] = useState("tracker");
+  const [perfilSub, setPerfilSub] = useState("aprender");
 
   const planned = useMemo(
     () => data.wizardComplete ? generateProjection(data.config, "planned", data.monthRecords, data.startDate) : [],
@@ -104,22 +102,21 @@ const Index = () => {
     ? data.emotionalGoal === "outro" ? (data.emotionalGoalCustom || null) : EMOTIONAL_GOAL_LABELS[data.emotionalGoal]
     : null;
 
-  // Navigate to specific tab (used from home shortcuts)
+  // Navigate to specific sub-tab (used from home shortcuts)
   const handleNavigateToTab = (tab: string) => {
-    // Map old tab names to new section+sub
-    const financasTabs = ["gastos", "renda", "dividas", "plano"];
-    const inteligenciaTabs = ["diagnostico", "jornada", "comportamento", "simulador", "patrimonio"];
-    const aprenderTabs = ["aulas", "glossario", "investir", "armadilhas"];
+    const planoTabs = ["aportes", "simulador", "diagnostico", "jornada", "comportamento", "patrimonio"];
+    const historicoTabs = ["tracker", "gastos", "renda", "dividas"];
+    const perfilTabs = ["aprender", "glossario", "armadilhas", "investir", "compartilhar", "ajuda", "dados"];
 
-    if (financasTabs.includes(tab)) {
-      setNavSection("financas");
-      setFinancasSub(tab);
-    } else if (inteligenciaTabs.includes(tab)) {
-      setNavSection("inteligencia");
-      setInteligenciaSub(tab);
-    } else if (aprenderTabs.includes(tab)) {
-      setNavSection("aprender");
-      setAprenderSub(tab);
+    if (planoTabs.includes(tab)) {
+      setNavSection("plano");
+      setPlanoSub(tab);
+    } else if (historicoTabs.includes(tab)) {
+      setNavSection("historico");
+      setHistoricoSub(tab);
+    } else if (perfilTabs.includes(tab)) {
+      setNavSection("perfil");
+      setPerfilSub(tab);
     } else {
       setNavSection("home");
     }
@@ -135,7 +132,7 @@ const Index = () => {
     a.download = "plano-do-milhao.json";
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Plano exportado com sucesso!");
+    toast.success("Dados exportados com sucesso!");
   };
 
   const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -156,26 +153,30 @@ const Index = () => {
     if (importPreview?.valid && importPreview.data) {
       saveBackup(data);
       importJSON(JSON.stringify(importPreview.data));
-      toast.success("Plano importado com sucesso!");
+      toast.success("Dados importados com sucesso!");
     }
     setShowImportDialog(false);
     setImportPreview(null);
   };
 
+  // ── Onboarding ──
   if (!data.onboardingComplete) {
     return <Onboarding onComplete={completeOnboarding} />;
   }
 
+  // ── Financial Profile Setup ──
   if (showFinancialSetup) {
     return (
       <div className="min-h-screen bg-background">
-        <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
-          <div className="container flex items-center justify-between h-14 px-4">
-            <h1 className="text-sm font-bold text-gradient">Plano do Milhão</h1>
+        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border/50">
+          <div className="container flex items-center justify-between h-12 px-4">
+            <button onClick={() => setShowFinancialSetup(false)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <ArrowLeft className="w-4 h-4" /> Voltar
+            </button>
             <ThemeToggle />
           </div>
         </header>
-        <main className="container px-4 py-8 max-w-3xl mx-auto">
+        <main className="container px-4 py-6 max-w-lg mx-auto">
           <FinancialProfileSetup
             config={data.config}
             profile={data.financialProfile}
@@ -184,6 +185,7 @@ const Index = () => {
             onSave={(profile, goal, custom) => {
               updateFinancialProfile(profile, goal, custom);
               setShowFinancialSetup(false);
+              toast.success("Perfil salvo!");
             }}
             onSkip={() => setShowFinancialSetup(false)}
           />
@@ -217,11 +219,49 @@ const Index = () => {
           />
         );
 
-      case "financas":
+      case "plano":
         return (
           <div className="space-y-4">
-            <SubNav items={FINANCAS_SUBS} active={financasSub} onChange={setFinancasSub} />
-            {financasSub === "gastos" && (
+            <SubNav items={PLANO_SUBS} active={planoSub} onChange={setPlanoSub} />
+            {planoSub === "aportes" && (
+              <div className="space-y-6">
+                <Dashboard config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+              </div>
+            )}
+            {planoSub === "simulador" && (
+              <AdvancedSimulator config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+            )}
+            {planoSub === "diagnostico" && (
+              <FinancialDiagnostic appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+            )}
+            {planoSub === "jornada" && (
+              <JourneyPhases appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+            )}
+            {planoSub === "comportamento" && (
+              <BehavioralPanel appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+            )}
+            {planoSub === "patrimonio" && (
+              <WealthDistribution appData={appData} config={data.config} />
+            )}
+          </div>
+        );
+
+      case "historico":
+        return (
+          <div className="space-y-4">
+            <SubNav items={HISTORICO_SUBS} active={historicoSub} onChange={setHistoricoSub} />
+            {historicoSub === "tracker" && (
+              <MonthlyTracker
+                config={data.config}
+                monthRecords={data.monthRecords}
+                startDate={data.startDate}
+                onUpdateMonth={updateMonthRecord}
+                onUpdateNotes={updateMonthNotes}
+                onToggleCompleted={toggleMonthCompleted}
+                onGenerateAutoPlan={generateAutoPlan}
+              />
+            )}
+            {historicoSub === "gastos" && (
               <ExpensePanel
                 appData={appData}
                 config={data.config}
@@ -233,7 +273,7 @@ const Index = () => {
                 onConvertToRecurring={convertToRecurring}
               />
             )}
-            {financasSub === "renda" && (
+            {historicoSub === "renda" && (
               <IncomePanel
                 appData={appData}
                 config={data.config}
@@ -244,7 +284,7 @@ const Index = () => {
                 onDeleteIncome={deleteIncome}
               />
             )}
-            {financasSub === "dividas" && (
+            {historicoSub === "dividas" && (
               <DebtModule
                 appData={appData}
                 config={data.config}
@@ -253,80 +293,18 @@ const Index = () => {
                 onDeleteDebt={deleteDebt}
               />
             )}
-            {financasSub === "plano" && (
-              <MonthlyTracker
-                config={data.config}
-                monthRecords={data.monthRecords}
-                startDate={data.startDate}
-                onUpdateMonth={updateMonthRecord}
-                onUpdateNotes={updateMonthNotes}
-                onToggleCompleted={toggleMonthCompleted}
-                onGenerateAutoPlan={generateAutoPlan}
-              />
-            )}
           </div>
         );
 
-      case "inteligencia":
+      case "perfil":
         return (
           <div className="space-y-4">
-            <SubNav items={INTELIGENCIA_SUBS} active={inteligenciaSub} onChange={setInteligenciaSub} />
-            {inteligenciaSub === "diagnostico" && (
-              <FinancialDiagnostic
-                appData={appData}
-                config={data.config}
-                monthRecords={data.monthRecords}
-                startDate={data.startDate}
-              />
-            )}
-            {inteligenciaSub === "jornada" && (
-              <JourneyPhases
-                appData={appData}
-                config={data.config}
-                monthRecords={data.monthRecords}
-                startDate={data.startDate}
-              />
-            )}
-            {inteligenciaSub === "comportamento" && (
-              <BehavioralPanel
-                appData={appData}
-                config={data.config}
-                monthRecords={data.monthRecords}
-                startDate={data.startDate}
-              />
-            )}
-            {inteligenciaSub === "simulador" && (
-              <div className="space-y-6">
-                <AdvancedSimulator
-                  config={data.config}
-                  monthRecords={data.monthRecords}
-                  startDate={data.startDate}
-                />
-                <Dashboard config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
-              </div>
-            )}
-            {inteligenciaSub === "patrimonio" && (
-              <WealthDistribution appData={appData} config={data.config} />
-            )}
-          </div>
-        );
-
-      case "aprender":
-        return (
-          <div className="space-y-4">
-            <SubNav items={APRENDER_SUBS} active={aprenderSub} onChange={setAprenderSub} />
-            {aprenderSub === "aulas" && <MiniLessons />}
-            {aprenderSub === "glossario" && <FinancialGlossary />}
-            {aprenderSub === "investir" && <InvestmentGuide />}
-            {aprenderSub === "armadilhas" && <TrapDetector />}
-          </div>
-        );
-
-      case "config":
-        return (
-          <div className="space-y-4">
-            <SubNav items={CONFIG_SUBS} active={configSub} onChange={setConfigSub} />
-            {configSub === "compartilhar" && (
+            <SubNav items={PERFIL_SUBS} active={perfilSub} onChange={setPerfilSub} />
+            {perfilSub === "aprender" && <MiniLessons />}
+            {perfilSub === "glossario" && <FinancialGlossary />}
+            {perfilSub === "armadilhas" && <TrapDetector />}
+            {perfilSub === "investir" && <InvestmentGuide />}
+            {perfilSub === "compartilhar" && (
               <SharePlan
                 config={data.config}
                 monthRecords={data.monthRecords}
@@ -336,29 +314,23 @@ const Index = () => {
                 onImportClick={() => fileInputRef.current?.click()}
               />
             )}
-            {configSub === "notificacoes" && (
-              <NotificationSettings
-                settings={data.notificationSettings}
-                onUpdate={updateNotificationSettings}
-              />
-            )}
-            {configSub === "ajuda" && <HowToUse />}
-            {configSub === "dados" && (
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 gap-2">
-                  <Button variant="outline" className="justify-start h-11" onClick={() => setShowFinancialSetup(true)}>
-                    <Settings className="w-4 h-4 mr-2" /> Perfil financeiro
-                  </Button>
-                  <Button variant="outline" className="justify-start h-11" onClick={handleExportJSON}>
-                    <Download className="w-4 h-4 mr-2" /> Exportar dados (JSON)
-                  </Button>
-                  <Button variant="outline" className="justify-start h-11" onClick={() => fileInputRef.current?.click()}>
-                    <Upload className="w-4 h-4 mr-2" /> Importar dados
-                  </Button>
-                  <Button variant="outline" className="justify-start h-11 text-destructive hover:text-destructive" onClick={() => { if (confirm("Tem certeza que deseja resetar todo o plano? Essa ação não pode ser desfeita.")) resetPlan(); }}>
-                    <RotateCcw className="w-4 h-4 mr-2" /> Resetar plano
-                  </Button>
-                </div>
+            {perfilSub === "ajuda" && <HowToUse />}
+            {perfilSub === "dados" && (
+              <div className="space-y-2">
+                <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={() => setShowFinancialSetup(true)}>
+                  <Settings className="w-4 h-4 mr-2.5" /> Perfil financeiro
+                </Button>
+                <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={handleExportJSON}>
+                  <Download className="w-4 h-4 mr-2.5" /> Exportar dados
+                </Button>
+                <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={() => fileInputRef.current?.click()}>
+                  <Upload className="w-4 h-4 mr-2.5" /> Importar dados
+                </Button>
+                <NotificationSettings settings={data.notificationSettings} onUpdate={updateNotificationSettings} />
+                <Button variant="outline" className="w-full justify-start h-12 rounded-xl text-destructive hover:text-destructive"
+                  onClick={() => { if (confirm("Tem certeza? Essa ação não pode ser desfeita.")) resetPlan(); }}>
+                  <RotateCcw className="w-4 h-4 mr-2.5" /> Resetar plano
+                </Button>
               </div>
             )}
           </div>
@@ -371,7 +343,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border/40">
         <div className="container flex items-center justify-between h-12 px-4">
           <h1 className="text-sm font-bold text-gradient">Plano do Milhão</h1>
           <ThemeToggle />
@@ -382,7 +354,7 @@ const Index = () => {
         <Hero goalLabel={goalLabel} config={data.config} contributorCount={data.config.contributors.length} />
       )}
 
-      <main className="container px-4 py-6 max-w-3xl mx-auto">
+      <main className="container px-4 py-5 max-w-lg mx-auto">
         {renderContent()}
       </main>
 
