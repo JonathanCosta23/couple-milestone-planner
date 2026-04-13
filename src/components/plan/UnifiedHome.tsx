@@ -35,6 +35,9 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
   const streak = useMemo(() => calculateStreak(config, monthRecords, startDate), [config, monthRecords, startDate]);
   const recs = useMemo(() => generateMentorRecommendations(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
   const nudges = useMemo(() => generateNudges(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
+  const structuralAlerts = useMemo(() => generateStructuralAlerts(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
+  const nextBestAction = useMemo(() => getNextBestAction(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
+  const portfolioSecurity = useMemo(() => calculatePortfolioSecurity(appData, config), [appData, config]);
 
   const totalIncome = appData.incomes.filter(i => i.active).reduce((s, i) => s + i.amount, 0);
   const monthExpenses = appData.expenses.filter(e => e.monthKey === currentKey);
