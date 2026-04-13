@@ -70,22 +70,24 @@ export function FinancialProfileSetup({ config, profile: initialProfile, emotion
                 className="text-right"
               />
             </div>
-            <div>
-              <Label htmlFor="income-i">
-                Renda mensal — {config.contributors[1].name}
-                <Tip text="Salário líquido ou renda mensal total." />
-              </Label>
-              <Input
-                id="income-i"
-                type="number"
-                min={0}
-                step={500}
-                value={profile.incomeIsabella || ""}
-                placeholder="Opcional"
-                onChange={(e) => setProfile({ ...profile, incomeIsabella: Number(e.target.value) || undefined })}
-                className="text-right"
-              />
-            </div>
+            {config.contributors[1] && (
+              <div>
+                <Label htmlFor="income-i">
+                  Renda mensal — {config.contributors[1].name}
+                  <Tip text="Salário líquido ou renda mensal total." />
+                </Label>
+                <Input
+                  id="income-i"
+                  type="number"
+                  min={0}
+                  step={500}
+                  value={profile.incomeIsabella || ""}
+                  placeholder="Opcional"
+                  onChange={(e) => setProfile({ ...profile, incomeIsabella: Number(e.target.value) || undefined })}
+                  className="text-right"
+                />
+              </div>
+            )}
             <div>
               <Label htmlFor="expenses">
                 Despesas mensais do casal
