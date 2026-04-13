@@ -169,14 +169,14 @@ const Index = () => {
     return (
       <div className="min-h-screen bg-background">
         <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border/50">
-          <div className="container flex items-center justify-between h-12 px-4">
+          <div className="flex items-center justify-between h-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
             <button onClick={() => setShowFinancialSetup(false)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
               <ArrowLeft className="w-4 h-4" /> Voltar
             </button>
             <ThemeToggle />
           </div>
         </header>
-        <main className="container px-4 py-6 max-w-lg mx-auto">
+        <main className="px-4 sm:px-6 lg:px-8 py-6 max-w-lg sm:max-w-xl mx-auto">
           <FinancialProfileSetup
             config={data.config}
             profile={data.financialProfile}

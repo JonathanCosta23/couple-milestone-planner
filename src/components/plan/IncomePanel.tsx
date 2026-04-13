@@ -58,21 +58,21 @@ export function IncomePanel({ appData, config, monthRecords, startDate, onAddInc
   };
 
   return (
-    <div className="space-y-4">
-      <Card className="glass-card-strong p-4 text-center">
-        <DollarSign className="w-6 h-6 text-primary mx-auto mb-2" />
-        <h3 className="font-bold">Ganhar Mais</h3>
-        <p className="text-xs text-muted-foreground mt-1">Gerencie suas rendas e descubra como acelerar o plano</p>
+    <div className="space-y-4 lg:space-y-6">
+      <Card className="glass-card-strong p-4 lg:p-6 text-center">
+        <DollarSign className="w-6 h-6 lg:w-8 lg:h-8 text-primary mx-auto mb-2" />
+        <h3 className="font-bold lg:text-lg">Ganhar Mais</h3>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">Gerencie suas rendas e descubra como acelerar o plano</p>
       </Card>
 
       {/* Total */}
-      <Card className="glass-card p-4 text-center">
-        <p className="text-[10px] text-muted-foreground uppercase">Renda Mensal Total</p>
-        <p className="text-2xl font-extrabold text-primary">{formatBRL(totalIncome)}</p>
+      <Card className="glass-card p-4 lg:p-5 text-center">
+        <p className="text-[10px] sm:text-xs text-muted-foreground uppercase">Renda Mensal Total</p>
+        <p className="text-2xl lg:text-3xl font-extrabold text-primary">{formatBRL(totalIncome)}</p>
       </Card>
 
       {/* Income List */}
-      <Card className="glass-card p-4 space-y-3">
+      <Card className="glass-card p-4 lg:p-6 space-y-3 lg:space-y-4">
         <div className="flex items-center justify-between">
           <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Fontes de Renda</h4>
           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setShowForm(true); setEditingId(null); setForm({ label: "", amount: 0, type: "salary", recurrence: "monthly" }); }}>

@@ -110,9 +110,9 @@ export function ExpensePanel({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 lg:space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold">💸 Painel de Gastos</h2>
+        <h2 className="text-lg lg:text-xl font-bold">💸 Painel de Gastos</h2>
         <Button size="sm" onClick={() => { setEditingExpense(null); setShowForm(true); }}>
           <Plus className="w-4 h-4 mr-1" /> Novo Gasto
         </Button>
@@ -132,12 +132,12 @@ export function ExpensePanel({
       </Card>
 
       {/* Summary strip */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-5 gap-2 lg:gap-3">
         <MiniStat label="Total" value={formatBRL(summary.total)} />
         <MiniStat label="Fixos" value={formatBRL(summary.fixed)} />
         <MiniStat label="Variáveis" value={formatBRL(summary.variable)} />
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 lg:hidden gap-2">
         <MiniStat label="Pagos" value={formatBRL(summary.paid)} accent="text-primary" />
         <MiniStat label="Pendentes" value={formatBRL(summary.pending)} accent="text-warning" />
       </div>
@@ -162,7 +162,7 @@ export function ExpensePanel({
 
       {showFilters && (
         <Card className="glass-card p-3 space-y-3">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3">
             <FilterSelect label="Categoria" value={filterCategory} onChange={setFilterCategory}
               options={[{ value: "all", label: "Todas" }, ...CATEGORIES.map(c => ({ value: c, label: `${EXPENSE_CATEGORY_ICONS[c]} ${EXPENSE_CATEGORY_LABELS[c]}` }))]} />
             <FilterSelect label="Tipo" value={filterType} onChange={setFilterType}
@@ -202,7 +202,7 @@ export function ExpensePanel({
       )}
 
       {viewMode === "cards" && (
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 lg:gap-3">
           {monthExpenses.map(e => (
             <ExpenseCard key={e.id} expense={e} onEdit={() => handleEdit(e)} onDelete={() => handleDelete(e.id)} />
           ))}
@@ -250,9 +250,9 @@ export function ExpensePanel({
 
 function MiniStat({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
-    <Card className="glass-card p-2 text-center">
-      <p className={`text-sm font-bold truncate ${accent || ""}`}>{value}</p>
-      <p className="text-[9px] text-muted-foreground uppercase">{label}</p>
+    <Card className="glass-card p-2 lg:p-3 text-center">
+      <p className={`text-sm lg:text-base font-bold truncate ${accent || ""}`}>{value}</p>
+      <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase">{label}</p>
     </Card>
   );
 }

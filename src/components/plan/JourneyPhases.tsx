@@ -24,12 +24,12 @@ export function JourneyPhases({ appData, config, monthRecords, startDate }: Prop
   const phaseInfo = JOURNEY_PHASES.find(p => p.id === currentPhase)!;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 lg:space-y-6">
       {/* Current Phase Banner */}
-      <Card className="glass-card-strong p-5 text-center">
-        <p className="text-4xl mb-2">{phaseInfo.emoji}</p>
-        <h3 className="text-lg font-bold">{phaseInfo.name}</h3>
-        <p className="text-sm text-muted-foreground mt-1">{phaseInfo.description}</p>
+      <Card className="glass-card-strong p-5 lg:p-8 text-center">
+        <p className="text-4xl lg:text-5xl mb-2">{phaseInfo.emoji}</p>
+        <h3 className="text-lg lg:text-xl font-bold">{phaseInfo.name}</h3>
+        <p className="text-sm lg:text-base text-muted-foreground mt-1">{phaseInfo.description}</p>
       </Card>
 
       {/* Phase Progress */}
@@ -59,7 +59,7 @@ export function JourneyPhases({ appData, config, monthRecords, startDate }: Prop
       </div>
 
       {/* Details */}
-      <Card className="glass-card p-4 space-y-4">
+      <Card className="glass-card p-4 lg:p-6 space-y-4 lg:space-y-5">
         <Section title="🎯 Prioridades" items={phaseInfo.priorities} />
         <Section title="✅ Próximos Passos" items={phaseInfo.nextSteps} />
         <Section title="💡 Recomendações" items={phaseInfo.recommendations} />
@@ -70,7 +70,7 @@ export function JourneyPhases({ appData, config, monthRecords, startDate }: Prop
       </Card>
 
       {/* All Phases Mini List */}
-      <Card className="glass-card p-4">
+      <Card className="glass-card p-4 lg:p-6">
         <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Todas as Fases</h4>
         <div className="space-y-2">
           {JOURNEY_PHASES.map((phase, i) => {

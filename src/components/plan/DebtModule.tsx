@@ -90,23 +90,23 @@ export function DebtModule({ appData, config, onAddDebt, onUpdateDebt, onDeleteD
   const handleDelete = (id: string) => { if (confirm("Excluir esta dívida?")) { onDeleteDebt(id); toast.success("Dívida removida!"); } };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 lg:space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold">📋 Dívidas & Cartão</h2>
+        <h2 className="text-lg lg:text-xl font-bold">📋 Dívidas & Cartão</h2>
         <Button size="sm" onClick={() => { setEditingDebt(null); setShowForm(true); }}>
           <Plus className="w-4 h-4 mr-1" /> Nova Dívida
         </Button>
       </div>
 
       {/* Overview */}
-      <div className="grid grid-cols-2 gap-2">
-        <Card className="glass-card p-3 text-center">
-          <p className="text-xl font-extrabold text-destructive">{formatBRL(totalDebt)}</p>
-          <p className="text-[9px] text-muted-foreground uppercase">Dívida Total</p>
+      <div className="grid grid-cols-2 gap-2 lg:gap-4">
+        <Card className="glass-card p-3 lg:p-5 text-center">
+          <p className="text-xl lg:text-2xl font-extrabold text-destructive">{formatBRL(totalDebt)}</p>
+          <p className="text-[9px] sm:text-xs text-muted-foreground uppercase">Dívida Total</p>
         </Card>
-        <Card className="glass-card p-3 text-center">
-          <p className="text-xl font-extrabold text-warning">{formatBRL(monthlyPayments)}</p>
-          <p className="text-[9px] text-muted-foreground uppercase">Parcelas/mês</p>
+        <Card className="glass-card p-3 lg:p-5 text-center">
+          <p className="text-xl lg:text-2xl font-extrabold text-warning">{formatBRL(monthlyPayments)}</p>
+          <p className="text-[9px] sm:text-xs text-muted-foreground uppercase">Parcelas/mês</p>
         </Card>
       </div>
 

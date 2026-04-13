@@ -16,7 +16,7 @@ const NAV_ITEMS: { id: NavSection; icon: React.ElementType; label: string }[] = 
 
 export function BottomNav({ active, onChange }: Props) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/98 backdrop-blur-lg border-t border-border/50 safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/98 backdrop-blur-lg border-t border-border/50 safe-area-bottom lg:hidden">
       <div className="flex items-center justify-around max-w-lg mx-auto h-16 px-2">
         {NAV_ITEMS.map(item => {
           const Icon = item.icon;
