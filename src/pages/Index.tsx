@@ -118,6 +118,15 @@ const Index = () => {
   const [historicoSub, setHistoricoSub] = useState("tracker");
   const [perfilSub, setPerfilSub] = useState("aprender");
 
+  const core = useFinancialCore({
+    appData,
+    config: data.config,
+    monthRecords: data.monthRecords,
+    startDate: data.startDate,
+    profile: data.financialProfile,
+    celebratedMilestones: dismissedMilestones,
+  });
+
   // ── Cloud sync: load data when user logs in ──
   useEffect(() => {
     if (!user) return;
