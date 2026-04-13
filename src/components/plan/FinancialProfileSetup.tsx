@@ -35,6 +35,8 @@ export function FinancialProfileSetup({ config, profile: initialProfile, emotion
   const [goal, setGoal] = useState<EmotionalGoal>(initialGoal || "liberdade-financeira");
   const [customGoal, setCustomGoal] = useState(initialCustom || "");
 
+  const isCouple = config.contributors.length > 1;
+
   const emergencyGoal = getEmergencyFundGoal(profile);
   const emergencyStatus = getEmergencyFundStatus(profile);
   const savingsRate = getSavingsRate(profile, config);
@@ -90,8 +92,8 @@ export function FinancialProfileSetup({ config, profile: initialProfile, emotion
             )}
             <div>
               <Label htmlFor="expenses">
-                Despesas mensais do casal
-                <Tip text="Gastos fixos + variáveis: aluguel, contas, alimentação, transporte, lazer, etc." />
+                {isCouple ? "Despesas mensais do casal" : "Suas despesas mensais"}
+                <Tip text={isCouple ? "Gastos fixos + variáveis do casal: aluguel, contas, alimentação, transporte, lazer, etc." : "Seus gastos fixos + variáveis: aluguel, contas, alimentação, transporte, lazer, etc."} />
               </Label>
               <Input
                 id="expenses"
@@ -128,7 +130,7 @@ export function FinancialProfileSetup({ config, profile: initialProfile, emotion
               <div className="flex items-center gap-2">
                 <Shield className={`w-4 h-4 ${emergencyStatus === "completed" ? "text-primary" : emergencyStatus === "in-progress" ? "text-warning" : "text-destructive"}`} />
                 <span className="text-sm font-medium">
-                  Reserva de Emergência: {
+                  {isCouple ? "Reserva de Emergência do casal" : "Reserva de Emergência"}: {
                     emergencyStatus === "completed" ? "Completa ✓" :
                     emergencyStatus === "in-progress" ? "Em progresso" : "Abaixo do ideal"
                   }
@@ -136,7 +138,7 @@ export function FinancialProfileSetup({ config, profile: initialProfile, emotion
               </div>
               <Progress value={emergencyProgress * 100} className="h-2" />
               <p className="text-xs text-muted-foreground">
-                Meta: {formatBRL(emergencyGoal)} (6 meses de despesas) · Atual: {formatBRL(profile.emergencyFund || 0)}
+                Meta: {formatBRL(emergencyGoal)} (6 meses {isCouple ? "das despesas do casal" : "das suas despesas"}) · Atual: {formatBRL(profile.emergencyFund || 0)}
               </p>
               {emergencyStatus !== "completed" && (
                 <p className="text-xs text-muted-foreground italic">
