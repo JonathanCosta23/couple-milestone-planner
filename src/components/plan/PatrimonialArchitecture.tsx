@@ -1,15 +1,10 @@
-import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { AppData } from "@/lib/models";
-import { PlanConfig, MonthRecord, formatBRLCompact } from "@/lib/types";
-import {
-  calculateBucketDistribution,
-  calculatePortfolioSecurity,
-  generateStructuralAlerts,
-  getNextBestAction,
-  StructuralAlert,
-} from "@/lib/financialEngine";
+import { PlanConfig, MonthRecord, formatBRL, formatBRLCompact } from "@/lib/types";
 import { BucketCard } from "./BucketCard";
+import type { FinancialCoreState } from "@/hooks/useFinancialCore";
+import { calculateBucketDistribution } from "@/lib/financialEngine";
+import { useMemo } from "react";
 import { Shield, AlertTriangle, ArrowRight, Lock, Droplets, Building2, Target } from "lucide-react";
 
 interface Props {
@@ -17,6 +12,7 @@ interface Props {
   config: PlanConfig;
   monthRecords: MonthRecord[];
   startDate: string;
+  core: FinancialCoreState;
 }
 
 function SecurityScoreRing({ score, status }: { score: number; status: string }) {
@@ -43,38 +39,22 @@ function SecurityScoreRing({ score, status }: { score: number; status: string })
   );
 }
 
-function AlertCard({ alert }: { alert: StructuralAlert }) {
-  const borderColor = alert.severity === "danger" ? "border-destructive/30" : alert.severity === "warning" ? "border-warning/30" : "border-primary/30";
-  const iconColor = alert.severity === "danger" ? "text-destructive" : alert.severity === "warning" ? "text-warning" : "text-primary";
+export function PatrimonialArchitecture({ appData, config, monthRecords, startDate, core }: Props) {
+  const { metrics, allocation, insights } = core;
 
-  return (
-    <div className={`rounded-xl border ${borderColor} p-3.5 lg:p-4 space-y-1.5`}>
-      <div className="flex items-start gap-2.5">
-        <span className="text-lg shrink-0">{alert.icon}</span>
-        <div className="min-w-0">
-          <p className="text-sm font-semibold">{alert.title}</p>
-          <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{alert.description}</p>
-          <div className="flex items-center gap-1.5 mt-2">
-            <ArrowRight className={`w-3.5 h-3.5 ${iconColor} shrink-0`} />
-            <p className={`text-xs font-medium ${iconColor}`}>{alert.action}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export function PatrimonialArchitecture({ appData, config, monthRecords, startDate }: Props) {
+  // Use existing bucket distribution for BucketCard compatibility
   const buckets = useMemo(() => calculateBucketDistribution(appData, config), [appData, config]);
-  const security = useMemo(() => calculatePortfolioSecurity(appData, config), [appData, config]);
-  const alerts = useMemo(() => generateStructuralAlerts(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
-  const nextAction = useMemo(() => getNextBestAction(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
 
-  const totalWealth = appData.investments.filter(i => i.active).reduce((s, i) => s + i.currentBalance, 0) + config.initialAmount;
+  const structuralScore = allocation.structuralScore;
+  const overallStatus = structuralScore >= 70 ? "strong" : structuralScore >= 40 ? "moderate" : "fragile";
+
+  const nextAction = insights.nextBestAction;
+
+  // Build structural alerts from insights
+  const structuralAlerts = insights.allInsights.filter(i => i.severity === "critical" || i.severity === "warning");
 
   return (
     <div className="space-y-4 lg:space-y-6">
-      {/* Header */}
       <Card className="glass-card-strong p-4 lg:p-6 text-center">
         <Shield className="w-7 h-7 lg:w-8 lg:h-8 text-primary mx-auto mb-2" />
         <h3 className="font-bold text-base lg:text-lg">Arquitetura do Patrimônio</h3>
@@ -83,49 +63,58 @@ export function PatrimonialArchitecture({ appData, config, monthRecords, startDa
         </p>
       </Card>
 
-      {/* Security Score + Key Metrics */}
       <div className="lg:grid lg:grid-cols-2 lg:gap-5 space-y-4 lg:space-y-0">
         <Card className="glass-card p-4 lg:p-5">
           <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 text-center">
             Segurança da Estrutura
           </h4>
-          <SecurityScoreRing score={security.total} status={security.overallStatus} />
+          <SecurityScoreRing score={structuralScore} status={overallStatus} />
           <div className="grid grid-cols-2 gap-2.5 mt-4">
-            <MetricPill icon={Lock} label="Protegido" value={`${(security.protectedPercentage * 100).toFixed(0)}%`}
-              sub="FGC + Soberano" />
-            <MetricPill icon={Droplets} label="Liquidez" value={`${(security.liquidityPercentage * 100).toFixed(0)}%`}
-              sub="Acesso imediato" />
-            <MetricPill icon={Building2} label="Concentração" value={security.concentrationLevel === "low" ? "Baixa" : security.concentrationLevel === "medium" ? "Média" : "Alta"}
+            <MetricPill icon={Lock} label="Protegido" value={`${(metrics.protectedRatio * 100).toFixed(0)}%`} sub="FGC + Soberano" />
+            <MetricPill icon={Droplets} label="Liquidez" value={`${(metrics.liquidityRatio * 100).toFixed(0)}%`} sub="Acesso imediato" />
+            <MetricPill icon={Building2} label="Concentração"
+              value={allocation.concentrationRisk === "low" ? "Baixa" : allocation.concentrationRisk === "medium" ? "Média" : "Alta"}
               sub="Por instituição" />
-            <MetricPill icon={Target} label="Patrimônio" value={formatBRLCompact(totalWealth)}
-              sub="Total investido" />
+            <MetricPill icon={Target} label="Patrimônio" value={formatBRLCompact(metrics.grossWealth)} sub="Total investido" />
           </div>
         </Card>
 
-        {/* Next Best Action */}
         <Card className="glass-card p-4 lg:p-5">
           <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
             Próximo Melhor Passo
           </h4>
-          <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 lg:p-5 mb-4">
-            <p className="text-sm lg:text-base font-bold text-primary">{nextAction.action}</p>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 leading-relaxed">{nextAction.reason}</p>
-          </div>
+          {nextAction && (
+            <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 lg:p-5 mb-4">
+              <p className="text-sm lg:text-base font-bold text-primary">{nextAction.title}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 leading-relaxed">{nextAction.message}</p>
+            </div>
+          )}
 
-          {alerts.length > 0 && (
+          {structuralAlerts.length > 0 && (
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                Alertas Estruturais ({alerts.length})
+                Alertas Estruturais ({structuralAlerts.length})
               </h4>
               <div className="space-y-2 max-h-64 overflow-y-auto">
-                {alerts.slice(0, 4).map(alert => (
-                  <AlertCard key={alert.id} alert={alert} />
+                {structuralAlerts.slice(0, 4).map(alert => (
+                  <div key={alert.id} className={`rounded-xl border p-3.5 lg:p-4 space-y-1.5 ${
+                    alert.severity === "critical" ? "border-destructive/30" : "border-warning/30"
+                  }`}>
+                    <p className="text-sm font-semibold">{alert.title}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{alert.message}</p>
+                    {alert.recommendedAction && (
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <ArrowRight className={`w-3.5 h-3.5 shrink-0 ${alert.severity === "critical" ? "text-destructive" : "text-warning"}`} />
+                        <p className={`text-xs font-medium ${alert.severity === "critical" ? "text-destructive" : "text-warning"}`}>{alert.recommendedAction}</p>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
           )}
 
-          {alerts.length === 0 && (
+          {structuralAlerts.length === 0 && (
             <div className="text-center py-3">
               <p className="text-xs text-muted-foreground">✅ Nenhum alerta estrutural no momento</p>
             </div>
@@ -133,7 +122,6 @@ export function PatrimonialArchitecture({ appData, config, monthRecords, startDa
         </Card>
       </div>
 
-      {/* Buckets */}
       <div>
         <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
           Camadas do Patrimônio
@@ -145,7 +133,6 @@ export function PatrimonialArchitecture({ appData, config, monthRecords, startDa
         </div>
       </div>
 
-      {/* Detailed Buckets */}
       <div className="space-y-3 lg:space-y-4">
         {buckets.filter(b => b.balance > 0 || b.bucket === "reserva").map(bucket => (
           <BucketCard key={bucket.bucket} bucket={bucket} />
