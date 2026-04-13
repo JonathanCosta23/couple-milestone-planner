@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Rocket } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { ArrowRight, Rocket, Shield, TrendingUp, Eye, Target } from "lucide-react";
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -9,19 +10,22 @@ interface OnboardingProps {
 
 const screens = [
   {
-    visual: "🎯",
-    title: "Seu dinheiro com mais clareza",
-    description: "Veja onde você está, para onde pode ir e qual o próximo passo para chegar mais rápido.",
+    emoji: "🎯",
+    title: "Construa patrimônio com clareza",
+    description: "Veja onde você está, para onde pode ir e qual o próximo passo para chegar mais rápido — com segurança.",
+    highlight: "Mais que um simulador: um sistema de construção patrimonial guiada.",
   },
   {
-    visual: "📊",
-    title: "Acompanhe, entenda, decida melhor",
-    description: "Registre aportes, acompanhe gastos e receba orientações práticas — tudo num só lugar.",
+    emoji: "🛡️",
+    title: "Proteja o que você constrói",
+    description: "Entenda riscos invisíveis, limites do FGC, concentração e a diferença entre patrimônio nominal e real.",
+    highlight: "O app cuida da estrutura enquanto você foca no crescimento.",
   },
   {
-    visual: "🛡️",
-    title: "Um mentor financeiro no seu bolso",
-    description: "Alertas inteligentes sobre gastos, dívidas e armadilhas. Proteção contra decisões que custam caro.",
+    emoji: "🧠",
+    title: "Um mentor no seu bolso",
+    description: "Alertas inteligentes, diagnóstico financeiro, próximo melhor passo e educação no momento certo.",
+    highlight: "Orientação prática sem linguagem complicada.",
   },
 ];
 
@@ -32,24 +36,16 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-5">
-      <Card className="glass-card-strong p-8 max-w-sm w-full text-center space-y-7 animate-fade-in-up">
-        {/* Progress dots */}
-        <div className="flex justify-center gap-2">
-          {screens.map((_, i) => (
-            <div
-              key={i}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                i === step ? "w-8 bg-primary" : i < step ? "w-4 bg-primary/40" : "w-3 bg-muted"
-              }`}
-            />
-          ))}
-        </div>
+      <Card className="glass-card-strong p-6 sm:p-8 max-w-sm w-full text-center space-y-6 animate-fade-in-up">
+        {/* Progress bar */}
+        <Progress value={((step + 1) / screens.length) * 100} className="h-1.5" />
 
-        <div className="text-5xl pt-2">{screen.visual}</div>
+        <div className="text-5xl pt-2">{screen.emoji}</div>
 
         <div className="space-y-3">
           <h2 className="text-xl font-bold leading-snug">{screen.title}</h2>
           <p className="text-sm text-muted-foreground leading-relaxed max-w-[280px] mx-auto">{screen.description}</p>
+          <p className="text-xs text-primary font-medium">{screen.highlight}</p>
         </div>
 
         <div className="space-y-3 pt-2">
@@ -64,19 +60,13 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           )}
 
           {step === 0 && (
-            <button
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors py-2 touch-target"
-              onClick={onComplete}
-            >
+            <button className="text-xs text-muted-foreground hover:text-foreground transition-colors py-2 touch-target" onClick={onComplete}>
               Pular introdução
             </button>
           )}
 
           {step > 0 && !isLast && (
-            <button
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors py-2 touch-target"
-              onClick={() => setStep(step - 1)}
-            >
+            <button className="text-xs text-muted-foreground hover:text-foreground transition-colors py-2 touch-target" onClick={() => setStep(step - 1)}>
               Voltar
             </button>
           )}
