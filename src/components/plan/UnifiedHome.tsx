@@ -88,6 +88,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
   const structuralAlerts = useMemo(() => generateStructuralAlerts(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
   const nextBestAction = useMemo(() => getNextBestAction(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
   const portfolioSecurity = useMemo(() => calculatePortfolioSecurity(appData, config), [appData, config]);
+  const isCouple = config.contributors.length > 1;
 
   const totalIncome = appData.incomes.filter(i => i.active).reduce((s, i) => s + i.amount, 0);
   const monthExpenses = appData.expenses.filter(e => e.monthKey === currentKey);
