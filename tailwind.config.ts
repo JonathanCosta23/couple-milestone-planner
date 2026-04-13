@@ -49,6 +49,7 @@ export default {
         },
         success: "hsl(var(--success))",
         warning: "hsl(var(--warning))",
+        info: "hsl(var(--info))",
         "chart-planned": "hsl(var(--chart-planned))",
         "chart-actual": "hsl(var(--chart-actual))",
         "chart-selic": "hsl(var(--chart-selic))",
