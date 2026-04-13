@@ -14,7 +14,7 @@ interface Props {
 
 export function SubNav({ items, active, onChange }: Props) {
   return (
-    <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
+    <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1 pr-4">
       {items.map(item => (
         <Button
           key={item.id}

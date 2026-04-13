@@ -96,7 +96,9 @@ const Index = () => {
     [data]
   );
   const reached = useMemo(() => getReachedMilestones(planned, MILESTONES), [planned]);
-  const newMilestone = reached.find((m) => !dismissedMilestones.includes(m)) || null;
+  // Show only the highest reached milestone, auto-dismiss all lower ones
+  const highestReached = reached.length > 0 ? Math.max(...reached) : null;
+  const newMilestone = highestReached && !dismissedMilestones.includes(highestReached) ? highestReached : null;
 
   const goalLabel = data.emotionalGoal
     ? data.emotionalGoal === "outro" ? (data.emotionalGoalCustom || null) : EMOTIONAL_GOAL_LABELS[data.emotionalGoal]
