@@ -15,14 +15,14 @@ interface DashboardProps {
 
 function StatCard({ icon: Icon, label, value, sub, color }: { icon: any; label: string; value: string; sub?: string; color: string }) {
   return (
-    <Card className="glass-card p-4">
+    <Card className="glass-card p-4 lg:p-5">
       <div className="flex items-start gap-3">
         <div className={`p-2 rounded-lg ${color}`}>
           <Icon className="w-5 h-5" />
         </div>
         <div className="min-w-0">
           <p className="text-xs text-muted-foreground">{label}</p>
-          <p className="text-lg font-bold truncate">{value}</p>
+          <p className="text-lg lg:text-xl font-bold">{value}</p>
           {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
         </div>
       </div>
@@ -104,7 +104,7 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
 
       {/* Milestones badges */}
       {reachedPlanned.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 lg:gap-3">
           {MILESTONES.map((m) => {
             const reachedP = reachedPlanned.includes(m);
             const reachedA = reachedActual.includes(m);
@@ -142,7 +142,7 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
             {showActual ? "Mostrando Real" : "Mostrando Planejado"}
           </Button>
         </div>
-        <div className="h-64 md:h-80">
+        <div className="h-64 md:h-80 lg:h-96">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData}>
               <defs>
@@ -156,7 +156,7 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 20%, 18%)" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+              <XAxis dataKey="name" tick={{ fontSize: 11 }} interval="preserveStartEnd" minTickGap={30} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} />
               <RTooltip
                 contentStyle={{ background: "hsl(224, 28%, 11%)", border: "1px solid hsl(220, 20%, 18%)", borderRadius: "8px" }}
@@ -179,11 +179,11 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-muted/30">
-                <th className="text-left p-3">Ano</th>
-                <th className="text-right p-3">Selic</th>
-                <th className="text-right p-3">CDB</th>
-                <th className="text-right p-3">Total</th>
-                <th className="text-right p-3">Juros</th>
+                <th className="text-left p-3 whitespace-nowrap">Ano</th>
+                <th className="text-right p-3 whitespace-nowrap">Selic</th>
+                <th className="text-right p-3 whitespace-nowrap">CDB</th>
+                <th className="text-right p-3 whitespace-nowrap">Total</th>
+                <th className="text-right p-3 whitespace-nowrap">Juros</th>
               </tr>
             </thead>
             <tbody>

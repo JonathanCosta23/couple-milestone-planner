@@ -342,11 +342,29 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20 lg:pb-4">
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border/40">
-        <div className="container flex items-center justify-between h-12 px-4">
-          <h1 className="text-sm font-bold text-gradient">Plano do Milhão</h1>
-          <ThemeToggle />
+        <div className="flex items-center justify-between h-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
+          <h1 className="text-sm font-bold text-gradient lg:text-base">Plano do Milhão</h1>
+          <div className="flex items-center gap-3">
+            {/* Desktop inline nav */}
+            {data.wizardComplete && (
+              <nav className="hidden lg:flex items-center gap-1">
+                {(["home", "plano", "historico", "perfil"] as NavSection[]).map(s => (
+                  <button
+                    key={s}
+                    onClick={() => { setNavSection(s); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      navSection === s ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    }`}
+                  >
+                    {s === "home" ? "Início" : s === "plano" ? "Plano" : s === "historico" ? "Histórico" : "Perfil"}
+                  </button>
+                ))}
+              </nav>
+            )}
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
@@ -354,14 +372,16 @@ const Index = () => {
         <Hero goalLabel={goalLabel} config={data.config} contributorCount={data.config.contributors.length} />
       )}
 
-      <main className="container px-4 py-5 max-w-lg mx-auto">
+      <main className="px-4 sm:px-6 lg:px-8 py-5 max-w-lg sm:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto">
         {renderContent()}
       </main>
 
       <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportJSON} />
 
       {data.wizardComplete && (
-        <BottomNav active={navSection} onChange={(s) => { setNavSection(s); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+        <div className="lg:hidden">
+          <BottomNav active={navSection} onChange={(s) => { setNavSection(s); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+        </div>
       )}
 
       <QuickDeposit
