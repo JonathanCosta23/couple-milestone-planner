@@ -341,6 +341,7 @@ const Index = () => {
               startDate={data.startDate}
               onNavigateToTab={handleNavigateToTab}
               onOpenQuickDeposit={() => setShowQuickDeposit(true)}
+              core={core}
             />
           </div>
         );
@@ -358,28 +359,28 @@ const Index = () => {
               <AdvancedSimulator appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
             )}
             {planoSub === "estrutura" && (
-              <PatrimonialArchitecture appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+              <PatrimonialArchitecture appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {planoSub === "projecao" && (
               <ProjectionRealistic appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
             )}
             {planoSub === "diagnostico" && (
-              <FinancialDiagnostic appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+              <FinancialDiagnostic appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {planoSub === "jornada" && (
-              <JourneyPhases appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+              <JourneyPhases appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {planoSub === "comportamento" && (
-              <BehavioralPanel appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+              <BehavioralPanel appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {planoSub === "patrimonio" && (
-              <WealthDistribution appData={appData} config={data.config} />
+              <WealthDistribution appData={appData} config={data.config} core={core} />
             )}
             {planoSub === "concentracao" && (
-              <ConcentrationMap appData={appData} config={data.config} />
+              <ConcentrationMap appData={appData} config={data.config} core={core} />
             )}
             {planoSub === "governanca" && (
-              <CoupleGovernance appData={appData} config={data.config} />
+              <CoupleGovernance appData={appData} config={data.config} core={core} />
             )}
           </div>
         );
