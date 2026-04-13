@@ -88,6 +88,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
   const structuralAlerts = useMemo(() => generateStructuralAlerts(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
   const nextBestAction = useMemo(() => getNextBestAction(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
   const portfolioSecurity = useMemo(() => calculatePortfolioSecurity(appData, config), [appData, config]);
+  const isCouple = config.contributors.length > 1;
 
   const totalIncome = appData.incomes.filter(i => i.active).reduce((s, i) => s + i.amount, 0);
   const monthExpenses = appData.expenses.filter(e => e.monthKey === currentKey);
@@ -167,7 +168,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
           </div>
           {diag.monthsToMillion && (
             <p className="text-[11px] sm:text-xs text-muted-foreground mt-3">
-              No ritmo atual, você chega em {formatBRLCompact(config.targetAmount)} em ~{Math.ceil(diag.monthsToMillion / 12)} anos
+              No ritmo atual, {isCouple ? "vocês chegam" : "você chega"} em {formatBRLCompact(config.targetAmount)} em ~{Math.ceil(diag.monthsToMillion / 12)} anos
             </p>
           )}
         </Card>
