@@ -17,13 +17,13 @@ function StatCard({ icon: Icon, label, value, sub, color }: { icon: any; label: 
   return (
     <Card className="glass-card p-4 lg:p-5">
       <div className="flex items-start gap-3">
-        <div className={`p-2 rounded-lg ${color}`}>
-          <Icon className="w-5 h-5" />
+        <div className={`p-2 lg:p-2.5 rounded-lg ${color}`}>
+          <Icon className="w-5 h-5 lg:w-6 lg:h-6" />
         </div>
         <div className="min-w-0">
-          <p className="text-xs text-muted-foreground">{label}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">{label}</p>
           <p className="text-lg lg:text-xl font-bold">{value}</p>
-          {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+          {sub && <p className="text-xs sm:text-sm text-muted-foreground">{sub}</p>}
         </div>
       </div>
     </Card>
@@ -42,7 +42,6 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
   const reachedPlanned = getReachedMilestones(planned, MILESTONES);
   const reachedActual = getReachedMilestones(actual, MILESTONES);
 
-  // Current actual balance (from actual projection, up to months with records)
   const currentActualIdx = monthRecords.length > 0 ? Math.min(monthRecords.length, actual.length) - 1 : -1;
   const currentBalance = currentActualIdx >= 0 ? actual[currentActualIdx].totalBalance : config.initialAmount;
 
@@ -50,7 +49,6 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
     ? Math.ceil(projection.findIndex((r) => r.totalBalance >= config.targetAmount) / 12)
     : config.years;
 
-  // Chart data: sample every N months for performance
   const sampleRate = planned.length > 120 ? Math.ceil(planned.length / 60) : 1;
   const chartData = useMemo(() => {
     const result: any[] = [];
@@ -64,7 +62,6 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
     return result;
   }, [planned, actual, sampleRate]);
 
-  // Table: show yearly snapshots
   const tableRows = useMemo(() => {
     return projection.filter((_, i) => (i + 1) % 12 === 0 || i === projection.length - 1);
   }, [projection]);
@@ -72,7 +69,7 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         <StatCard
           icon={DollarSign}
           label="Patrimônio Atual"
@@ -111,7 +108,7 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
             return (
               <div
                 key={m}
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
+                className={`inline-flex items-center gap-1.5 px-3 lg:px-4 py-1 lg:py-1.5 rounded-full text-xs lg:text-sm font-semibold border ${
                   reachedA
                     ? "bg-primary/20 border-primary/30 text-primary"
                     : reachedP
@@ -119,7 +116,7 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
                     : "bg-muted border-border text-muted-foreground"
                 }`}
               >
-                <Trophy className="w-3 h-3" />
+                <Trophy className="w-3 h-3 lg:w-4 lg:h-4" />
                 {formatBRL(m)}
                 {reachedA && " ✓"}
               </div>
@@ -129,20 +126,20 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
       )}
 
       {/* Chart */}
-      <Card className="glass-card p-4">
+      <Card className="glass-card p-4 lg:p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold">Projeção de Crescimento</h3>
+          <h3 className="font-semibold lg:text-lg">Projeção de Crescimento</h3>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowActual(!showActual)}
-            className="text-xs"
+            className="text-xs lg:text-sm"
           >
             {showActual ? <ToggleRight className="w-4 h-4 mr-1" /> : <ToggleLeft className="w-4 h-4 mr-1" />}
             {showActual ? "Mostrando Real" : "Mostrando Planejado"}
           </Button>
         </div>
-        <div className="h-64 md:h-80 lg:h-96">
+        <div className="h-64 sm:h-72 md:h-80 lg:h-[420px]">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData}>
               <defs>
@@ -172,28 +169,28 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
 
       {/* Table */}
       <Card className="glass-card overflow-hidden">
-        <div className="p-4 border-b border-border/50">
-          <h3 className="font-semibold">Tabela de Projeção (Anual)</h3>
+        <div className="p-4 lg:p-5 border-b border-border/50">
+          <h3 className="font-semibold lg:text-lg">Tabela de Projeção (Anual)</h3>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm lg:text-base">
             <thead>
               <tr className="bg-muted/30">
-                <th className="text-left p-3 whitespace-nowrap">Ano</th>
-                <th className="text-right p-3 whitespace-nowrap">Selic</th>
-                <th className="text-right p-3 whitespace-nowrap">CDB</th>
-                <th className="text-right p-3 whitespace-nowrap">Total</th>
-                <th className="text-right p-3 whitespace-nowrap">Juros</th>
+                <th className="text-left p-3 lg:p-4 whitespace-nowrap">Ano</th>
+                <th className="text-right p-3 lg:p-4 whitespace-nowrap">Selic</th>
+                <th className="text-right p-3 lg:p-4 whitespace-nowrap">CDB</th>
+                <th className="text-right p-3 lg:p-4 whitespace-nowrap">Total</th>
+                <th className="text-right p-3 lg:p-4 whitespace-nowrap">Juros</th>
               </tr>
             </thead>
             <tbody>
               {tableRows.map((row) => (
                 <tr key={row.monthIndex} className="border-t border-border/30 hover:bg-muted/20 transition-colors">
-                  <td className="p-3 text-muted-foreground">{monthKeyToLabel(row.date)}</td>
-                  <td className="p-3 text-right">{formatBRL(row.selicBalance)}</td>
-                  <td className="p-3 text-right">{formatBRL(row.cdbBalance)}</td>
-                  <td className="p-3 text-right font-semibold">{formatBRL(row.totalBalance)}</td>
-                  <td className="p-3 text-right text-primary">{formatBRL(row.totalInterest)}</td>
+                  <td className="p-3 lg:p-4 text-muted-foreground whitespace-nowrap">{monthKeyToLabel(row.date)}</td>
+                  <td className="p-3 lg:p-4 text-right whitespace-nowrap">{formatBRL(row.selicBalance)}</td>
+                  <td className="p-3 lg:p-4 text-right whitespace-nowrap">{formatBRL(row.cdbBalance)}</td>
+                  <td className="p-3 lg:p-4 text-right font-semibold whitespace-nowrap">{formatBRL(row.totalBalance)}</td>
+                  <td className="p-3 lg:p-4 text-right text-primary whitespace-nowrap">{formatBRL(row.totalInterest)}</td>
                 </tr>
               ))}
             </tbody>
@@ -203,10 +200,10 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
 
       {/* Exports */}
       <div className="flex flex-wrap gap-3">
-        <Button variant="outline" size="sm" onClick={() => exportProjectionCSV(projection)}>
+        <Button variant="outline" size="sm" className="lg:text-sm" onClick={() => exportProjectionCSV(projection)}>
           <Download className="w-4 h-4 mr-1" /> CSV Projeção
         </Button>
-        <Button variant="outline" size="sm" onClick={() => exportTrackerCSV(config, monthRecords, startDate)}>
+        <Button variant="outline" size="sm" className="lg:text-sm" onClick={() => exportTrackerCSV(config, monthRecords, startDate)}>
           <Download className="w-4 h-4 mr-1" /> CSV Acompanhamento
         </Button>
       </div>

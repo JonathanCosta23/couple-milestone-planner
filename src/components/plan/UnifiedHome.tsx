@@ -55,92 +55,100 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
 
   return (
     <div className="space-y-5 lg:space-y-6 pb-4">
-      {/* ── 1. CARD HERO: Meta do mês ── */}
-      <Card className="glass-card-hero p-5 lg:p-6 animate-fade-in-up">
-        <div className="flex items-center justify-between mb-1">
-          <p className="text-xs text-muted-foreground">{monthKeyToFullLabel(currentKey)}</p>
-          {streak > 0 && (
-            <span className="text-xs font-medium text-primary">🔥 {streak} {streak === 1 ? "mês seguido" : "meses seguidos"}</span>
-          )}
-        </div>
-        <p className="section-title mb-1">Meta de aporte do mês</p>
-        <div className="flex items-end justify-between mb-3">
-          <div>
-            <p className="text-2xl font-extrabold text-primary">{(currentMonth.progress * 100).toFixed(0)}%</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {formatBRL(currentMonth.total)} de {formatBRL(currentMonth.planned)}
-            </p>
-          </div>
-          <div className="text-right">
-            {currentMonth.planned - currentMonth.total > 0 && (
-              <p className="text-xs text-muted-foreground">
-                Faltam <span className="font-semibold text-foreground">{formatBRL(currentMonth.planned - currentMonth.total)}</span>
-              </p>
+      {/* ── Desktop: Two-column hero layout ── */}
+      <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-5 lg:space-y-0">
+        {/* ── 1. CARD HERO: Meta do mês ── */}
+        <Card className="glass-card-hero p-5 lg:p-6 animate-fade-in-up">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-xs sm:text-sm text-muted-foreground">{monthKeyToFullLabel(currentKey)}</p>
+            {streak > 0 && (
+              <span className="text-xs font-medium text-primary">🔥 {streak} {streak === 1 ? "mês seguido" : "meses seguidos"}</span>
             )}
           </div>
-        </div>
-        <Progress value={currentMonth.progress * 100} className="h-2.5 rounded-full mb-4" />
-        <Button className="w-full h-12 font-semibold text-sm touch-target" onClick={onOpenQuickDeposit}>
-          <DollarSign className="w-4 h-4 mr-2" /> Registrar aporte
-        </Button>
-      </Card>
-
-      {/* ── 2. Patrimônio investido (compacto) ── */}
-      <Card className="glass-card p-4 cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all" onClick={() => onNavigateToTab("patrimonio")}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Target className="w-5 h-5 text-primary" />
-            </div>
+          <p className="section-title lg:text-lg mb-1">Meta de aporte do mês</p>
+          <div className="flex items-end justify-between mb-3">
             <div>
-              <p className="text-xs text-muted-foreground">Patrimônio investido</p>
-              <p className="text-lg font-extrabold text-gradient">{formatBRLCompact(diag.investedWealth)}</p>
+              <p className="text-2xl lg:text-3xl font-extrabold text-primary">{(currentMonth.progress * 100).toFixed(0)}%</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                {formatBRL(currentMonth.total)} de {formatBRL(currentMonth.planned)}
+              </p>
+            </div>
+            <div className="text-right">
+              {currentMonth.planned - currentMonth.total > 0 && (
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  Faltam <span className="font-semibold text-foreground">{formatBRL(currentMonth.planned - currentMonth.total)}</span>
+                </p>
+              )}
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-xs font-semibold text-foreground">{progressPct.toFixed(1)}%</p>
-            <p className="text-[10px] text-muted-foreground">da meta</p>
-          </div>
-        </div>
-        <Progress value={progressPct} className="h-1.5 rounded-full mt-3" />
-        {diag.monthsToMillion && (
-          <p className="text-[11px] text-muted-foreground mt-2">
-            Estimativa: ~{Math.ceil(diag.monthsToMillion / 12)} anos para a meta de {formatBRLCompact(config.targetAmount)}
-          </p>
-        )}
-      </Card>
+          <Progress value={currentMonth.progress * 100} className="h-2.5 rounded-full mb-4" />
+          <Button className="w-full h-12 font-semibold text-sm touch-target" onClick={onOpenQuickDeposit}>
+            <DollarSign className="w-4 h-4 mr-2" /> Registrar aporte
+          </Button>
+        </Card>
 
-      {/* ── 3. Próximo melhor passo (único, destacado) ── */}
-      {nextStep && (
-        <Card className="action-card animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+        {/* ── 2. Patrimônio investido ── */}
+        <Card className="glass-card p-4 lg:p-6 cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all flex flex-col justify-between" onClick={() => onNavigateToTab("patrimonio")}>
+          <div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Target className="w-5 h-5 lg:w-6 lg:h-6 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Patrimônio investido</p>
+                  <p className="text-lg lg:text-2xl font-extrabold text-gradient">{formatBRLCompact(diag.investedWealth)}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs sm:text-sm font-semibold text-foreground">{progressPct.toFixed(1)}%</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">da meta</p>
+              </div>
+            </div>
+            <Progress value={progressPct} className="h-1.5 rounded-full mt-3" />
+          </div>
+          {diag.monthsToMillion && (
+            <p className="text-[11px] sm:text-xs text-muted-foreground mt-3">
+              Estimativa: ~{Math.ceil(diag.monthsToMillion / 12)} anos para a meta de {formatBRLCompact(config.targetAmount)}
+            </p>
+          )}
+        </Card>
+      </div>
+
+      {/* ── Desktop: Two-column action cards ── */}
+      <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-5 lg:space-y-0">
+        {/* ── 3. Próximo melhor passo ── */}
+        {nextStep && (
+          <Card className="action-card animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Zap className="w-5 h-5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs text-primary font-bold uppercase tracking-wider mb-0.5">Seu próximo passo</p>
+                <p className="text-sm lg:text-base font-semibold leading-snug">{nextStep.title}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">{nextStep.description}</p>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* ── 4. Principal gargalo ── */}
+        <Card className="alert-card animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
           <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-              <Zap className="w-5 h-5 text-primary" />
+            <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-xl bg-warning/10 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-warning" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] text-primary font-bold uppercase tracking-wider mb-0.5">Seu próximo passo</p>
-              <p className="text-sm font-semibold leading-snug">{nextStep.title}</p>
-              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{nextStep.description}</p>
+              <p className="text-[10px] sm:text-xs text-warning font-bold uppercase tracking-wider mb-0.5">O que mais atrapalha</p>
+              <p className="text-sm lg:text-base leading-snug">{diag.biggestBottleneck}</p>
             </div>
           </div>
         </Card>
-      )}
-
-      {/* ── 4. Principal gargalo ── */}
-      <Card className="alert-card animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
-        <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-xl bg-warning/10 flex items-center justify-center shrink-0">
-            <AlertTriangle className="w-5 h-5 text-warning" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] text-warning font-bold uppercase tracking-wider mb-0.5">O que mais atrapalha</p>
-            <p className="text-sm leading-snug">{diag.biggestBottleneck}</p>
-          </div>
-        </div>
-      </Card>
+      </div>
 
       {/* ── 5. Indicadores rápidos ── */}
-      <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-3 gap-3 lg:gap-4">
+      <div className="grid grid-cols-3 gap-3 lg:gap-4">
         <IndicatorCard
           icon="💪"
           label="Saúde"
@@ -169,38 +177,38 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
       {(totalIncome > 0 || totalExpenses > 0) && (
         <Card className="glass-card overflow-hidden">
           <button
-            className="w-full p-4 flex items-center justify-between touch-target"
+            className="w-full p-4 lg:p-5 flex items-center justify-between touch-target"
             onClick={() => setShowFinancials(!showFinancials)}
           >
             <div className="flex items-center gap-2.5">
               <Wallet className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-semibold">Resumo do mês</span>
+              <span className="text-sm lg:text-base font-semibold">Resumo do mês</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className={`text-sm font-bold ${balance >= 0 ? "text-primary" : "text-destructive"}`}>
+              <span className={`text-sm lg:text-base font-bold ${balance >= 0 ? "text-primary" : "text-destructive"}`}>
                 {balance >= 0 ? "+" : ""}{formatBRLCompact(balance)}
               </span>
               {showFinancials ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
             </div>
           </button>
           {showFinancials && (
-            <div className="px-4 pb-4 space-y-2 animate-fade-in-up">
-              <div className="flex justify-between text-sm">
+            <div className="px-4 lg:px-5 pb-4 lg:pb-5 space-y-2 animate-fade-in-up">
+              <div className="flex justify-between text-sm lg:text-base">
                 <span className="text-muted-foreground">Receita</span>
                 <span className="font-semibold text-primary">{formatBRL(totalIncome)}</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-sm lg:text-base">
                 <span className="text-muted-foreground">Despesas</span>
                 <span className="font-semibold">{formatBRL(totalExpenses)}</span>
               </div>
               {totalDebtPayments > 0 && (
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-sm lg:text-base">
                   <span className="text-muted-foreground">Dívidas</span>
                   <span className="font-semibold text-destructive">{formatBRL(totalDebtPayments)}</span>
                 </div>
               )}
               <div className="h-px bg-border/60 my-1" />
-              <div className="flex justify-between text-sm font-bold">
+              <div className="flex justify-between text-sm lg:text-base font-bold">
                 <span>Saldo disponível</span>
                 <span className={balance >= 0 ? "text-primary" : "text-destructive"}>{formatBRL(balance)}</span>
               </div>
@@ -217,16 +225,16 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
         </Card>
       )}
 
-      {/* ── 7. Insight comportamental contextual (só 1, o mais relevante) ── */}
+      {/* ── 7. Insight comportamental contextual ── */}
       {topNudge && (
-        <Card className="glass-card p-4 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+        <Card className="glass-card p-4 lg:p-5 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
           <div className="flex items-start gap-3">
             <span className="text-lg shrink-0">{topNudge.icon}</span>
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-0.5">
+              <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground mb-0.5">
                 {topNudge.type === "praise" ? "Parabéns" : topNudge.type === "warning" ? "Atenção" : "Dica"}
               </p>
-              <p className="text-sm leading-relaxed">{topNudge.message}</p>
+              <p className="text-sm lg:text-base leading-relaxed">{topNudge.message}</p>
             </div>
           </div>
         </Card>
@@ -243,15 +251,15 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
       />
 
       {/* ── 9. Atalhos ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <Button variant="outline" size="sm" className="h-11 text-xs justify-between rounded-xl px-4 touch-target"
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Button variant="outline" size="sm" className="h-11 text-xs lg:text-sm justify-between rounded-xl px-4 touch-target"
           onClick={() => onNavigateToTab("simulador")}>
           <span className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4" /> Simulador
           </span>
           <ArrowRight className="w-3.5 h-3.5" />
         </Button>
-        <Button variant="outline" size="sm" className="h-11 text-xs justify-between rounded-xl px-4 touch-target"
+        <Button variant="outline" size="sm" className="h-11 text-xs lg:text-sm justify-between rounded-xl px-4 touch-target"
           onClick={() => onNavigateToTab("armadilhas")}>
           <span className="flex items-center gap-2">
             <Shield className="w-4 h-4" /> Armadilhas
@@ -269,13 +277,13 @@ function IndicatorCard({ icon, label, value, sub, valueColor, onClick }: {
 }) {
   return (
     <Card
-      className={`glass-card p-3.5 text-center ${onClick ? "cursor-pointer hover:ring-1 hover:ring-primary/20 active:scale-[0.97]" : ""} transition-all`}
+      className={`glass-card p-3.5 lg:p-5 text-center ${onClick ? "cursor-pointer hover:ring-1 hover:ring-primary/20 active:scale-[0.97]" : ""} transition-all`}
       onClick={onClick}
     >
-      <p className="text-sm mb-1">{icon}</p>
-      <p className={`text-lg font-bold ${valueColor}`}>{value}</p>
-      <p className="text-[10px] text-muted-foreground uppercase mt-0.5">{label}</p>
-      <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>
+      <p className="text-sm lg:text-base mb-1">{icon}</p>
+      <p className={`text-lg lg:text-xl font-bold ${valueColor}`}>{value}</p>
+      <p className="text-[10px] sm:text-xs text-muted-foreground uppercase mt-0.5">{label}</p>
+      <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">{sub}</p>
     </Card>
   );
 }
@@ -283,21 +291,21 @@ function IndicatorCard({ icon, label, value, sub, valueColor, onClick }: {
 /* ── Empty Home State ── */
 function EmptyHomeState({ onNavigateToTab, onOpenQuickDeposit }: { onNavigateToTab: (tab: string) => void; onOpenQuickDeposit: () => void }) {
   return (
-    <div className="space-y-5 pb-4">
-      <Card className="glass-card-hero p-6 text-center space-y-4 animate-fade-in-up">
-        <p className="text-4xl">🚀</p>
+    <div className="space-y-5 lg:space-y-6 pb-4">
+      <Card className="glass-card-hero p-6 lg:p-8 text-center space-y-4 animate-fade-in-up lg:max-w-xl lg:mx-auto">
+        <p className="text-4xl lg:text-5xl">🚀</p>
         <div>
-          <p className="text-lg font-bold">Tudo pronto para começar!</p>
-          <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xs mx-auto">
+          <p className="text-lg lg:text-xl font-bold">Tudo pronto para começar!</p>
+          <p className="text-sm lg:text-base text-muted-foreground mt-2 leading-relaxed max-w-xs mx-auto">
             Registre seu primeiro aporte e veja sua jornada ganhar forma. Cada passo conta.
           </p>
         </div>
-        <Button className="w-full h-12 font-semibold text-sm touch-target" onClick={onOpenQuickDeposit}>
+        <Button className="w-full sm:w-auto sm:px-8 h-12 font-semibold text-sm touch-target" onClick={onOpenQuickDeposit}>
           <DollarSign className="w-4 h-4 mr-2" /> Registrar meu primeiro aporte
         </Button>
       </Card>
 
-      <div className="space-y-3">
+      <div className="space-y-3 lg:grid lg:grid-cols-3 lg:gap-4 lg:space-y-0">
         <QuickAction
           emoji="💵"
           title="Cadastrar sua renda"
@@ -323,14 +331,14 @@ function EmptyHomeState({ onNavigateToTab, onOpenQuickDeposit }: { onNavigateToT
 
 function QuickAction({ emoji, title, description, onClick }: { emoji: string; title: string; description: string; onClick: () => void }) {
   return (
-    <Card className="glass-card p-4 cursor-pointer hover:ring-1 hover:ring-primary/20 active:scale-[0.98] transition-all touch-target" onClick={onClick}>
-      <div className="flex items-center gap-3">
-        <span className="text-2xl shrink-0">{emoji}</span>
+    <Card className="glass-card p-4 lg:p-5 cursor-pointer hover:ring-1 hover:ring-primary/20 active:scale-[0.98] transition-all touch-target" onClick={onClick}>
+      <div className="flex items-center gap-3 lg:flex-col lg:text-center">
+        <span className="text-2xl lg:text-3xl shrink-0">{emoji}</span>
         <div className="min-w-0">
-          <p className="text-sm font-semibold">{title}</p>
-          <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
+          <p className="text-sm lg:text-base font-semibold">{title}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{description}</p>
         </div>
-        <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+        <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0 lg:hidden" />
       </div>
     </Card>
   );
