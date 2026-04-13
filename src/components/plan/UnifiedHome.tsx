@@ -167,7 +167,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
           </div>
           {diag.monthsToMillion && (
             <p className="text-[11px] sm:text-xs text-muted-foreground mt-3">
-              No ritmo atual, você chega em {formatBRLCompact(config.targetAmount)} em ~{Math.ceil(diag.monthsToMillion / 12)} anos
+              No ritmo atual, {isCouple ? "vocês chegam" : "você chega"} em {formatBRLCompact(config.targetAmount)} em ~{Math.ceil(diag.monthsToMillion / 12)} anos
             </p>
           )}
         </Card>

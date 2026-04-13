@@ -894,6 +894,9 @@ export function getNextBestAction(
   monthRecords: MonthRecord[],
   startDate: string
 ): { action: string; reason: string; bucket: PatrimonialBucketId } {
+  const isCouple = config.contributors.length > 1;
+  const sua = isCouple ? "a" : "sua";
+  const voce = isCouple ? "Vocês estão perto" : "Você está perto";
   const buckets = calculateBucketDistribution(appData, config);
   const reserva = buckets.find(b => b.bucket === "reserva")!;
   const alerts = generateStructuralAlerts(appData, config, monthRecords, startDate);
@@ -901,7 +904,7 @@ export function getNextBestAction(
   // Priority 1: Emergency fund
   if (reserva.status === "critical") {
     return {
-      action: "Complete sua reserva de emergência",
+      action: isCouple ? "Completem a reserva de emergência" : "Complete sua reserva de emergência",
       reason: "Sem reserva, qualquer imprevisto pode comprometer todo o plano.",
       bucket: "reserva",
     };
@@ -912,7 +915,7 @@ export function getNextBestAction(
   if (fgcAlert) {
     return {
       action: "Distribua entre instituições",
-      reason: "Você está perto do limite do FGC. Proteja o que já conquistou.",
+      reason: `${voce} do limite do FGC. Proteja o que já conquistou.`,
       bucket: "protecao-bancaria",
     };
   }
@@ -920,7 +923,7 @@ export function getNextBestAction(
   // Priority 3: Finish reserva
   if (reserva.status === "attention") {
     return {
-      action: "Finalize sua reserva de emergência",
+      action: isCouple ? "Finalizem a reserva de emergência" : "Finalize sua reserva de emergência",
       reason: "Quase lá. Completar 6 meses dá segurança para investir com mais tranquilidade.",
       bucket: "reserva",
     };
@@ -932,7 +935,7 @@ export function getNextBestAction(
     const soberana = buckets.find(b => b.bucket === "base-soberana")!;
     if (soberana.percentage < 0.2) {
       return {
-        action: "Expanda sua base soberana",
+        action: isCouple ? "Expandam a base soberana" : "Expanda sua base soberana",
         reason: "Com patrimônio acima de R$ 100k, Tesouro IPCA+ protege contra inflação no longo prazo.",
         bucket: "base-soberana",
       };
@@ -941,8 +944,8 @@ export function getNextBestAction(
 
   // Default: keep accumulating
   return {
-    action: "Continue seus aportes mensais",
-    reason: "Sua estrutura está equilibrada. Consistência é o que mais acelera o resultado.",
+    action: isCouple ? "Continuem os aportes mensais" : "Continue seus aportes mensais",
+    reason: isCouple ? "A estrutura está equilibrada. Consistência é o que mais acelera o resultado." : "Sua estrutura está equilibrada. Consistência é o que mais acelera o resultado.",
     bucket: "protecao-bancaria",
   };
 }
