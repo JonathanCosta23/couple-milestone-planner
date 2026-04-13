@@ -588,7 +588,7 @@ const Index = () => {
       <MilestoneAlert
         milestone={newMilestone}
         onDismiss={() => { if (newMilestone) setDismissedMilestones((prev) => [...prev, newMilestone]); }}
-        config={config}
+        config={data.config}
       />
 
       <DataMigrationDialog
