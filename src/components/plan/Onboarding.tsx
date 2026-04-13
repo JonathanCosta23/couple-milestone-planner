@@ -10,26 +10,26 @@ interface OnboardingProps {
 const screens = [
   {
     icon: Sparkles,
-    title: "Bem-vindos ao Plano do Milhão",
-    description: "Juntos, vocês vão construir um patrimônio de R$1.000.000 com disciplina, juros compostos e muito amor. 💚",
+    title: "Bem-vindo ao Plano do Milhão",
+    description: "Aqui você constrói patrimônio com disciplina, juros compostos e clareza. Simples de usar, poderoso nos resultados.",
     emoji: "🎯",
   },
   {
     icon: BookOpen,
     title: "Como funciona",
-    description: "Definam sua meta, os aportes mensais em Tesouro Selic e CDB, e acompanhem mês a mês a evolução. O app calcula tudo automaticamente.",
+    description: "Defina sua meta e seus aportes mensais. O app calcula tudo, mostra seu progresso e te orienta como um mentor financeiro.",
     emoji: "📊",
   },
   {
     icon: Target,
-    title: "Educação financeira básica",
-    description: "Tesouro Selic: seguro e líquido, ideal para reserva. CDB: pode render mais, mas pode ter carência. Juros compostos: seu dinheiro gera dinheiro. Quanto antes começar, melhor!",
-    emoji: "📚",
+    title: "Mais que um app de investimentos",
+    description: "Além de acompanhar aportes, você controla gastos, aprende sobre finanças, recebe alertas inteligentes e se protege de armadilhas.",
+    emoji: "🛡️",
   },
   {
     icon: Rocket,
     title: "Vamos começar!",
-    description: "Configure sua meta, divida os aportes e comece a registrar. O primeiro passo é o mais importante.",
+    description: "Configure sua meta, registre seus primeiros dados e deixe o app trabalhar por você. O primeiro passo é o mais importante.",
     emoji: "🚀",
   },
 ];
@@ -48,7 +48,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             <div
               key={i}
               className={`h-1.5 rounded-full transition-all ${
-                i === step ? "w-8 bg-primary" : "w-2 bg-muted"
+                i === step ? "w-8 bg-primary" : i < step ? "w-3 bg-primary/40" : "w-2 bg-muted"
               }`}
             />
           ))}
@@ -71,12 +71,12 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             </Button>
           )}
           {step < screens.length - 1 ? (
-            <Button onClick={() => setStep(step + 1)}>
+            <Button onClick={() => setStep(step + 1)} className="h-10 px-5">
               Próximo <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           ) : (
-            <Button onClick={onComplete}>
-              <Rocket className="w-4 h-4 mr-1" /> Começar a planejar!
+            <Button onClick={onComplete} className="h-10 px-5">
+              <Rocket className="w-4 h-4 mr-1" /> Começar agora
             </Button>
           )}
         </div>

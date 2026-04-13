@@ -1,43 +1,37 @@
-import { TrendingUp, Users, Target } from "lucide-react";
+import { TrendingUp } from "lucide-react";
+import { PlanConfig, formatBRLCompact } from "@/lib/types";
 
 interface HeroProps {
   goalLabel?: string | null;
+  config?: PlanConfig;
+  contributorCount?: number;
 }
 
-export function Hero({ goalLabel }: HeroProps) {
+export function Hero({ goalLabel, config, contributorCount = 1 }: HeroProps) {
+  const modeLabel = contributorCount > 1 ? `${contributorCount} pessoas` : "Modo individual";
+
   return (
-    <section className="gradient-hero py-12 md:py-20 px-4">
+    <section className="gradient-hero py-8 md:py-12 px-4">
       <div className="container max-w-3xl mx-auto text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-6">
-          <TrendingUp className="w-4 h-4" />
-          <span>V6 — Finanças Reais</span>
-        </div>
-        <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-4">
+        <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight mb-2">
           <span className="text-gradient">Plano do Milhão</span>
         </h1>
-        <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto mb-4">
-          Juntos, de <strong className="text-foreground">R$9.000</strong> a{" "}
-          <strong className="text-foreground">R$1.000.000</strong> com Tesouro Selic e CDB.
-          Simule, planeje e acompanhe mês a mês.
+        <p className="text-sm md:text-base text-muted-foreground max-w-md mx-auto">
+          Seu assistente financeiro para construir patrimônio com disciplina e inteligência.
         </p>
         {goalLabel && (
-          <p className="text-sm text-primary font-medium mb-4">
-            🎯 Objetivo: {goalLabel}
+          <p className="text-xs text-primary font-medium mt-2">
+            🎯 {goalLabel}
           </p>
         )}
-        <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-primary" />
-            <span>Modo casal</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Target className="w-4 h-4 text-accent" />
-            <span>Metas & marcos</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-primary" />
-            <span>Juros compostos</span>
-          </div>
+        <div className="flex flex-wrap justify-center gap-4 text-xs text-muted-foreground mt-3">
+          <span className="flex items-center gap-1">
+            <TrendingUp className="w-3.5 h-3.5 text-primary" />
+            {modeLabel}
+          </span>
+          {config && (
+            <span>Meta: {formatBRLCompact(config.targetAmount)}</span>
+          )}
         </div>
       </div>
     </section>
