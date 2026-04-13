@@ -57,29 +57,29 @@ export function HomeDashboard({ appData, config, monthRecords, startDate, onNavi
     <div className="space-y-4">
       <div className="text-center">
         <p className="text-xs text-muted-foreground uppercase tracking-wider">{monthKeyToFullLabel(currentKey)}</p>
-        <p className="text-lg font-bold mt-0.5">Visão Geral do Mês</p>
+        <p className="text-lg font-bold mt-0.5">Como está seu mês</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         <Card className="glass-card p-4 text-center cursor-pointer hover:ring-1 hover:ring-primary/20" onClick={() => onNavigateToTab("diagnostico")}>
           <Activity className={`w-5 h-5 mx-auto mb-1 ${scoreColor}`} />
           <p className={`text-3xl font-extrabold ${scoreColor}`}>{score.total}</p>
-          <p className="text-[10px] text-muted-foreground uppercase">Score</p>
+          <p className="text-[10px] text-muted-foreground uppercase">Saúde financeira</p>
         </Card>
         <Card className="glass-card p-4 text-center">
           <Target className="w-5 h-5 mx-auto mb-1 text-primary" />
           <p className="text-lg font-extrabold text-gradient">
             {((diag.investedWealth / config.targetAmount) * 100).toFixed(1)}%
           </p>
-          <p className="text-[10px] text-muted-foreground uppercase">Rumo ao Milhão</p>
+          <p className="text-[10px] text-muted-foreground uppercase">Progresso da meta</p>
           <Progress value={Math.min(100, (diag.investedWealth / config.targetAmount) * 100)} className="h-1 mt-2" />
         </Card>
       </div>
 
       <div className="grid grid-cols-3 lg:grid-cols-3 gap-2 lg:gap-3">
-        <StatCard icon={DollarSign} label="Receita" value={formatBRLCompact(totalIncome)} color="text-primary" onClick={() => onNavigateToTab("renda")} />
-        <StatCard icon={Wallet} label="Despesas" value={formatBRLCompact(totalExpenses)} color="text-foreground" onClick={() => onNavigateToTab("gastos")} />
-        <StatCard icon={TrendingUp} label="Saldo" value={formatBRLCompact(balance)} color={balance >= 0 ? "text-primary" : "text-destructive"} />
+        <StatCard icon={DollarSign} label="Entra" value={formatBRLCompact(totalIncome)} color="text-primary" onClick={() => onNavigateToTab("renda")} />
+        <StatCard icon={Wallet} label="Sai" value={formatBRLCompact(totalExpenses)} color="text-foreground" onClick={() => onNavigateToTab("gastos")} />
+        <StatCard icon={TrendingUp} label="Sobra" value={formatBRLCompact(balance)} color={balance >= 0 ? "text-primary" : "text-destructive"} />
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 lg:gap-3">
@@ -92,20 +92,20 @@ export function HomeDashboard({ appData, config, monthRecords, startDate, onNavi
       <div className="grid grid-cols-2 gap-2">
         <Card className="glass-card p-3 text-center cursor-pointer hover:ring-1 hover:ring-primary/20" onClick={() => onNavigateToTab("patrimonio")}>
           <p className="text-sm font-bold">{formatBRLCompact(diag.investedWealth)}</p>
-          <p className="text-[9px] text-muted-foreground uppercase">Patrimônio Investido</p>
+          <p className="text-[9px] text-muted-foreground uppercase">Total investido</p>
         </Card>
         <Card className="glass-card p-3 text-center">
           <div className="flex items-center justify-center gap-1">
             <Shield className={`w-3.5 h-3.5 ${diag.emergencyMonths >= 6 ? "text-primary" : diag.emergencyMonths >= 3 ? "text-warning" : "text-destructive"}`} />
             <p className="text-sm font-bold">{diag.emergencyMonths.toFixed(1)} meses</p>
           </div>
-          <p className="text-[9px] text-muted-foreground uppercase">Reserva</p>
+          <p className="text-[9px] text-muted-foreground uppercase">Reserva de segurança</p>
         </Card>
       </div>
 
       {topCategories.length > 0 && (
         <Card className="glass-card p-3">
-          <p className="text-xs font-semibold mb-2">Maiores Gastos do Mês</p>
+          <p className="text-xs font-semibold mb-2">Onde você mais gasta</p>
           <div className="space-y-2">
             {topCategories.map(([cat, amount]) => (
               <div key={cat} className="flex items-center justify-between text-xs">
@@ -124,7 +124,7 @@ export function HomeDashboard({ appData, config, monthRecords, startDate, onNavi
         <Card className="glass-card p-3">
           <div className="flex items-center gap-1.5 mb-2">
             <CalendarClock className="w-4 h-4 text-warning" />
-            <p className="text-xs font-semibold">Próximos Vencimentos</p>
+            <p className="text-xs font-semibold">Vencendo em breve</p>
           </div>
           <div className="space-y-1.5">
             {upcomingDebts.map(d => (
@@ -154,27 +154,27 @@ export function HomeDashboard({ appData, config, monthRecords, startDate, onNavi
           <div className="flex items-center gap-2">
             <span className="text-lg">🔥</span>
             <div>
-              <p className="text-sm font-semibold">Aportes do Mês</p>
-              <p className="text-[10px] text-muted-foreground">Sequência: {streak} meses</p>
+              <p className="text-sm font-semibold">Aportes do mês</p>
+              <p className="text-[10px] text-muted-foreground">{streak} {streak === 1 ? "mês consecutivo" : "meses consecutivos"}</p>
             </div>
           </div>
           <p className="text-sm font-bold">{(currentMonth.progress * 100).toFixed(0)}%</p>
         </div>
         <Progress value={currentMonth.progress * 100} className="h-2 mb-2" />
         <div className="flex justify-between text-xs text-muted-foreground mb-3">
-          <span>{formatBRL(currentMonth.total)} / {formatBRL(currentMonth.planned)}</span>
+          <span>{formatBRL(currentMonth.total)} de {formatBRL(currentMonth.planned)}</span>
         </div>
         <Button size="sm" className="w-full" onClick={onOpenQuickDeposit}>
-          <DollarSign className="w-4 h-4 mr-1" /> Registrar depósito
+          <DollarSign className="w-4 h-4 mr-1" /> Registrar aporte
         </Button>
       </Card>
 
       <div className="grid grid-cols-2 gap-2">
         <Button variant="outline" size="sm" className="text-xs justify-start" onClick={() => onNavigateToTab("gastos")}>
-          <Wallet className="w-3.5 h-3.5 mr-1.5" /> Gerenciar Gastos <ArrowRight className="w-3 h-3 ml-auto" />
+          <Wallet className="w-3.5 h-3.5 mr-1.5" /> Ver gastos <ArrowRight className="w-3 h-3 ml-auto" />
         </Button>
         <Button variant="outline" size="sm" className="text-xs justify-start" onClick={() => onNavigateToTab("dividas")}>
-          <CreditCard className="w-3.5 h-3.5 mr-1.5" /> Ver Dívidas <ArrowRight className="w-3 h-3 ml-auto" />
+          <CreditCard className="w-3.5 h-3.5 mr-1.5" /> Ver dívidas <ArrowRight className="w-3 h-3 ml-auto" />
         </Button>
       </div>
     </div>
