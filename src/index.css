@@ -112,25 +112,25 @@
 
 @layer components {
   .glass-card {
-    @apply bg-card/80 backdrop-blur-xl border border-border/50 rounded-2xl shadow-lg;
+    @apply bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-sm;
   }
   .glass-card-strong {
-    @apply bg-card/90 backdrop-blur-2xl border border-border/60 rounded-2xl shadow-xl;
+    @apply bg-card/95 backdrop-blur-2xl border border-border/60 rounded-2xl shadow-md;
   }
   .gradient-hero {
     background: linear-gradient(
       135deg,
-      hsl(152 69% 36% / 0.15) 0%,
-      hsl(199 89% 48% / 0.1) 50%,
-      hsl(224 30% 10% / 0.05) 100%
+      hsl(152 69% 36% / 0.12) 0%,
+      hsl(199 89% 48% / 0.08) 50%,
+      hsl(224 30% 10% / 0.03) 100%
     );
   }
   .dark .gradient-hero {
     background: linear-gradient(
       135deg,
-      hsl(152 69% 46% / 0.2) 0%,
-      hsl(199 89% 48% / 0.1) 50%,
-      hsl(224 32% 7% / 0.3) 100%
+      hsl(152 69% 46% / 0.15) 0%,
+      hsl(199 89% 48% / 0.08) 50%,
+      hsl(224 32% 7% / 0.2) 100%
     );
   }
   .text-gradient {
@@ -139,6 +139,16 @@
   }
   .dark .text-gradient {
     background-image: linear-gradient(135deg, hsl(152 69% 50%), hsl(199 89% 55%));
+  }
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }
 
