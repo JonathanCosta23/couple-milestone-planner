@@ -1,48 +1,26 @@
 
 
-# Plan: Contextual Education Integration
+# Fix: SubNav Clipping on Mobile
 
-## What We're Building
+## Root Cause
 
-A new component `ContextualEducation` that suggests relevant mini-lessons based on the user's current financial state. This component will appear in three places: **Home**, **Diagnóstico**, and **Simulador**.
+The SubNav container uses `-mx-1 px-1 pr-6` which doesn't properly account for the parent's `px-4` padding. The last chip gets clipped because the right padding inside the scroll container isn't enough to push the last item fully into view.
 
-## Logic: Which Lessons to Suggest When
+## Changes
 
-Create a function `getContextualLessonSuggestions(appData, config, monthRecords, startDate)` in `src/lib/educationContent.ts` that returns lesson IDs + reasons based on:
+### 1. `src/components/plan/SubNav.tsx`
+Refactor the component with a proper two-layer approach:
 
-| Condition | Lesson | Reason shown |
-|-----------|--------|-------------|
-| `emergencyMonths < 3` | `emergency-101` | "Sua reserva está baixa" |
-| `debtWeight > 0.15` or has active debts | `good-vs-bad-debt` | "Você tem dívidas ativas" |
-| `investedWealth > 100000` or has investments | `fgc-guide` | "Proteja seu patrimônio" |
-| `savingsRate < 0.1` | `patrimonio-vs-renda` | "Aumente seu potencial" |
-| Always (low priority) | `compound-magic` | "Entenda o motor do crescimento" |
-| Simulator context or high-risk allocation | `traps-101` | "Cuidado com promessas irreais" |
+- **Outer wrapper**: Uses negative margins (`-mx-4`) to break out of the parent's padding, creating a full-bleed scroll area.
+- **Inner scrollable div**: Has `px-4` on the left and a spacer element (or `after:` pseudo-element with `min-w-4`) on the right to guarantee the last chip is never clipped.
+- Reduce `gap` from `gap-2` to `gap-1.5` for tighter mobile fit.
+- Add a right-edge fade gradient mask (via CSS `mask-image` or an overlay `div`) as a visual hint that more content is scrollable.
+- Keep `scrollbar-hide`, `snap-scroll-x`, and `-webkit-overflow-scrolling: touch`.
+- Ensure `shrink-0` on all buttons so they never compress.
 
-## New Component: `ContextualEducation.tsx`
+### 2. `src/index.css`
+Add a utility class `.scroll-fade-right` that applies a subtle linear-gradient mask on the right edge (transparent to white over ~24px) to hint at scrollable content. This provides the "premium continuity hint" without a visible scrollbar.
 
-A compact card showing 1-2 relevant lesson suggestions with:
-- Lesson emoji + title
-- Short contextual reason (why this lesson matters *now*)
-- Tap to expand inline (reuses `MiniLessons` lesson card pattern)
-- Accepts a `context` prop (`"home" | "diagnostic" | "simulator"`) to filter/prioritize
-
-## Integration Points
-
-### 1. `UnifiedHome.tsx`
-Add `<ContextualEducation>` between the behavioral nudge (section 7) and shortcuts (section 8). Shows max 1 suggestion.
-
-### 2. `FinancialDiagnostic.tsx`
-Add after the bottleneck/opportunity cards at the bottom. Shows 1-2 suggestions based on lowest score dimensions.
-
-### 3. `AdvancedSimulator.tsx`
-Add after the scenario comparisons. Shows `traps-101` if custom rate > 20%, or `compound-magic` as default context.
-
-## Files Changed
-
-1. **`src/lib/educationContent.ts`** — Add `getContextualLessonSuggestions()` function
-2. **`src/components/plan/ContextualEducation.tsx`** — New component
-3. **`src/components/plan/UnifiedHome.tsx`** — Import and render
-4. **`src/components/plan/FinancialDiagnostic.tsx`** — Import and render
-5. **`src/components/plan/AdvancedSimulator.tsx`** — Import and render
+### 3. Validation
+After implementation, test on 390x844 and 360x800 viewports to confirm no clipping on any of the three SubNav instances (Plano with 6 items, Histórico with 4, Perfil with 7).
 
