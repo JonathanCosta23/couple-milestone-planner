@@ -5,8 +5,7 @@ import { Hero } from "@/components/plan/Hero";
 import { Onboarding } from "@/components/plan/Onboarding";
 import { FinancialProfileSetup } from "@/components/plan/FinancialProfileSetup";
 import { Wizard } from "@/components/plan/Wizard";
-import { HomeDashboard } from "@/components/plan/HomeDashboard";
-import { StrategicHome } from "@/components/plan/StrategicHome";
+import { UnifiedHome } from "@/components/plan/UnifiedHome";
 import { FinancialDiagnostic } from "@/components/plan/FinancialDiagnostic";
 import { JourneyPhases } from "@/components/plan/JourneyPhases";
 import { InvestmentGuide } from "@/components/plan/InvestmentGuide";
@@ -27,18 +26,45 @@ import { BehavioralPanel } from "@/components/plan/BehavioralPanel";
 import { TrapDetector } from "@/components/plan/TrapDetector";
 import { FinancialGlossary } from "@/components/plan/FinancialGlossary";
 import { MiniLessons } from "@/components/plan/MiniLessons";
+import { BottomNav, NavSection } from "@/components/plan/BottomNav";
+import { SubNav } from "@/components/plan/SubNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { generateProjection, getReachedMilestones } from "@/lib/calculator";
 import { MILESTONES, EMOTIONAL_GOAL_LABELS } from "@/lib/types";
 import { parseImportJSON, saveBackup, ImportPreview } from "@/lib/storage";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import {
-  Download, Upload, RotateCcw, Home, Activity, Map, BookOpen,
-  Calculator, DollarSign, PieChart, CalendarCheck, Settings,
-  Brain, ShieldAlert, GraduationCap, Wallet, CreditCard, Compass,
-} from "lucide-react";
+import { Download, Upload, RotateCcw, Settings } from "lucide-react";
 import { toast } from "sonner";
+
+// Sub-nav definitions per section
+const FINANCAS_SUBS = [
+  { id: "gastos", label: "Gastos", icon: "💰" },
+  { id: "renda", label: "Renda", icon: "💵" },
+  { id: "dividas", label: "Dívidas", icon: "📋" },
+  { id: "plano", label: "Aportes", icon: "📅" },
+];
+
+const INTELIGENCIA_SUBS = [
+  { id: "diagnostico", label: "Diagnóstico", icon: "📊" },
+  { id: "jornada", label: "Jornada", icon: "🗺️" },
+  { id: "comportamento", label: "Hábitos", icon: "🧠" },
+  { id: "simulador", label: "Simulador", icon: "🔬" },
+  { id: "patrimonio", label: "Patrimônio", icon: "💎" },
+];
+
+const APRENDER_SUBS = [
+  { id: "aulas", label: "Aulas", icon: "📚" },
+  { id: "glossario", label: "Glossário", icon: "📖" },
+  { id: "investir", label: "Investir", icon: "📈" },
+  { id: "armadilhas", label: "Armadilhas", icon: "🛡️" },
+];
+
+const CONFIG_SUBS = [
+  { id: "compartilhar", label: "Compartilhar", icon: "📤" },
+  { id: "notificacoes", label: "Alertas", icon: "🔔" },
+  { id: "ajuda", label: "Como usar", icon: "❓" },
+  { id: "dados", label: "Dados", icon: "💾" },
+];
 
 const Index = () => {
   const {
@@ -55,11 +81,17 @@ const Index = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dismissedMilestones, setDismissedMilestones] = useState<number[]>([]);
-  const [activeTab, setActiveTab] = useState("home");
   const [showQuickDeposit, setShowQuickDeposit] = useState(false);
   const [showFinancialSetup, setShowFinancialSetup] = useState(false);
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
   const [showImportDialog, setShowImportDialog] = useState(false);
+
+  // Navigation state
+  const [navSection, setNavSection] = useState<NavSection>("home");
+  const [financasSub, setFinancasSub] = useState("gastos");
+  const [inteligenciaSub, setInteligenciaSub] = useState("diagnostico");
+  const [aprenderSub, setAprenderSub] = useState("aulas");
+  const [configSub, setConfigSub] = useState("compartilhar");
 
   const planned = useMemo(
     () => data.wizardComplete ? generateProjection(data.config, "planned", data.monthRecords, data.startDate) : [],
@@ -71,6 +103,28 @@ const Index = () => {
   const goalLabel = data.emotionalGoal
     ? data.emotionalGoal === "outro" ? (data.emotionalGoalCustom || null) : EMOTIONAL_GOAL_LABELS[data.emotionalGoal]
     : null;
+
+  // Navigate to specific tab (used from home shortcuts)
+  const handleNavigateToTab = (tab: string) => {
+    // Map old tab names to new section+sub
+    const financasTabs = ["gastos", "renda", "dividas", "plano"];
+    const inteligenciaTabs = ["diagnostico", "jornada", "comportamento", "simulador", "patrimonio"];
+    const aprenderTabs = ["aulas", "glossario", "investir", "armadilhas"];
+
+    if (financasTabs.includes(tab)) {
+      setNavSection("financas");
+      setFinancasSub(tab);
+    } else if (inteligenciaTabs.includes(tab)) {
+      setNavSection("inteligencia");
+      setInteligenciaSub(tab);
+    } else if (aprenderTabs.includes(tab)) {
+      setNavSection("aprender");
+      setAprenderSub(tab);
+    } else {
+      setNavSection("home");
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const handleExportJSON = () => {
     const json = exportJSON();
@@ -102,7 +156,7 @@ const Index = () => {
     if (importPreview?.valid && importPreview.data) {
       saveBackup(data);
       importJSON(JSON.stringify(importPreview.data));
-      toast.success("Plano importado com sucesso! Backup salvo automaticamente.");
+      toast.success("Plano importado com sucesso!");
     }
     setShowImportDialog(false);
     setImportPreview(null);
@@ -138,144 +192,36 @@ const Index = () => {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
-        <div className="container flex items-center justify-between h-14 px-4">
-          <h1 className="text-sm font-bold text-gradient">Plano do Milhão</h1>
-          <div className="flex items-center gap-1">
-            {data.wizardComplete && (
-              <>
-                <Button variant="ghost" size="icon" onClick={() => setShowFinancialSetup(true)} title="Perfil financeiro">
-                  <Settings className="w-4 h-4" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={handleExportJSON} title="Exportar JSON">
-                  <Download className="w-4 h-4" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} title="Importar JSON">
-                  <Upload className="w-4 h-4" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => { if (confirm("Resetar todo o plano?")) resetPlan(); }} title="Resetar">
-                  <RotateCcw className="w-4 h-4" />
-                </Button>
-              </>
-            )}
-            <ThemeToggle />
-            <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportJSON} />
-          </div>
-        </div>
-      </header>
+  const renderContent = () => {
+    if (!data.wizardComplete) {
+      return (
+        <Wizard onComplete={(config) => {
+          completeWizard(config);
+          if (!data.financialProfile) {
+            setShowFinancialSetup(true);
+          }
+        }} />
+      );
+    }
 
-      <Hero goalLabel={goalLabel} />
+    switch (navSection) {
+      case "home":
+        return (
+          <UnifiedHome
+            appData={appData}
+            config={data.config}
+            monthRecords={data.monthRecords}
+            startDate={data.startDate}
+            onNavigateToTab={handleNavigateToTab}
+            onOpenQuickDeposit={() => setShowQuickDeposit(true)}
+          />
+        );
 
-      <main className="container px-4 py-8 max-w-3xl mx-auto">
-        {!data.wizardComplete ? (
-          <Wizard onComplete={(config) => {
-            completeWizard(config);
-            if (!data.financialProfile) {
-              setShowFinancialSetup(true);
-            }
-          }} />
-        ) : (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            {/* Navigation — 4 rows */}
-            <div className="space-y-1.5">
-              <TabsList className="w-full grid grid-cols-4 glass-card h-9">
-                <TabsTrigger value="home" className="gap-1 text-[10px] sm:text-xs px-1">
-                  <Home className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Início</span>
-                </TabsTrigger>
-                <TabsTrigger value="gastos" className="gap-1 text-[10px] sm:text-xs px-1">
-                  <Wallet className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Gastos</span>
-                </TabsTrigger>
-                <TabsTrigger value="dividas" className="gap-1 text-[10px] sm:text-xs px-1">
-                  <CreditCard className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Dívidas</span>
-                </TabsTrigger>
-                <TabsTrigger value="renda" className="gap-1 text-[10px] sm:text-xs px-1">
-                  <DollarSign className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Renda</span>
-                </TabsTrigger>
-              </TabsList>
-              <TabsList className="w-full grid grid-cols-4 glass-card h-9">
-                <TabsTrigger value="diagnostico" className="gap-1 text-[10px] sm:text-xs px-1">
-                  <Activity className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Diagnóstico</span>
-                </TabsTrigger>
-                <TabsTrigger value="jornada" className="gap-1 text-[10px] sm:text-xs px-1">
-                  <Map className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Jornada</span>
-                </TabsTrigger>
-                <TabsTrigger value="simulador" className="gap-1 text-[10px] sm:text-xs px-1">
-                  <Calculator className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Simulador</span>
-                </TabsTrigger>
-                <TabsTrigger value="patrimonio" className="gap-1 text-[10px] sm:text-xs px-1">
-                  <PieChart className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Patrimônio</span>
-                </TabsTrigger>
-              </TabsList>
-              <TabsList className="w-full grid grid-cols-4 glass-card h-9">
-                <TabsTrigger value="investir" className="gap-1 text-[10px] sm:text-xs px-1">
-                  <BookOpen className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Investir</span>
-                </TabsTrigger>
-                <TabsTrigger value="estrategia" className="gap-1 text-[10px] sm:text-xs px-1">
-                  <Compass className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Estratégia</span>
-                </TabsTrigger>
-                <TabsTrigger value="comportamento" className="gap-1 text-[10px] sm:text-xs px-1">
-                  <Brain className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Hábitos</span>
-                </TabsTrigger>
-                <TabsTrigger value="plano" className="gap-1 text-[10px] sm:text-xs px-1">
-                  <CalendarCheck className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Plano</span>
-                </TabsTrigger>
-              </TabsList>
-              <TabsList className="w-full grid grid-cols-3 glass-card h-9">
-                <TabsTrigger value="armadilhas" className="gap-1 text-[10px] sm:text-xs px-1">
-                  <ShieldAlert className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Armadilhas</span>
-                </TabsTrigger>
-                <TabsTrigger value="aprender" className="gap-1 text-[10px] sm:text-xs px-1">
-                  <GraduationCap className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Aprender</span>
-                </TabsTrigger>
-                <TabsTrigger value="glossario" className="gap-1 text-[10px] sm:text-xs px-1">
-                  <BookOpen className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Glossário</span>
-                </TabsTrigger>
-              </TabsList>
-            </div>
-
-            <TabsContent value="home">
-              <HomeDashboard
-                appData={appData}
-                config={data.config}
-                monthRecords={data.monthRecords}
-                startDate={data.startDate}
-                onNavigateToTab={setActiveTab}
-                onOpenQuickDeposit={() => setShowQuickDeposit(true)}
-              />
-              <div className="mt-6 space-y-4">
-                <SharePlan
-                  config={data.config}
-                  monthRecords={data.monthRecords}
-                  startDate={data.startDate}
-                  profile={data.financialProfile}
-                  onExportJSON={handleExportJSON}
-                  onImportClick={() => fileInputRef.current?.click()}
-                />
-                <NotificationSettings
-                  settings={data.notificationSettings}
-                  onUpdate={updateNotificationSettings}
-                />
-              </div>
-            </TabsContent>
-
-            <TabsContent value="gastos">
+      case "financas":
+        return (
+          <div className="space-y-4">
+            <SubNav items={FINANCAS_SUBS} active={financasSub} onChange={setFinancasSub} />
+            {financasSub === "gastos" && (
               <ExpensePanel
                 appData={appData}
                 config={data.config}
@@ -286,19 +232,8 @@ const Index = () => {
                 onMarkExpensePaid={markExpensePaid}
                 onConvertToRecurring={convertToRecurring}
               />
-            </TabsContent>
-
-            <TabsContent value="dividas">
-              <DebtModule
-                appData={appData}
-                config={data.config}
-                onAddDebt={addDebt}
-                onUpdateDebt={updateDebt}
-                onDeleteDebt={deleteDebt}
-              />
-            </TabsContent>
-
-            <TabsContent value="renda">
+            )}
+            {financasSub === "renda" && (
               <IncomePanel
                 appData={appData}
                 config={data.config}
@@ -308,64 +243,17 @@ const Index = () => {
                 onUpdateIncome={updateIncome}
                 onDeleteIncome={deleteIncome}
               />
-            </TabsContent>
-
-            <TabsContent value="diagnostico">
-              <FinancialDiagnostic
+            )}
+            {financasSub === "dividas" && (
+              <DebtModule
                 appData={appData}
                 config={data.config}
-                monthRecords={data.monthRecords}
-                startDate={data.startDate}
+                onAddDebt={addDebt}
+                onUpdateDebt={updateDebt}
+                onDeleteDebt={deleteDebt}
               />
-            </TabsContent>
-
-            <TabsContent value="jornada">
-              <JourneyPhases
-                appData={appData}
-                config={data.config}
-                monthRecords={data.monthRecords}
-                startDate={data.startDate}
-              />
-            </TabsContent>
-
-            <TabsContent value="simulador" className="space-y-6">
-              <AdvancedSimulator
-                config={data.config}
-                monthRecords={data.monthRecords}
-                startDate={data.startDate}
-              />
-              <Dashboard config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
-            </TabsContent>
-
-            <TabsContent value="patrimonio">
-              <WealthDistribution appData={appData} config={data.config} />
-            </TabsContent>
-
-            <TabsContent value="investir">
-              <InvestmentGuide />
-            </TabsContent>
-
-            <TabsContent value="estrategia">
-              <StrategicHome
-                appData={appData}
-                config={data.config}
-                monthRecords={data.monthRecords}
-                startDate={data.startDate}
-                onNavigateToTab={setActiveTab}
-                onOpenQuickDeposit={() => setShowQuickDeposit(true)}
-              />
-            </TabsContent>
-
-            <TabsContent value="comportamento">
-              <BehavioralPanel
-                appData={appData}
-                config={data.config}
-                monthRecords={data.monthRecords}
-                startDate={data.startDate}
-              />
-            </TabsContent>
-
-            <TabsContent value="plano">
+            )}
+            {financasSub === "plano" && (
               <MonthlyTracker
                 config={data.config}
                 monthRecords={data.monthRecords}
@@ -375,28 +263,134 @@ const Index = () => {
                 onToggleCompleted={toggleMonthCompleted}
                 onGenerateAutoPlan={generateAutoPlan}
               />
-            </TabsContent>
-
-            <TabsContent value="armadilhas">
-              <TrapDetector />
-            </TabsContent>
-
-            <TabsContent value="aprender">
-              <MiniLessons />
-            </TabsContent>
-
-            <TabsContent value="glossario">
-              <FinancialGlossary />
-            </TabsContent>
-          </Tabs>
-        )}
-
-        {data.wizardComplete && (
-          <div className="mt-12">
-            <HowToUse />
+            )}
           </div>
-        )}
+        );
+
+      case "inteligencia":
+        return (
+          <div className="space-y-4">
+            <SubNav items={INTELIGENCIA_SUBS} active={inteligenciaSub} onChange={setInteligenciaSub} />
+            {inteligenciaSub === "diagnostico" && (
+              <FinancialDiagnostic
+                appData={appData}
+                config={data.config}
+                monthRecords={data.monthRecords}
+                startDate={data.startDate}
+              />
+            )}
+            {inteligenciaSub === "jornada" && (
+              <JourneyPhases
+                appData={appData}
+                config={data.config}
+                monthRecords={data.monthRecords}
+                startDate={data.startDate}
+              />
+            )}
+            {inteligenciaSub === "comportamento" && (
+              <BehavioralPanel
+                appData={appData}
+                config={data.config}
+                monthRecords={data.monthRecords}
+                startDate={data.startDate}
+              />
+            )}
+            {inteligenciaSub === "simulador" && (
+              <div className="space-y-6">
+                <AdvancedSimulator
+                  config={data.config}
+                  monthRecords={data.monthRecords}
+                  startDate={data.startDate}
+                />
+                <Dashboard config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+              </div>
+            )}
+            {inteligenciaSub === "patrimonio" && (
+              <WealthDistribution appData={appData} config={data.config} />
+            )}
+          </div>
+        );
+
+      case "aprender":
+        return (
+          <div className="space-y-4">
+            <SubNav items={APRENDER_SUBS} active={aprenderSub} onChange={setAprenderSub} />
+            {aprenderSub === "aulas" && <MiniLessons />}
+            {aprenderSub === "glossario" && <FinancialGlossary />}
+            {aprenderSub === "investir" && <InvestmentGuide />}
+            {aprenderSub === "armadilhas" && <TrapDetector />}
+          </div>
+        );
+
+      case "config":
+        return (
+          <div className="space-y-4">
+            <SubNav items={CONFIG_SUBS} active={configSub} onChange={setConfigSub} />
+            {configSub === "compartilhar" && (
+              <SharePlan
+                config={data.config}
+                monthRecords={data.monthRecords}
+                startDate={data.startDate}
+                profile={data.financialProfile}
+                onExportJSON={handleExportJSON}
+                onImportClick={() => fileInputRef.current?.click()}
+              />
+            )}
+            {configSub === "notificacoes" && (
+              <NotificationSettings
+                settings={data.notificationSettings}
+                onUpdate={updateNotificationSettings}
+              />
+            )}
+            {configSub === "ajuda" && <HowToUse />}
+            {configSub === "dados" && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 gap-2">
+                  <Button variant="outline" className="justify-start h-11" onClick={() => setShowFinancialSetup(true)}>
+                    <Settings className="w-4 h-4 mr-2" /> Perfil financeiro
+                  </Button>
+                  <Button variant="outline" className="justify-start h-11" onClick={handleExportJSON}>
+                    <Download className="w-4 h-4 mr-2" /> Exportar dados (JSON)
+                  </Button>
+                  <Button variant="outline" className="justify-start h-11" onClick={() => fileInputRef.current?.click()}>
+                    <Upload className="w-4 h-4 mr-2" /> Importar dados
+                  </Button>
+                  <Button variant="outline" className="justify-start h-11 text-destructive hover:text-destructive" onClick={() => { if (confirm("Tem certeza que deseja resetar todo o plano? Essa ação não pode ser desfeita.")) resetPlan(); }}>
+                    <RotateCcw className="w-4 h-4 mr-2" /> Resetar plano
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background pb-20">
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
+        <div className="container flex items-center justify-between h-12 px-4">
+          <h1 className="text-sm font-bold text-gradient">Plano do Milhão</h1>
+          <ThemeToggle />
+        </div>
+      </header>
+
+      {data.wizardComplete && navSection === "home" && (
+        <Hero goalLabel={goalLabel} config={data.config} contributorCount={data.config.contributors.length} />
+      )}
+
+      <main className="container px-4 py-6 max-w-3xl mx-auto">
+        {renderContent()}
       </main>
+
+      <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportJSON} />
+
+      {data.wizardComplete && (
+        <BottomNav active={navSection} onChange={(s) => { setNavSection(s); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+      )}
 
       <QuickDeposit
         open={showQuickDeposit}
@@ -416,9 +410,7 @@ const Index = () => {
 
       <MilestoneAlert
         milestone={newMilestone}
-        onDismiss={() => {
-          if (newMilestone) setDismissedMilestones((prev) => [...prev, newMilestone]);
-        }}
+        onDismiss={(m) => setDismissedMilestones((prev) => [...prev, m])}
       />
     </div>
   );
