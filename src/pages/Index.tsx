@@ -112,7 +112,7 @@ const Index = () => {
 
   // Navigate to specific sub-tab (used from home shortcuts)
   const handleNavigateToTab = (tab: string) => {
-    const planoTabs = ["aportes", "simulador", "diagnostico", "jornada", "comportamento", "patrimonio"];
+    const planoTabs = ["aportes", "estrutura", "simulador", "projecao", "diagnostico", "jornada", "comportamento", "patrimonio", "concentracao", "governanca"];
     const historicoTabs = ["tracker", "gastos", "renda", "dividas"];
     const perfilTabs = ["aprender", "glossario", "armadilhas", "investir", "compartilhar", "ajuda", "dados"];
 
