@@ -43,6 +43,7 @@ import { MILESTONES, EMOTIONAL_GOAL_LABELS } from "@/lib/types";
 import { parseImportJSON, saveBackup, ImportPreview } from "@/lib/storage";
 import { loadAppData, saveAppData } from "@/lib/appStorage";
 import { loadPlanData, savePlanData } from "@/lib/storage";
+import { useFinancialCore } from "@/hooks/useFinancialCore";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Download, Upload, RotateCcw, Settings, ArrowLeft, User, LogOut, Cloud, Loader2 } from "lucide-react";
@@ -116,6 +117,15 @@ const Index = () => {
   const [planoSub, setPlanoSub] = useState("aportes");
   const [historicoSub, setHistoricoSub] = useState("tracker");
   const [perfilSub, setPerfilSub] = useState("aprender");
+
+  const core = useFinancialCore({
+    appData,
+    config: data.config,
+    monthRecords: data.monthRecords,
+    startDate: data.startDate,
+    profile: data.financialProfile,
+    celebratedMilestones: dismissedMilestones,
+  });
 
   // ── Cloud sync: load data when user logs in ──
   useEffect(() => {
@@ -331,6 +341,7 @@ const Index = () => {
               startDate={data.startDate}
               onNavigateToTab={handleNavigateToTab}
               onOpenQuickDeposit={() => setShowQuickDeposit(true)}
+              core={core}
             />
           </div>
         );
@@ -348,28 +359,28 @@ const Index = () => {
               <AdvancedSimulator appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
             )}
             {planoSub === "estrutura" && (
-              <PatrimonialArchitecture appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+              <PatrimonialArchitecture appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {planoSub === "projecao" && (
               <ProjectionRealistic appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
             )}
             {planoSub === "diagnostico" && (
-              <FinancialDiagnostic appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+              <FinancialDiagnostic appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {planoSub === "jornada" && (
-              <JourneyPhases appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+              <JourneyPhases appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {planoSub === "comportamento" && (
-              <BehavioralPanel appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+              <BehavioralPanel appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {planoSub === "patrimonio" && (
-              <WealthDistribution appData={appData} config={data.config} />
+              <WealthDistribution appData={appData} config={data.config} core={core} />
             )}
             {planoSub === "concentracao" && (
-              <ConcentrationMap appData={appData} config={data.config} />
+              <ConcentrationMap appData={appData} config={data.config} core={core} />
             )}
             {planoSub === "governanca" && (
-              <CoupleGovernance appData={appData} config={data.config} />
+              <CoupleGovernance appData={appData} config={data.config} core={core} />
             )}
           </div>
         );
