@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { AppData } from "@/lib/models";
 import { PlanConfig, MonthRecord, formatBRL, formatBRLCompact, getCurrentMonthKey, monthKeyToFullLabel } from "@/lib/types";
-import { calculateHealthScore, calculateDiagnostic } from "@/lib/financialEngine";
+import { calculateHealthScore, calculateDiagnostic, generateStructuralAlerts, getNextBestAction, calculatePortfolioSecurity } from "@/lib/financialEngine";
 import { calculateStreak, getCurrentMonthDeposited } from "@/lib/calculator";
 import { generateMentorRecommendations } from "@/lib/behavioralEngine";
 import { generateNudges } from "@/lib/behavioralEngine";
