@@ -23,8 +23,8 @@ export function InvestmentGuide() {
     <div className="space-y-4">
       <Card className="glass-card-strong p-4 text-center">
         <BookOpen className="w-6 h-6 text-primary mx-auto mb-2" />
-        <h3 className="font-bold">Investir Melhor</h3>
-        <p className="text-xs text-muted-foreground mt-1">Aprenda sobre cada tipo de investimento de forma simples e prática</p>
+        <h3 className="font-bold">Entenda seus investimentos</h3>
+        <p className="text-xs text-muted-foreground mt-1">Cada tipo de investimento explicado de forma simples — sem jargão, sem complicação</p>
       </Card>
 
       {/* Category Filter */}

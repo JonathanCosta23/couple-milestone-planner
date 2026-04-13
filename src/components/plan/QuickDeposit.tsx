@@ -51,7 +51,7 @@ export function QuickDeposit({ open, onOpenChange, config, monthRecords, onUpdat
       onToggleCompleted(currentKey);
     }
 
-    toast.success("Depósito registrado! 🎉");
+    toast.success("Aporte registrado! 🎉");
     onOpenChange(false);
   };
 
@@ -61,7 +61,7 @@ export function QuickDeposit({ open, onOpenChange, config, monthRecords, onUpdat
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-primary" />
-            Registrar Depósito
+            Registrar aporte
           </DialogTitle>
           <p className="text-xs text-muted-foreground">{monthKeyToFullLabel(currentKey)}</p>
         </DialogHeader>
@@ -109,7 +109,7 @@ export function QuickDeposit({ open, onOpenChange, config, monthRecords, onUpdat
           </div>
 
           <Button className="w-full" onClick={handleSave}>
-            <DollarSign className="w-4 h-4 mr-1" /> Salvar depósito
+            <DollarSign className="w-4 h-4 mr-1" /> Salvar aporte
           </Button>
         </div>
       </DialogContent>

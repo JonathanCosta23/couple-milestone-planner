@@ -61,8 +61,8 @@ export function IncomePanel({ appData, config, monthRecords, startDate, onAddInc
     <div className="space-y-4 lg:space-y-6">
       <Card className="glass-card-strong p-4 lg:p-6 text-center">
         <DollarSign className="w-6 h-6 lg:w-8 lg:h-8 text-primary mx-auto mb-2" />
-        <h3 className="font-bold lg:text-lg">Ganhar Mais</h3>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-1">Gerencie suas rendas e descubra como acelerar o plano</p>
+        <h3 className="font-bold lg:text-lg">Sua renda</h3>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">Cadastre todas as fontes de renda para o app calcular seu potencial de investimento</p>
       </Card>
 
       {/* Total */}
@@ -125,7 +125,10 @@ export function IncomePanel({ appData, config, monthRecords, startDate, onAddInc
         )}
 
         {appData.incomes.length === 0 && !showForm && (
-          <p className="text-sm text-muted-foreground text-center py-4">Nenhuma renda cadastrada ainda</p>
+          <div className="text-center py-4">
+            <p className="text-sm font-semibold mb-1">Nenhuma renda cadastrada</p>
+            <p className="text-xs text-muted-foreground">Adicione sua renda para o app calcular quanto você pode investir sem se apertar.</p>
+          </div>
         )}
 
         {appData.incomes.map(income => {

@@ -92,7 +92,7 @@ export function DebtModule({ appData, config, onAddDebt, onUpdateDebt, onDeleteD
   return (
     <div className="space-y-4 lg:space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg lg:text-xl font-bold">📋 Dívidas & Cartão</h2>
+        <h2 className="text-lg lg:text-xl font-bold">📋 Suas dívidas</h2>
         <Button size="sm" onClick={() => { setEditingDebt(null); setShowForm(true); }}>
           <Plus className="w-4 h-4 mr-1" /> Nova Dívida
         </Button>
@@ -112,7 +112,7 @@ export function DebtModule({ appData, config, onAddDebt, onUpdateDebt, onDeleteD
 
       {/* Impact */}
       <Card className="glass-card p-4 space-y-3">
-        <p className="text-sm font-semibold">📊 Impacto no seu plano</p>
+        <p className="text-sm font-semibold">📊 Como isso afeta sua meta</p>
         <div className="space-y-2">
           <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Peso na renda</span>
@@ -135,9 +135,9 @@ export function DebtModule({ appData, config, onAddDebt, onUpdateDebt, onDeleteD
           <div className="flex items-start gap-2">
             <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
             <div>
-              <p className="text-xs font-bold text-destructive">⚠️ Juros Tóxicos Detectados</p>
+              <p className="text-xs font-bold text-destructive">⚠️ Juros muito altos detectados</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {toxicDebts.length} dívida(s) com juros acima de 30% ao ano. Priorize a quitação dessas antes de investir.
+                {toxicDebts.length} dívida(s) com juros acima de 30% ao ano. Quite essas antes de investir — os juros corroem seu patrimônio.
               </p>
             </div>
           </div>
@@ -171,8 +171,8 @@ export function DebtModule({ appData, config, onAddDebt, onUpdateDebt, onDeleteD
         {activeDebts.length === 0 && (
           <Card className="glass-card p-6 text-center">
             <p className="text-2xl mb-2">🎉</p>
-            <p className="text-sm font-semibold">Nenhuma dívida ativa!</p>
-            <p className="text-xs text-muted-foreground">Ótimo! Todo seu dinheiro pode ir para investimentos.</p>
+            <p className="text-sm font-semibold">Livre de dívidas!</p>
+            <p className="text-xs text-muted-foreground">Excelente — todo seu dinheiro pode ir direto para construir patrimônio.</p>
           </Card>
         )}
         {activeDebts.map(d => {
