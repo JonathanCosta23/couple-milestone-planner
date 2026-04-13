@@ -109,7 +109,7 @@ export function FinancialProfileSetup({ config, profile: initialProfile, emotion
             <div>
               <Label htmlFor="emergency">
                 Reserva de emergência atual
-                <Tip text="Quanto vocês já têm guardado para imprevistos (acidentes, desemprego, etc)." />
+                <Tip text={isCouple ? "Quanto vocês já têm guardado para imprevistos (acidentes, desemprego, etc)." : "Quanto você já tem guardado para imprevistos (acidentes, desemprego, etc)."} />
               </Label>
               <Input
                 id="emergency"

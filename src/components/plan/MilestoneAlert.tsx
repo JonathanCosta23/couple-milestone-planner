@@ -1,4 +1,4 @@
-import { formatBRL, MILESTONES } from "@/lib/types";
+import { formatBRL, MILESTONES, PlanConfig } from "@/lib/types";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Trophy } from "lucide-react";
@@ -6,11 +6,13 @@ import { Trophy } from "lucide-react";
 interface MilestoneAlertProps {
   milestone: number | null;
   onDismiss: () => void;
+  config?: PlanConfig;
 }
 
-export function MilestoneAlert({ milestone, onDismiss }: MilestoneAlertProps) {
+export function MilestoneAlert({ milestone, onDismiss, config }: MilestoneAlertProps) {
   if (!milestone) return null;
 
+  const isCouple = config ? config.contributors.length > 1 : false;
   const emojis = ["🎉", "🚀", "💰", "🏆", "👑"];
   const idx = MILESTONES.indexOf(milestone);
   const emoji = emojis[idx] || "🎉";
@@ -28,7 +30,7 @@ export function MilestoneAlert({ milestone, onDismiss }: MilestoneAlertProps) {
         <DialogDescription asChild>
           <div className="space-y-2">
             <p className="text-lg text-foreground">
-              Vocês atingiram <strong className="text-primary text-xl">{formatBRL(milestone)}</strong> no cenário planejado!
+              {isCouple ? "Vocês atingiram" : "Você atingiu"} <strong className="text-primary text-xl">{formatBRL(milestone)}</strong> no cenário planejado!
             </p>
             <p className="text-sm text-muted-foreground">Continue assim e o milhão está cada vez mais perto.</p>
           </div>

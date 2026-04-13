@@ -107,7 +107,18 @@ export const PLAN_MONTHS = 252;
 
 export const EMPTY_DEPOSIT: MonthDeposit = { actualSelic: 0, actualCDB: 0 };
 
-export const MOTIVATIONAL_MESSAGES = [
+export const MOTIVATIONAL_MESSAGES_SOLO = [
+  "Você está no caminho certo ❤️",
+  "Últimos meses foram consistentes! 🔥",
+  "Pequenos aportes, grandes resultados. 🌱",
+  "O poder dos juros compostos está com você! 📈",
+  "Cada mês conta. Você está construindo o futuro! 💪",
+  "Consistência é o segredo do milhão! 🎯",
+  "Disciplina é o que separa sonho de meta! 🚀",
+  "O hábito de investir já está formado! 🏆",
+];
+
+export const MOTIVATIONAL_MESSAGES_COUPLE = [
   "Vocês estão no caminho certo ❤️",
   "Últimos meses foram consistentes! 🔥",
   "Pequenos aportes, grandes resultados. 🌱",
@@ -117,6 +128,13 @@ export const MOTIVATIONAL_MESSAGES = [
   "Juntos vocês vão mais longe! 🚀",
   "O hábito de investir já está formado! 🏆",
 ];
+
+export function getMotivationalMessages(isCouple: boolean): string[] {
+  return isCouple ? MOTIVATIONAL_MESSAGES_COUPLE : MOTIVATIONAL_MESSAGES_SOLO;
+}
+
+/** @deprecated Use getMotivationalMessages(isCouple) instead */
+export const MOTIVATIONAL_MESSAGES = MOTIVATIONAL_MESSAGES_COUPLE;
 
 export function formatBRL(value: number): string {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
