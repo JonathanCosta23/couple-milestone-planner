@@ -3,7 +3,7 @@
  * Score, diagnostics, journey phases, bottleneck detection, insights.
  */
 
-import { AppData, ExpenseCategory, EXPENSE_CATEGORY_LABELS } from "./models";
+import { AppData, ExpenseCategory, EXPENSE_CATEGORY_LABELS, Investment, PatrimonialBucketId, SecurityLevel, getDefaultSecurity, getDefaultBucket, BUCKET_LABELS, BUCKET_DESCRIPTIONS } from "./models";
 import { PlanConfig, MonthRecord, getCurrentMonthKey, formatBRL } from "./types";
 import { calculateStreak, generateProjection, getContributionTotals } from "./calculator";
 
