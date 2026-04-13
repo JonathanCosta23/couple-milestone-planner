@@ -43,11 +43,15 @@ import { toast } from "sonner";
 // Sub-nav definitions — shorter labels, better mobile fit
 const PLANO_SUBS = [
   { id: "aportes", label: "Aportes", icon: "💰" },
+  { id: "estrutura", label: "Estrutura", icon: "🏛️" },
   { id: "simulador", label: "Simular", icon: "📊" },
+  { id: "projecao", label: "Projeção", icon: "📈" },
   { id: "diagnostico", label: "Saúde", icon: "🏥" },
   { id: "jornada", label: "Jornada", icon: "🗺️" },
   { id: "comportamento", label: "Hábitos", icon: "🧠" },
   { id: "patrimonio", label: "Patrimônio", icon: "💎" },
+  { id: "concentracao", label: "Concentração", icon: "🎯" },
+  { id: "governanca", label: "Governança", icon: "👥" },
 ];
 
 const HISTORICO_SUBS = [
