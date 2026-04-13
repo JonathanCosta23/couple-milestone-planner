@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { AppData } from "@/lib/models";
 import { PlanConfig, MonthRecord, formatBRL, formatBRLCompact, getCurrentMonthKey, monthKeyToFullLabel } from "@/lib/types";
-import { calculateHealthScore, calculateDiagnostic } from "@/lib/financialEngine";
+import { calculateHealthScore, calculateDiagnostic, generateStructuralAlerts, getNextBestAction, calculatePortfolioSecurity } from "@/lib/financialEngine";
 import { calculateStreak, getCurrentMonthDeposited } from "@/lib/calculator";
 import { generateMentorRecommendations } from "@/lib/behavioralEngine";
 import { generateNudges } from "@/lib/behavioralEngine";
@@ -35,6 +35,9 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
   const streak = useMemo(() => calculateStreak(config, monthRecords, startDate), [config, monthRecords, startDate]);
   const recs = useMemo(() => generateMentorRecommendations(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
   const nudges = useMemo(() => generateNudges(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
+  const structuralAlerts = useMemo(() => generateStructuralAlerts(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
+  const nextBestAction = useMemo(() => getNextBestAction(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
+  const portfolioSecurity = useMemo(() => calculatePortfolioSecurity(appData, config), [appData, config]);
 
   const totalIncome = appData.incomes.filter(i => i.active).reduce((s, i) => s + i.amount, 0);
   const monthExpenses = appData.expenses.filter(e => e.monthKey === currentKey);
@@ -147,8 +150,32 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
         </Card>
       </div>
 
-      {/* ── 5. Indicadores rápidos ── */}
-      <div className="grid grid-cols-3 gap-3 lg:gap-4">
+      {/* ── 5. Structural Alert (Patrimonial Architecture) ── */}
+      {structuralAlerts.length > 0 && (
+        <Card className="glass-card p-4 lg:p-5 border-primary/20 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <Shield className="w-5 h-5 text-primary" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-xs text-primary font-bold uppercase tracking-wider mb-0.5">Estrutura do Patrimônio</p>
+              <p className="text-sm lg:text-base font-medium">{nextBestAction.action}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{nextBestAction.reason}</p>
+              <Button
+                variant="link"
+                size="sm"
+                className="px-0 h-auto text-xs text-primary mt-1"
+                onClick={() => onNavigateToTab("estrutura")}
+              >
+                Ver arquitetura completa →
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* ── 6. Indicadores rápidos ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-4">
         <IndicatorCard
           icon="💪"
           label="Saúde financeira"
@@ -170,6 +197,14 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
           value={totalIncome > 0 ? `${(diag.savingsRate * 100).toFixed(0)}%` : "—"}
           sub={diag.savingsRate >= 0.2 ? "Excelente" : diag.savingsRate >= 0.1 ? "Bom começo" : "Pode melhorar"}
           valueColor={diag.savingsRate >= 0.2 ? "text-primary" : diag.savingsRate >= 0.1 ? "text-warning" : "text-destructive"}
+        />
+        <IndicatorCard
+          icon="🏛️"
+          label="Proteção"
+          value={`${(portfolioSecurity.protectedPercentage * 100).toFixed(0)}%`}
+          sub={portfolioSecurity.overallStatus === "strong" ? "Sólida" : portfolioSecurity.overallStatus === "moderate" ? "Moderada" : "Frágil"}
+          valueColor={portfolioSecurity.overallStatus === "strong" ? "text-primary" : portfolioSecurity.overallStatus === "moderate" ? "text-warning" : "text-destructive"}
+          onClick={() => onNavigateToTab("estrutura")}
         />
       </div>
 

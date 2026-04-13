@@ -12,6 +12,10 @@ import { InvestmentGuide } from "@/components/plan/InvestmentGuide";
 import { AdvancedSimulator } from "@/components/plan/AdvancedSimulator";
 import { IncomePanel } from "@/components/plan/IncomePanel";
 import { WealthDistribution } from "@/components/plan/WealthDistribution";
+import { PatrimonialArchitecture } from "@/components/plan/PatrimonialArchitecture";
+import { ProjectionRealistic } from "@/components/plan/ProjectionRealistic";
+import { ConcentrationMap } from "@/components/plan/ConcentrationMap";
+import { CoupleGovernance } from "@/components/plan/CoupleGovernance";
 import { ExpensePanel } from "@/components/plan/ExpensePanel";
 import { DebtModule } from "@/components/plan/DebtModule";
 import { Dashboard } from "@/components/plan/Dashboard";
@@ -39,11 +43,15 @@ import { toast } from "sonner";
 // Sub-nav definitions — shorter labels, better mobile fit
 const PLANO_SUBS = [
   { id: "aportes", label: "Aportes", icon: "💰" },
+  { id: "estrutura", label: "Estrutura", icon: "🏛️" },
   { id: "simulador", label: "Simular", icon: "📊" },
+  { id: "projecao", label: "Projeção", icon: "📈" },
   { id: "diagnostico", label: "Saúde", icon: "🏥" },
   { id: "jornada", label: "Jornada", icon: "🗺️" },
   { id: "comportamento", label: "Hábitos", icon: "🧠" },
   { id: "patrimonio", label: "Patrimônio", icon: "💎" },
+  { id: "concentracao", label: "Concentração", icon: "🎯" },
+  { id: "governanca", label: "Governança", icon: "👥" },
 ];
 
 const HISTORICO_SUBS = [
@@ -104,7 +112,7 @@ const Index = () => {
 
   // Navigate to specific sub-tab (used from home shortcuts)
   const handleNavigateToTab = (tab: string) => {
-    const planoTabs = ["aportes", "simulador", "diagnostico", "jornada", "comportamento", "patrimonio"];
+    const planoTabs = ["aportes", "estrutura", "simulador", "projecao", "diagnostico", "jornada", "comportamento", "patrimonio", "concentracao", "governanca"];
     const historicoTabs = ["tracker", "gastos", "renda", "dividas"];
     const perfilTabs = ["aprender", "glossario", "armadilhas", "investir", "compartilhar", "ajuda", "dados"];
 
@@ -231,6 +239,12 @@ const Index = () => {
             {planoSub === "simulador" && (
               <AdvancedSimulator appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
             )}
+            {planoSub === "estrutura" && (
+              <PatrimonialArchitecture appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+            )}
+            {planoSub === "projecao" && (
+              <ProjectionRealistic appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+            )}
             {planoSub === "diagnostico" && (
               <FinancialDiagnostic appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
             )}
@@ -242,6 +256,12 @@ const Index = () => {
             )}
             {planoSub === "patrimonio" && (
               <WealthDistribution appData={appData} config={data.config} />
+            )}
+            {planoSub === "concentracao" && (
+              <ConcentrationMap appData={appData} config={data.config} />
+            )}
+            {planoSub === "governanca" && (
+              <CoupleGovernance appData={appData} config={data.config} />
             )}
           </div>
         );
