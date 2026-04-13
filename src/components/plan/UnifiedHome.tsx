@@ -54,9 +54,9 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
   }
 
   return (
-    <div className="space-y-5 pb-4">
+    <div className="space-y-5 lg:space-y-6 pb-4">
       {/* ── 1. CARD HERO: Meta do mês ── */}
-      <Card className="glass-card-hero p-5 animate-fade-in-up">
+      <Card className="glass-card-hero p-5 lg:p-6 animate-fade-in-up">
         <div className="flex items-center justify-between mb-1">
           <p className="text-xs text-muted-foreground">{monthKeyToFullLabel(currentKey)}</p>
           {streak > 0 && (
@@ -140,7 +140,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
       </Card>
 
       {/* ── 5. Indicadores rápidos ── */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-3 gap-3 lg:gap-4">
         <IndicatorCard
           icon="💪"
           label="Saúde"
@@ -243,7 +243,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
       />
 
       {/* ── 9. Atalhos ── */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Button variant="outline" size="sm" className="h-11 text-xs justify-between rounded-xl px-4 touch-target"
           onClick={() => onNavigateToTab("simulador")}>
           <span className="flex items-center gap-2">

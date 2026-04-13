@@ -60,7 +60,7 @@ export function HomeDashboard({ appData, config, monthRecords, startDate, onNavi
         <p className="text-lg font-bold mt-0.5">Visão Geral do Mês</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         <Card className="glass-card p-4 text-center cursor-pointer hover:ring-1 hover:ring-primary/20" onClick={() => onNavigateToTab("diagnostico")}>
           <Activity className={`w-5 h-5 mx-auto mb-1 ${scoreColor}`} />
           <p className={`text-3xl font-extrabold ${scoreColor}`}>{score.total}</p>
@@ -76,13 +76,13 @@ export function HomeDashboard({ appData, config, monthRecords, startDate, onNavi
         </Card>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 lg:grid-cols-3 gap-2 lg:gap-3">
         <StatCard icon={DollarSign} label="Receita" value={formatBRLCompact(totalIncome)} color="text-primary" onClick={() => onNavigateToTab("renda")} />
         <StatCard icon={Wallet} label="Despesas" value={formatBRLCompact(totalExpenses)} color="text-foreground" onClick={() => onNavigateToTab("gastos")} />
         <StatCard icon={TrendingUp} label="Saldo" value={formatBRLCompact(balance)} color={balance >= 0 ? "text-primary" : "text-destructive"} />
       </div>
 
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 lg:gap-3">
         <MiniCard label="Fixos" value={formatBRLCompact(fixedExpenses)} />
         <MiniCard label="Variáveis" value={formatBRLCompact(variableExpenses)} />
         <MiniCard label="Dívidas" value={formatBRLCompact(totalDebtPayments)} accent={totalDebtPayments > 0 ? "text-destructive" : undefined} />
