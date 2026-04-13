@@ -1,6 +1,8 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { usePlanData } from "@/hooks/usePlanData";
 import { useAppData } from "@/hooks/useAppData";
+import { useAuth } from "@/hooks/useAuth";
+import { useCloudSync } from "@/hooks/useCloudSync";
 import { Hero } from "@/components/plan/Hero";
 import { Onboarding } from "@/components/plan/Onboarding";
 import { FinancialProfileSetup } from "@/components/plan/FinancialProfileSetup";
@@ -33,11 +35,17 @@ import { MiniLessons } from "@/components/plan/MiniLessons";
 import { BottomNav, NavSection } from "@/components/plan/BottomNav";
 import { SubNav } from "@/components/plan/SubNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { AuthPage } from "@/components/auth/AuthPage";
+import { DataMigrationDialog } from "@/components/auth/DataMigrationDialog";
+import { AccountPrompt } from "@/components/auth/AccountPrompt";
 import { generateProjection, getReachedMilestones } from "@/lib/calculator";
 import { MILESTONES, EMOTIONAL_GOAL_LABELS } from "@/lib/types";
 import { parseImportJSON, saveBackup, ImportPreview } from "@/lib/storage";
+import { loadAppData, saveAppData } from "@/lib/appStorage";
+import { loadPlanData, savePlanData } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
-import { Download, Upload, RotateCcw, Settings, ArrowLeft } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Download, Upload, RotateCcw, Settings, ArrowLeft, User, LogOut, Cloud, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 // Sub-nav definitions — shorter labels, better mobile fit
@@ -79,10 +87,13 @@ const Index = () => {
   } = usePlanData();
 
   const {
-    appData, addIncome, updateIncome, deleteIncome,
+    appData, setAppData, addIncome, updateIncome, deleteIncome,
     addExpense, updateExpense, deleteExpense, duplicateExpense, markExpensePaid, convertToRecurring,
     addDebt, updateDebt, deleteDebt,
   } = useAppData();
+
+  const { user, loading: authLoading, signOut } = useAuth();
+  const { loadFromCloud, saveToCloud, hasLocalData, hasCloudData } = useCloudSync();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dismissedMilestones, setDismissedMilestones] = useState<number[]>([]);
@@ -90,6 +101,15 @@ const Index = () => {
   const [showFinancialSetup, setShowFinancialSetup] = useState(false);
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
+  const [showMigrationDialog, setShowMigrationDialog] = useState(false);
+  const [cloudHasData, setCloudHasData] = useState(false);
+  const [migrationLoading, setMigrationLoading] = useState(false);
+  const [accountPromptDismissed, setAccountPromptDismissed] = useState(() => {
+    return localStorage.getItem("plano-account-prompt-dismissed") === "true";
+  });
+  const [syncing, setSyncing] = useState(false);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Navigation state — 4 tabs
   const [navSection, setNavSection] = useState<NavSection>("home");
@@ -97,12 +117,99 @@ const Index = () => {
   const [historicoSub, setHistoricoSub] = useState("tracker");
   const [perfilSub, setPerfilSub] = useState("aprender");
 
+  // ── Cloud sync: load data when user logs in ──
+  useEffect(() => {
+    if (!user) return;
+
+    const syncFromCloud = async () => {
+      const localHasData = hasLocalData();
+      const cloudData = await loadFromCloud(user.id);
+      const cloudExists = !!(cloudData?.planData && (cloudData.planData as any).wizardComplete);
+
+      if (localHasData && cloudExists) {
+        // Both have data — ask user
+        setCloudHasData(true);
+        setShowMigrationDialog(true);
+      } else if (localHasData && !cloudExists) {
+        // Only local — migrate to cloud silently
+        await saveToCloud(user.id, data, appData);
+        toast.success("Seus dados foram salvos na nuvem! ☁️");
+      } else if (!localHasData && cloudExists && cloudData) {
+        // Only cloud — load from cloud
+        if (cloudData.planData) {
+          importJSON(JSON.stringify(cloudData.planData));
+        }
+        if (cloudData.appData) {
+          setAppData(cloudData.appData as any);
+        }
+        toast.success("Dados carregados da nuvem! ☁️");
+      }
+      // Neither has data — do nothing
+    };
+
+    syncFromCloud();
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Auto-save to cloud on data changes (debounced) ──
+  useEffect(() => {
+    if (!user || !data.wizardComplete) return;
+
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(async () => {
+      setSyncing(true);
+      await saveToCloud(user.id, data, appData);
+      setSyncing(false);
+    }, 3000);
+
+    return () => {
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    };
+  }, [user, data, appData, saveToCloud]);
+
+  // ── Migration handlers ──
+  const handleMigrateLocal = async () => {
+    if (!user) return;
+    setMigrationLoading(true);
+    await saveToCloud(user.id, data, appData);
+    setMigrationLoading(false);
+    setShowMigrationDialog(false);
+    toast.success("Dados locais salvos na sua conta! ☁️");
+  };
+
+  const handleKeepCloud = async () => {
+    if (!user) return;
+    setMigrationLoading(true);
+    const cloudData = await loadFromCloud(user.id);
+    if (cloudData?.planData) {
+      importJSON(JSON.stringify(cloudData.planData));
+    }
+    if (cloudData?.appData) {
+      setAppData(cloudData.appData as any);
+    }
+    setMigrationLoading(false);
+    setShowMigrationDialog(false);
+    toast.success("Dados da conta carregados! ☁️");
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("Até logo! 👋");
+  };
+
+  const handleDismissPrompt = () => {
+    setAccountPromptDismissed(true);
+    localStorage.setItem("plano-account-prompt-dismissed", "true");
+  };
+
+  // Show account prompt when user has meaningful data but no account
+  const shouldShowAccountPrompt = !user && !authLoading && !accountPromptDismissed && data.wizardComplete &&
+    (data.monthRecords.length > 0 || appData.incomes.length > 0 || appData.expenses.length > 0);
+
   const planned = useMemo(
     () => data.wizardComplete ? generateProjection(data.config, "planned", data.monthRecords, data.startDate) : [],
     [data]
   );
   const reached = useMemo(() => getReachedMilestones(planned, MILESTONES), [planned]);
-  // Show only the highest reached milestone, auto-dismiss all lower ones
   const highestReached = reached.length > 0 ? Math.max(...reached) : null;
   const newMilestone = highestReached && !dismissedMilestones.includes(highestReached) ? highestReached : null;
 
@@ -110,24 +217,15 @@ const Index = () => {
     ? data.emotionalGoal === "outro" ? (data.emotionalGoalCustom || null) : EMOTIONAL_GOAL_LABELS[data.emotionalGoal]
     : null;
 
-  // Navigate to specific sub-tab (used from home shortcuts)
   const handleNavigateToTab = (tab: string) => {
     const planoTabs = ["aportes", "estrutura", "simulador", "projecao", "diagnostico", "jornada", "comportamento", "patrimonio", "concentracao", "governanca"];
     const historicoTabs = ["tracker", "gastos", "renda", "dividas"];
     const perfilTabs = ["aprender", "glossario", "armadilhas", "investir", "compartilhar", "ajuda", "dados"];
 
-    if (planoTabs.includes(tab)) {
-      setNavSection("plano");
-      setPlanoSub(tab);
-    } else if (historicoTabs.includes(tab)) {
-      setNavSection("historico");
-      setHistoricoSub(tab);
-    } else if (perfilTabs.includes(tab)) {
-      setNavSection("perfil");
-      setPerfilSub(tab);
-    } else {
-      setNavSection("home");
-    }
+    if (planoTabs.includes(tab)) { setNavSection("plano"); setPlanoSub(tab); }
+    else if (historicoTabs.includes(tab)) { setNavSection("historico"); setHistoricoSub(tab); }
+    else if (perfilTabs.includes(tab)) { setNavSection("perfil"); setPerfilSub(tab); }
+    else { setNavSection("home"); }
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -166,6 +264,11 @@ const Index = () => {
     setShowImportDialog(false);
     setImportPreview(null);
   };
+
+  // ── Auth page ──
+  if (showAuth) {
+    return <AuthPage onClose={() => setShowAuth(false)} onSuccess={() => setShowAuth(false)} showBackButton />;
+  }
 
   // ── Onboarding ──
   if (!data.onboardingComplete) {
@@ -217,14 +320,19 @@ const Index = () => {
     switch (navSection) {
       case "home":
         return (
-          <UnifiedHome
-            appData={appData}
-            config={data.config}
-            monthRecords={data.monthRecords}
-            startDate={data.startDate}
-            onNavigateToTab={handleNavigateToTab}
-            onOpenQuickDeposit={() => setShowQuickDeposit(true)}
-          />
+          <div className="space-y-4">
+            {shouldShowAccountPrompt && (
+              <AccountPrompt onCreateAccount={() => setShowAuth(true)} onDismiss={handleDismissPrompt} />
+            )}
+            <UnifiedHome
+              appData={appData}
+              config={data.config}
+              monthRecords={data.monthRecords}
+              startDate={data.startDate}
+              onNavigateToTab={handleNavigateToTab}
+              onOpenQuickDeposit={() => setShowQuickDeposit(true)}
+            />
+          </div>
         );
 
       case "plano":
@@ -337,6 +445,11 @@ const Index = () => {
             {perfilSub === "ajuda" && <HowToUse />}
             {perfilSub === "dados" && (
               <div className="space-y-2">
+                {!user && (
+                  <Button variant="default" className="w-full justify-start h-12 rounded-xl" onClick={() => setShowAuth(true)}>
+                    <User className="w-4 h-4 mr-2.5" /> Criar conta / Entrar
+                  </Button>
+                )}
                 <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={() => setShowFinancialSetup(true)}>
                   <Settings className="w-4 h-4 mr-2.5" /> Perfil financeiro
                 </Button>
@@ -347,6 +460,11 @@ const Index = () => {
                   <Upload className="w-4 h-4 mr-2.5" /> Importar dados
                 </Button>
                 <NotificationSettings settings={data.notificationSettings} onUpdate={updateNotificationSettings} />
+                {user && (
+                  <Button variant="outline" className="w-full justify-start h-12 rounded-xl text-muted-foreground" onClick={handleSignOut}>
+                    <LogOut className="w-4 h-4 mr-2.5" /> Sair da conta
+                  </Button>
+                )}
                 <Button variant="outline" className="w-full justify-start h-12 rounded-xl text-destructive hover:text-destructive"
                   onClick={() => { if (confirm("Tem certeza? Essa ação não pode ser desfeita.")) resetPlan(); }}>
                   <RotateCcw className="w-4 h-4 mr-2.5" /> Resetar plano
@@ -367,6 +485,20 @@ const Index = () => {
         <div className="flex items-center justify-between h-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
           <h1 className="text-sm font-bold text-gradient lg:text-base">Plano do Milhão</h1>
           <div className="flex items-center gap-3">
+            {/* Cloud sync indicator */}
+            {user && syncing && (
+              <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                <span className="hidden sm:inline">Salvando...</span>
+              </div>
+            )}
+            {user && !syncing && (
+              <div className="flex items-center gap-1 text-[10px] text-emerald-500">
+                <Cloud className="w-3 h-3" />
+                <span className="hidden sm:inline">Salvo</span>
+              </div>
+            )}
+
             {/* Desktop inline nav */}
             {data.wizardComplete && (
               <nav className="hidden lg:flex items-center gap-1">
@@ -383,6 +515,39 @@ const Index = () => {
                 ))}
               </nav>
             )}
+
+            {/* User menu */}
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
+                    {(user.user_metadata?.full_name || user.email || "U")[0].toUpperCase()}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-3 py-2">
+                    <p className="text-sm font-medium truncate">{user.user_metadata?.full_name || "Usuário"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => { setNavSection("perfil"); setPerfilSub("dados"); }}>
+                    <Settings className="w-4 h-4 mr-2" /> Configurações
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
+                    <LogOut className="w-4 h-4 mr-2" /> Sair
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <button
+                onClick={() => setShowAuth(true)}
+                className="text-xs text-primary font-medium hover:underline hidden sm:block"
+              >
+                Entrar
+              </button>
+            )}
+
             <ThemeToggle />
           </div>
         </div>
@@ -423,6 +588,15 @@ const Index = () => {
       <MilestoneAlert
         milestone={newMilestone}
         onDismiss={() => { if (newMilestone) setDismissedMilestones((prev) => [...prev, newMilestone]); }}
+      />
+
+      <DataMigrationDialog
+        open={showMigrationDialog}
+        hasCloudData={cloudHasData}
+        onMigrateLocal={handleMigrateLocal}
+        onKeepCloud={handleKeepCloud}
+        onClose={() => setShowMigrationDialog(false)}
+        loading={migrationLoading}
       />
     </div>
   );
