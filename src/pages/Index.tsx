@@ -36,17 +36,16 @@ import { Button } from "@/components/ui/button";
 import { Download, Upload, RotateCcw, Settings, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
-// Sub-nav definitions for Plano section
+// Sub-nav definitions — shorter labels, better mobile fit
 const PLANO_SUBS = [
   { id: "aportes", label: "Aportes", icon: "💰" },
-  { id: "simulador", label: "Simulador", icon: "📊" },
-  { id: "diagnostico", label: "Diagnóstico", icon: "🏥" },
+  { id: "simulador", label: "Simular", icon: "📊" },
+  { id: "diagnostico", label: "Saúde", icon: "🏥" },
   { id: "jornada", label: "Jornada", icon: "🗺️" },
   { id: "comportamento", label: "Hábitos", icon: "🧠" },
   { id: "patrimonio", label: "Patrimônio", icon: "💎" },
 ];
 
-// Sub-nav definitions for Historico section
 const HISTORICO_SUBS = [
   { id: "tracker", label: "Meses", icon: "📅" },
   { id: "gastos", label: "Gastos", icon: "🛒" },
@@ -54,13 +53,12 @@ const HISTORICO_SUBS = [
   { id: "dividas", label: "Dívidas", icon: "📋" },
 ];
 
-// Sub-nav definitions for Perfil section
 const PERFIL_SUBS = [
   { id: "aprender", label: "Aprender", icon: "📚" },
   { id: "glossario", label: "Glossário", icon: "📖" },
-  { id: "armadilhas", label: "Armadilhas", icon: "🛡️" },
+  { id: "armadilhas", label: "Radar", icon: "🛡️" },
   { id: "investir", label: "Investir", icon: "📈" },
-  { id: "compartilhar", label: "Compartilhar", icon: "📤" },
+  { id: "compartilhar", label: "Exportar", icon: "📤" },
   { id: "ajuda", label: "Ajuda", icon: "❓" },
   { id: "dados", label: "Dados", icon: "💾" },
 ];
