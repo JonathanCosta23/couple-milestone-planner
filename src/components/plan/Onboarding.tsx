@@ -10,18 +10,18 @@ interface OnboardingProps {
 const screens = [
   {
     visual: "🎯",
-    title: "Organize suas finanças de um jeito fácil",
-    description: "Veja quanto já tem, quanto falta e o que fazer agora para chegar mais rápido na sua meta.",
+    title: "Seu dinheiro com mais clareza",
+    description: "Veja onde você está, para onde pode ir e qual o próximo passo para chegar mais rápido.",
   },
   {
     visual: "📊",
-    title: "Seu plano, seus números, sua clareza",
-    description: "Registre aportes, acompanhe gastos e receba orientações simples para tomar decisões melhores com dinheiro.",
+    title: "Acompanhe, entenda, decida melhor",
+    description: "Registre aportes, acompanhe gastos e receba orientações práticas — tudo num só lugar.",
   },
   {
     visual: "🛡️",
-    title: "Proteção contra decisões ruins",
-    description: "Alertas sobre gastos, dívidas e armadilhas financeiras. Como ter um mentor no bolso.",
+    title: "Um mentor financeiro no seu bolso",
+    description: "Alertas inteligentes sobre gastos, dívidas e armadilhas. Proteção contra decisões que custam caro.",
   },
 ];
 

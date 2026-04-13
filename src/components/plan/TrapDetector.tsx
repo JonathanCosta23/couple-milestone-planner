@@ -26,13 +26,13 @@ export function TrapDetector() {
     <div className="space-y-4">
       <Card className="glass-card-strong p-4 text-center">
         <ShieldAlert className="w-6 h-6 text-primary mx-auto mb-2" />
-        <h3 className="font-bold">Radar de Armadilhas</h3>
-        <p className="text-xs text-muted-foreground mt-1">Avalie oportunidades de investimento antes de cair em ciladas</p>
+        <h3 className="font-bold">Radar de riscos</h3>
+        <p className="text-xs text-muted-foreground mt-1">Analise qualquer "oportunidade" antes de investir — e evite cair em ciladas</p>
       </Card>
 
       <Card className="glass-card p-4 space-y-3">
-        <p className="text-sm font-semibold">Checklist de Risco</p>
-        <p className="text-xs text-muted-foreground">Marque os sinais presentes na "oportunidade" que estão te oferecendo:</p>
+        <p className="text-sm font-semibold">Checklist de sinais de alerta</p>
+        <p className="text-xs text-muted-foreground">Marque tudo que se aplica à oportunidade que estão te oferecendo:</p>
         <div className="space-y-2.5 mt-2">
           {TRAP_CHECKLIST.map(item => (
             <label key={item.id} className="flex items-start gap-2.5 cursor-pointer group">
@@ -65,9 +65,9 @@ export function TrapDetector() {
 
       {/* Educational note */}
       <Card className="glass-card p-3 border-primary/10">
-        <p className="text-[10px] text-primary uppercase font-bold mb-1">Lembre-se</p>
+        <p className="text-[10px] text-primary uppercase font-bold mb-1">Regra de ouro</p>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Investimento legítimo tem risco, prazo e explicação clara. Se alguém promete risco zero com retorno alto, desconfie. Consulte sempre se a empresa é regulada pela CVM ou Banco Central.
+          Todo investimento legítimo tem risco, prazo e explicação clara. Se alguém promete risco zero com retorno alto, desconfie. Antes de investir, verifique se a empresa é regulada pela CVM ou Banco Central.
         </p>
       </Card>
     </div>

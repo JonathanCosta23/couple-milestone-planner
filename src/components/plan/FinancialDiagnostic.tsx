@@ -33,32 +33,39 @@ function ScoreRing({ score }: { score: number }) {
       </svg>
       <div className={`absolute inset-0 flex flex-col items-center justify-center rounded-full ${bgColor}`}>
         <span className={`text-3xl lg:text-4xl font-extrabold ${color}`}>{score}</span>
-        <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Score</span>
+        <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">de 100</span>
       </div>
     </div>
   );
 }
 
-const SCORE_LABELS: { key: keyof HealthScoreBreakdown; label: string; icon: React.ElementType }[] = [
-  { key: "balanceScore", label: "Equilíbrio", icon: PieChart },
-  { key: "consistencyScore", label: "Consistência", icon: Activity },
-  { key: "debtScore", label: "Dívidas", icon: AlertTriangle },
-  { key: "emergencyScore", label: "Reserva", icon: Shield },
-  { key: "flowClarityScore", label: "Clareza", icon: Lightbulb },
-  { key: "allocationRiskScore", label: "Alocação", icon: Target },
-  { key: "concentrationScore", label: "Concentração", icon: Wallet },
-  { key: "disciplineScore", label: "Disciplina", icon: TrendingUp },
+const SCORE_LABELS: { key: keyof HealthScoreBreakdown; label: string; description: string; icon: React.ElementType }[] = [
+  { key: "balanceScore", label: "Equilíbrio", description: "Quanto sobra da sua renda", icon: PieChart },
+  { key: "consistencyScore", label: "Constância", description: "Frequência dos seus aportes", icon: Activity },
+  { key: "debtScore", label: "Dívidas", description: "Peso das dívidas na sua renda", icon: AlertTriangle },
+  { key: "emergencyScore", label: "Reserva", description: "Meses cobertos pela reserva", icon: Shield },
+  { key: "flowClarityScore", label: "Organização", description: "Controle de receita e gastos", icon: Lightbulb },
+  { key: "allocationRiskScore", label: "Segurança", description: "Qualidade dos investimentos", icon: Target },
+  { key: "concentrationScore", label: "Diversificação", description: "Distribuição entre instituições", icon: Wallet },
+  { key: "disciplineScore", label: "Disciplina", description: "Compromisso com o plano", icon: TrendingUp },
 ];
 
 export function FinancialDiagnostic({ appData, config, monthRecords, startDate }: Props) {
   const score = useMemo(() => calculateHealthScore(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
   const diag = useMemo(() => calculateDiagnostic(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
 
+  const scoreInterpretation = score.total >= 70
+    ? "Sua saúde financeira está boa. Continue assim e foque em manter a consistência."
+    : score.total >= 40
+    ? "Há pontos que merecem atenção. Veja abaixo o que pode melhorar primeiro."
+    : "Sua situação precisa de ajustes. Comece pelos itens mais baixos — pequenas mudanças fazem diferença.";
+
   return (
     <div className="space-y-4 lg:space-y-6">
       {/* Health Score */}
       <Card className="glass-card-strong p-6 lg:p-8">
-        <h3 className="text-sm lg:text-base font-bold uppercase tracking-wider text-muted-foreground mb-4 text-center">Score de Saúde Financeira</h3>
+        <h3 className="text-sm lg:text-base font-bold uppercase tracking-wider text-muted-foreground mb-2 text-center">Sua saúde financeira</h3>
+        <p className="text-xs sm:text-sm text-muted-foreground text-center mb-4 max-w-md mx-auto">{scoreInterpretation}</p>
         <ScoreRing score={score.total} />
         <div className="grid grid-cols-4 lg:grid-cols-8 gap-2 lg:gap-4 mt-5">
           {SCORE_LABELS.map(({ key, label, icon: Icon }) => {
@@ -78,18 +85,18 @@ export function FinancialDiagnostic({ appData, config, monthRecords, startDate }
       {/* Financial Overview */}
       <Card className="glass-card p-4 lg:p-6 space-y-3">
         <h3 className="text-sm lg:text-base font-bold flex items-center gap-2">
-          <Activity className="w-4 h-4 text-primary" /> Diagnóstico do Mês
+          <Activity className="w-4 h-4 text-primary" /> Raio-X do seu mês
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-4">
-          <Metric label="Receita" value={formatBRL(diag.totalIncome)} icon={ArrowUpRight} positive />
-          <Metric label="Despesas" value={formatBRL(diag.totalExpenses)} icon={ArrowDownRight} />
-          <Metric label="Taxa Poupança" value={`${(diag.savingsRate * 100).toFixed(0)}%`} icon={TrendingUp}
+          <Metric label="Entra" value={formatBRL(diag.totalIncome)} icon={ArrowUpRight} positive />
+          <Metric label="Sai" value={formatBRL(diag.totalExpenses)} icon={ArrowDownRight} />
+          <Metric label="Sobra para investir" value={`${(diag.savingsRate * 100).toFixed(0)}%`} icon={TrendingUp}
             positive={diag.savingsRate > 0.15} />
-          <Metric label="Investido" value={`${(diag.investmentRate * 100).toFixed(0)}%`} icon={Target}
+          <Metric label="Já investe" value={`${(diag.investmentRate * 100).toFixed(0)}%`} icon={Target}
             positive={diag.investmentRate > 0.1} />
-          <Metric label="Gastos Fixos" value={`${(diag.fixedExpenseWeight * 100).toFixed(0)}%`} icon={PieChart} />
-          <Metric label="Gastos Variáveis" value={`${(diag.variableExpenseWeight * 100).toFixed(0)}%`} icon={PieChart} />
-          <Metric label="Peso Dívida" value={`${(diag.debtWeight * 100).toFixed(0)}%`} icon={AlertTriangle}
+          <Metric label="Gastos fixos" value={`${(diag.fixedExpenseWeight * 100).toFixed(0)}%`} icon={PieChart} />
+          <Metric label="Gastos variáveis" value={`${(diag.variableExpenseWeight * 100).toFixed(0)}%`} icon={PieChart} />
+          <Metric label="Peso da dívida" value={`${(diag.debtWeight * 100).toFixed(0)}%`} icon={AlertTriangle}
             positive={diag.debtWeight < 0.15} />
           <Metric label="Reserva" value={`${diag.emergencyMonths.toFixed(1)} meses`} icon={Shield}
             positive={diag.emergencyMonths >= 6} />
@@ -99,18 +106,18 @@ export function FinancialDiagnostic({ appData, config, monthRecords, startDate }
       {/* Wealth Overview */}
       <Card className="glass-card p-4 lg:p-6 space-y-3">
         <h3 className="text-sm lg:text-base font-bold flex items-center gap-2">
-          <Wallet className="w-4 h-4 text-accent" /> Patrimônio
+          <Wallet className="w-4 h-4 text-accent" /> Seu patrimônio
         </h3>
         <div className="grid grid-cols-2 gap-3 lg:gap-4">
           <Metric label="Investido" value={formatBRLCompact(diag.investedWealth)} icon={TrendingUp} positive />
-          <Metric label="Líquido" value={formatBRLCompact(diag.liquidNetWorth)} icon={Wallet}
+          <Metric label="Patrimônio líquido" value={formatBRLCompact(diag.liquidNetWorth)} icon={Wallet}
             positive={diag.liquidNetWorth > 0} />
         </div>
         {diag.monthsToMillion && (
           <div className="text-center pt-2 border-t border-border/30">
-            <p className="text-[10px] sm:text-xs text-muted-foreground uppercase">Previsão para o milhão</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground uppercase">Estimativa para alcançar a meta</p>
             <p className="text-lg lg:text-xl font-bold text-primary">
-              {Math.ceil(diag.monthsToMillion / 12)} anos ({diag.monthsToMillion} meses)
+              ~{Math.ceil(diag.monthsToMillion / 12)} anos ({diag.monthsToMillion} meses)
             </p>
           </div>
         )}
@@ -122,7 +129,7 @@ export function FinancialDiagnostic({ appData, config, monthRecords, startDate }
           <div className="flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
             <div>
-              <p className="text-[10px] sm:text-xs text-muted-foreground uppercase">Maior Gargalo</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground uppercase">O que mais atrasa sua meta</p>
               <p className="text-sm lg:text-base font-medium">{diag.biggestBottleneck}</p>
             </div>
           </div>
@@ -131,7 +138,7 @@ export function FinancialDiagnostic({ appData, config, monthRecords, startDate }
           <div className="flex items-start gap-2">
             <Lightbulb className="w-4 h-4 text-primary shrink-0 mt-0.5" />
             <div>
-              <p className="text-[10px] sm:text-xs text-muted-foreground uppercase">Maior Oportunidade</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground uppercase">Onde você pode acelerar</p>
               <p className="text-sm lg:text-base font-medium">{diag.biggestOpportunity}</p>
             </div>
           </div>

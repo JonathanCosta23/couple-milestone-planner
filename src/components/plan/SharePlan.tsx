@@ -25,7 +25,7 @@ export function SharePlan({ config, monthRecords, startDate, profile, onExportJS
     <Card className="glass-card p-4 space-y-3">
       <div className="flex items-center gap-2">
         <Share2 className="w-5 h-5 text-primary" />
-        <h3 className="font-semibold text-sm">Compartilhar Plano</h3>
+        <h3 className="font-semibold text-sm">Compartilhar e exportar</h3>
       </div>
 
       <div className="grid grid-cols-3 gap-2">

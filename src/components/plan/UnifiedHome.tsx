@@ -65,7 +65,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
               <span className="text-xs font-medium text-primary">🔥 {streak} {streak === 1 ? "mês seguido" : "meses seguidos"}</span>
             )}
           </div>
-          <p className="section-title lg:text-lg mb-1">Meta de aporte do mês</p>
+          <p className="section-title lg:text-lg mb-1">Aporte do mês</p>
           <div className="flex items-end justify-between mb-3">
             <div>
               <p className="text-2xl lg:text-3xl font-extrabold text-primary">{(currentMonth.progress * 100).toFixed(0)}%</p>
@@ -96,7 +96,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
                   <Target className="w-5 h-5 lg:w-6 lg:h-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Patrimônio investido</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Total investido</p>
                   <p className="text-lg lg:text-2xl font-extrabold text-gradient">{formatBRLCompact(diag.investedWealth)}</p>
                 </div>
               </div>
@@ -109,7 +109,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
           </div>
           {diag.monthsToMillion && (
             <p className="text-[11px] sm:text-xs text-muted-foreground mt-3">
-              Estimativa: ~{Math.ceil(diag.monthsToMillion / 12)} anos para a meta de {formatBRLCompact(config.targetAmount)}
+              No ritmo atual, você chega em {formatBRLCompact(config.targetAmount)} em ~{Math.ceil(diag.monthsToMillion / 12)} anos
             </p>
           )}
         </Card>
@@ -125,7 +125,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
                 <Zap className="w-5 h-5 text-primary" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs text-primary font-bold uppercase tracking-wider mb-0.5">Seu próximo passo</p>
+                <p className="text-[10px] sm:text-xs text-primary font-bold uppercase tracking-wider mb-0.5">Próximo passo</p>
                 <p className="text-sm lg:text-base font-semibold leading-snug">{nextStep.title}</p>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">{nextStep.description}</p>
               </div>
@@ -140,7 +140,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
               <AlertTriangle className="w-5 h-5 text-warning" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] sm:text-xs text-warning font-bold uppercase tracking-wider mb-0.5">O que mais atrapalha</p>
+              <p className="text-[10px] sm:text-xs text-warning font-bold uppercase tracking-wider mb-0.5">Maior obstáculo agora</p>
               <p className="text-sm lg:text-base leading-snug">{diag.biggestBottleneck}</p>
             </div>
           </div>
@@ -151,7 +151,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
       <div className="grid grid-cols-3 gap-3 lg:gap-4">
         <IndicatorCard
           icon="💪"
-          label="Saúde"
+          label="Saúde financeira"
           value={`${score.total}`}
           sub={scoreLabel}
           valueColor={scoreColor}
@@ -161,14 +161,14 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
           icon="🛡️"
           label="Reserva"
           value={`${diag.emergencyMonths.toFixed(1)}m`}
-          sub={diag.emergencyMonths >= 6 ? "Completa" : diag.emergencyMonths >= 3 ? "Parcial" : "Baixa"}
+          sub={diag.emergencyMonths >= 6 ? "Segura" : diag.emergencyMonths >= 3 ? "Em construção" : "Insuficiente"}
           valueColor={diag.emergencyMonths >= 6 ? "text-primary" : diag.emergencyMonths >= 3 ? "text-warning" : "text-destructive"}
         />
         <IndicatorCard
           icon="📈"
-          label="Poupança"
+          label="Taxa de poupança"
           value={totalIncome > 0 ? `${(diag.savingsRate * 100).toFixed(0)}%` : "—"}
-          sub={diag.savingsRate >= 0.2 ? "Ótimo" : diag.savingsRate >= 0.1 ? "Regular" : "Baixa"}
+          sub={diag.savingsRate >= 0.2 ? "Excelente" : diag.savingsRate >= 0.1 ? "Bom começo" : "Pode melhorar"}
           valueColor={diag.savingsRate >= 0.2 ? "text-primary" : diag.savingsRate >= 0.1 ? "text-warning" : "text-destructive"}
         />
       </div>
@@ -194,27 +194,27 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
           {showFinancials && (
             <div className="px-4 lg:px-5 pb-4 lg:pb-5 space-y-2 animate-fade-in-up">
               <div className="flex justify-between text-sm lg:text-base">
-                <span className="text-muted-foreground">Receita</span>
+                <span className="text-muted-foreground">O que entra</span>
                 <span className="font-semibold text-primary">{formatBRL(totalIncome)}</span>
               </div>
               <div className="flex justify-between text-sm lg:text-base">
-                <span className="text-muted-foreground">Despesas</span>
+                <span className="text-muted-foreground">O que sai (gastos)</span>
                 <span className="font-semibold">{formatBRL(totalExpenses)}</span>
               </div>
               {totalDebtPayments > 0 && (
                 <div className="flex justify-between text-sm lg:text-base">
-                  <span className="text-muted-foreground">Dívidas</span>
+                  <span className="text-muted-foreground">O que sai (dívidas)</span>
                   <span className="font-semibold text-destructive">{formatBRL(totalDebtPayments)}</span>
                 </div>
               )}
               <div className="h-px bg-border/60 my-1" />
               <div className="flex justify-between text-sm lg:text-base font-bold">
-                <span>Saldo disponível</span>
+                <span>Sobra para investir</span>
                 <span className={balance >= 0 ? "text-primary" : "text-destructive"}>{formatBRL(balance)}</span>
               </div>
               <div className="grid grid-cols-2 gap-2 pt-2">
                 <Button variant="outline" size="sm" className="text-xs h-10 rounded-xl touch-target" onClick={() => onNavigateToTab("renda")}>
-                  Gerenciar renda
+                  Ver renda
                 </Button>
                 <Button variant="outline" size="sm" className="text-xs h-10 rounded-xl touch-target" onClick={() => onNavigateToTab("gastos")}>
                   Ver gastos
@@ -232,7 +232,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
             <span className="text-lg shrink-0">{topNudge.icon}</span>
             <div className="min-w-0">
               <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground mb-0.5">
-                {topNudge.type === "praise" ? "Parabéns" : topNudge.type === "warning" ? "Atenção" : "Dica"}
+                {topNudge.type === "praise" ? "Bom trabalho" : topNudge.type === "warning" ? "Ponto de atenção" : "Dica prática"}
               </p>
               <p className="text-sm lg:text-base leading-relaxed">{topNudge.message}</p>
             </div>
@@ -255,14 +255,14 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
         <Button variant="outline" size="sm" className="h-11 text-xs lg:text-sm justify-between rounded-xl px-4 touch-target"
           onClick={() => onNavigateToTab("simulador")}>
           <span className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" /> Simulador
+            <TrendingUp className="w-4 h-4" /> Simular cenários
           </span>
           <ArrowRight className="w-3.5 h-3.5" />
         </Button>
         <Button variant="outline" size="sm" className="h-11 text-xs lg:text-sm justify-between rounded-xl px-4 touch-target"
           onClick={() => onNavigateToTab("armadilhas")}>
           <span className="flex items-center gap-2">
-            <Shield className="w-4 h-4" /> Armadilhas
+            <Shield className="w-4 h-4" /> Radar de riscos
           </span>
           <ArrowRight className="w-3.5 h-3.5" />
         </Button>
@@ -297,31 +297,31 @@ function EmptyHomeState({ onNavigateToTab, onOpenQuickDeposit }: { onNavigateToT
         <div>
           <p className="text-lg lg:text-xl font-bold">Tudo pronto para começar!</p>
           <p className="text-sm lg:text-base text-muted-foreground mt-2 leading-relaxed max-w-xs mx-auto">
-            Registre seu primeiro aporte e veja sua jornada ganhar forma. Cada passo conta.
+            Registre seu primeiro aporte e veja sua jornada ganhar forma. Cada real investido conta.
           </p>
         </div>
         <Button className="w-full sm:w-auto sm:px-8 h-12 font-semibold text-sm touch-target" onClick={onOpenQuickDeposit}>
-          <DollarSign className="w-4 h-4 mr-2" /> Registrar meu primeiro aporte
+          <DollarSign className="w-4 h-4 mr-2" /> Registrar primeiro aporte
         </Button>
       </Card>
 
       <div className="space-y-3 lg:grid lg:grid-cols-3 lg:gap-4 lg:space-y-0">
         <QuickAction
           emoji="💵"
-          title="Cadastrar sua renda"
-          description="Para calcular quanto você pode investir sem se apertar."
+          title="Cadastre sua renda"
+          description="Assim o app calcula quanto você pode investir sem comprometer seu dia a dia."
           onClick={() => onNavigateToTab("renda")}
         />
         <QuickAction
           emoji="🛒"
-          title="Cadastrar seus gastos"
-          description="Para descobrir seu verdadeiro potencial de aporte."
+          title="Registre seus gastos"
+          description="Para descobrir quanto realmente sobra para investir todo mês."
           onClick={() => onNavigateToTab("gastos")}
         />
         <QuickAction
           emoji="📋"
-          title="Cadastrar suas dívidas"
-          description="Para entender quanto elas atrasam sua meta."
+          title="Mapeie suas dívidas"
+          description="Para entender quanto elas estão atrasando sua meta — e como sair delas mais rápido."
           onClick={() => onNavigateToTab("dividas")}
         />
       </div>

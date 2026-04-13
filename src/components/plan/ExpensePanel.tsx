@@ -112,7 +112,7 @@ export function ExpensePanel({
   return (
     <div className="space-y-4 lg:space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg lg:text-xl font-bold">💸 Painel de Gastos</h2>
+        <h2 className="text-lg lg:text-xl font-bold">💸 Seus gastos</h2>
         <Button size="sm" onClick={() => { setEditingExpense(null); setShowForm(true); }}>
           <Plus className="w-4 h-4 mr-1" /> Novo Gasto
         </Button>
@@ -184,9 +184,10 @@ export function ExpensePanel({
         <div className="space-y-2">
           {monthExpenses.length === 0 && (
             <Card className="glass-card p-6 text-center">
-              <p className="text-muted-foreground text-sm">Nenhum gasto registrado neste mês.</p>
-              <Button size="sm" className="mt-3" onClick={() => { setEditingExpense(null); setShowForm(true); }}>
-                <Plus className="w-4 h-4 mr-1" /> Adicionar primeiro gasto
+              <p className="text-sm font-semibold mb-1">Nenhum gasto neste mês</p>
+              <p className="text-muted-foreground text-xs mb-3">Registre seus gastos para descobrir quanto realmente sobra para investir.</p>
+              <Button size="sm" className="mt-1" onClick={() => { setEditingExpense(null); setShowForm(true); }}>
+                <Plus className="w-4 h-4 mr-1" /> Registrar primeiro gasto
               </Button>
             </Card>
           )}

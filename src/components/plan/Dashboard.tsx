@@ -72,29 +72,29 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         <StatCard
           icon={DollarSign}
-          label="Patrimônio Atual"
+          label="Onde você está"
           value={formatBRL(currentBalance)}
           color="bg-primary/10 text-primary"
         />
         <StatCard
           icon={TrendingUp}
-          label="Aporte Mensal"
+          label="Aporte mensal"
           value={formatBRL(totalMonthly)}
           sub={config.contributors.filter(c => c.plannedSelic > 0 || c.plannedCDB > 0).map(c => `${c.name || "Pessoa"}: ${formatBRL(c.plannedSelic + c.plannedCDB)}`).join(" | ")}
           color="bg-accent/10 text-accent"
         />
         <StatCard
           icon={Calendar}
-          label="Tempo Estimado"
+          label="Tempo estimado"
           value={`${yearsToGoal} anos`}
-          sub={`${yearsToGoal * 12} meses`}
+          sub={`${yearsToGoal * 12} meses para a meta`}
           color="bg-primary/10 text-primary"
         />
         <StatCard
           icon={Target}
-          label="Meta"
+          label="Sua meta"
           value={formatBRL(config.targetAmount)}
-          sub={lastRow ? `Final: ${formatBRL(lastRow.totalBalance)}` : undefined}
+          sub={lastRow ? `Projeção final: ${formatBRL(lastRow.totalBalance)}` : undefined}
           color="bg-accent/10 text-accent"
         />
       </div>
@@ -128,7 +128,7 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
       {/* Chart */}
       <Card className="glass-card p-4 lg:p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold lg:text-lg">Projeção de Crescimento</h3>
+          <h3 className="font-semibold lg:text-lg">Como seu patrimônio cresce</h3>
           <Button
             variant="outline"
             size="sm"
@@ -136,7 +136,7 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
             className="text-xs lg:text-sm"
           >
             {showActual ? <ToggleRight className="w-4 h-4 mr-1" /> : <ToggleLeft className="w-4 h-4 mr-1" />}
-            {showActual ? "Mostrando Real" : "Mostrando Planejado"}
+            {showActual ? "Valores reais" : "Valores planejados"}
           </Button>
         </div>
         <div className="h-64 sm:h-72 md:h-80 lg:h-[420px]">
@@ -170,17 +170,17 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
       {/* Table */}
       <Card className="glass-card overflow-hidden">
         <div className="p-4 lg:p-5 border-b border-border/50">
-          <h3 className="font-semibold lg:text-lg">Tabela de Projeção (Anual)</h3>
+          <h3 className="font-semibold lg:text-lg">Evolução ano a ano</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm lg:text-base">
             <thead>
               <tr className="bg-muted/30">
-                <th className="text-left p-3 lg:p-4 whitespace-nowrap">Ano</th>
+                <th className="text-left p-3 lg:p-4 whitespace-nowrap">Período</th>
                 <th className="text-right p-3 lg:p-4 whitespace-nowrap">Selic</th>
                 <th className="text-right p-3 lg:p-4 whitespace-nowrap">CDB</th>
                 <th className="text-right p-3 lg:p-4 whitespace-nowrap">Total</th>
-                <th className="text-right p-3 lg:p-4 whitespace-nowrap">Juros</th>
+                <th className="text-right p-3 lg:p-4 whitespace-nowrap">Juros acumulados</th>
               </tr>
             </thead>
             <tbody>
@@ -201,10 +201,10 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
       {/* Exports */}
       <div className="flex flex-wrap gap-3">
         <Button variant="outline" size="sm" className="lg:text-sm" onClick={() => exportProjectionCSV(projection)}>
-          <Download className="w-4 h-4 mr-1" /> CSV Projeção
+          <Download className="w-4 h-4 mr-1" /> Baixar projeção (CSV)
         </Button>
         <Button variant="outline" size="sm" className="lg:text-sm" onClick={() => exportTrackerCSV(config, monthRecords, startDate)}>
-          <Download className="w-4 h-4 mr-1" /> CSV Acompanhamento
+          <Download className="w-4 h-4 mr-1" /> Baixar acompanhamento (CSV)
         </Button>
       </div>
     </div>

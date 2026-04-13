@@ -57,19 +57,19 @@ export function AdvancedSimulator({ appData, config, monthRecords, startDate }: 
     <div className="space-y-4 lg:space-y-6">
       <Card className="glass-card-strong p-4 lg:p-6 text-center">
         <Calculator className="w-6 h-6 lg:w-8 lg:h-8 text-primary mx-auto mb-2" />
-        <h3 className="font-bold lg:text-lg">Simulador Avançado</h3>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-1">Compare cenários realistas e personalize sua simulação</p>
+        <h3 className="font-bold lg:text-lg">Simule seu futuro</h3>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">Teste diferentes cenários e veja como cada decisão impacta sua meta</p>
       </Card>
 
       {/* Custom Parameters */}
       <Card className="glass-card p-4 lg:p-6 space-y-3 lg:space-y-4">
-        <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-muted-foreground">Simulação Personalizada</h4>
+        <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-muted-foreground">Monte sua simulação</h4>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-          <CurrencyInput id="sim-wealth" label="Patrimônio atual" value={customWealth} onChange={setCustomWealth} />
-          <CurrencyInput id="sim-monthly" label="Aporte mensal" value={customMonthly} onChange={setCustomMonthly} />
+          <CurrencyInput id="sim-wealth" label="Quanto já tem" value={customWealth} onChange={setCustomWealth} />
+          <CurrencyInput id="sim-monthly" label="Aporte por mês" value={customMonthly} onChange={setCustomMonthly} />
           <CurrencyInput id="sim-extra" label="Aporte extra/mês" value={customExtra} onChange={setCustomExtra} />
           <div>
-            <Label htmlFor="sim-rate" className="text-xs sm:text-sm">Taxa a.a. (%)</Label>
+            <Label htmlFor="sim-rate" className="text-xs sm:text-sm">Rendimento a.a. (%)</Label>
             <Input id="sim-rate" type="number" step={0.5} min={0} max={30}
               value={customRate} onChange={(e) => setCustomRate(Number(e.target.value) || 0)}
               className="text-right h-9 lg:h-10 text-sm" />
@@ -78,16 +78,17 @@ export function AdvancedSimulator({ appData, config, monthRecords, startDate }: 
 
         {/* Custom Result */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 pt-3 border-t border-border/30">
-          <ResultCard label="Patrimônio Final" value={formatBRLCompact(custom.finalWealth)} sub="Nominal" icon={TrendingUp} />
-          <ResultCard label="Patrimônio Real" value={formatBRLCompact(custom.realWealth)} sub={`Inflação ${customInflation}%`} icon={DollarSign} />
-          <ResultCard label="Renda Passiva (4%)" value={`${formatBRL(custom.passiveIncome4pct)}/mês`} sub="Estimada" icon={ArrowUpRight} />
-          <ResultCard label="Tempo até R$ 1M" value={custom.monthsToTarget ? `${Math.ceil(custom.monthsToTarget / 12)} anos` : "Não atinge"} sub={custom.monthsToTarget ? `${custom.monthsToTarget} meses` : ""} icon={Clock} />
+          <ResultCard label="Patrimônio estimado" value={formatBRLCompact(custom.finalWealth)} sub="Valor nominal" icon={TrendingUp} />
+          <ResultCard label="Valor real (hoje)" value={formatBRLCompact(custom.realWealth)} sub={`Descontando ${customInflation}% de inflação`} icon={DollarSign} />
+          <ResultCard label="Renda passiva" value={`${formatBRL(custom.passiveIncome4pct)}/mês`} sub="Com retirada de 4% ao ano" icon={ArrowUpRight} />
+          <ResultCard label="Quando chega na meta" value={custom.monthsToTarget ? `${Math.ceil(custom.monthsToTarget / 12)} anos` : "Não atinge no prazo"} sub={custom.monthsToTarget ? `${custom.monthsToTarget} meses` : "Aumente o aporte"} icon={Clock} />
         </div>
       </Card>
 
       {/* Pre-built Scenarios */}
       <Card className="glass-card p-4 lg:p-6">
-        <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">Cenários Comparativos</h4>
+        <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-muted-foreground mb-1">Compare cenários</h4>
+        <p className="text-xs text-muted-foreground mb-3">Veja como acelerar ou o impacto de reduzir seus aportes</p>
         <div className="space-y-2 lg:space-y-3">
           {scenarios.map((s, i) => (
             <ScenarioRow key={i} scenario={s} baseMonths={scenarios[2]?.monthsToTarget} />
@@ -129,8 +130,8 @@ function ScenarioRow({ scenario, baseMonths }: { scenario: AdvancedScenarioResul
       <div className="flex-1 min-w-0">
         <p className="font-medium truncate">{scenario.label}</p>
         <p className="text-[10px] sm:text-xs text-muted-foreground">
-          {scenario.monthsToTarget ? `${Math.ceil(scenario.monthsToTarget / 12)}a (${scenario.monthsToTarget}m)` : "Não atinge"}
-          {" · "}Renda: {formatBRL(scenario.passiveIncome4pct)}/mês
+          {scenario.monthsToTarget ? `~${Math.ceil(scenario.monthsToTarget / 12)} anos (${scenario.monthsToTarget} meses)` : "Não atinge no prazo"}
+          {" · "}Renda passiva: {formatBRL(scenario.passiveIncome4pct)}/mês
         </p>
       </div>
       <div className="text-right shrink-0 ml-3">
@@ -138,7 +139,7 @@ function ScenarioRow({ scenario, baseMonths }: { scenario: AdvancedScenarioResul
         {diff !== 0 && (
           <p className={`text-[10px] sm:text-xs flex items-center gap-0.5 justify-end ${isPositive ? "text-primary" : "text-destructive"}`}>
             {isPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-            {Math.abs(diff)} meses
+            {Math.abs(diff)} meses {isPositive ? "mais rápido" : "mais lento"}
           </p>
         )}
       </div>

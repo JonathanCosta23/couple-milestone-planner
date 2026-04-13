@@ -11,8 +11,8 @@ export function MiniLessons() {
     <div className="space-y-4">
       <Card className="glass-card-strong p-4 text-center">
         <GraduationCap className="w-6 h-6 text-primary mx-auto mb-2" />
-        <h3 className="font-bold">Mini Aulas</h3>
-        <p className="text-xs text-muted-foreground mt-1">Aprenda o essencial em 2-3 minutos por lição</p>
+        <h3 className="font-bold">Aprenda em minutos</h3>
+        <p className="text-xs text-muted-foreground mt-1">Lições rápidas sobre o que realmente importa para seu dinheiro crescer</p>
       </Card>
 
       <div className="space-y-2">

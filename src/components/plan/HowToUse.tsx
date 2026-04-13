@@ -7,23 +7,23 @@ export function HowToUse() {
       <Card className="glass-card p-6">
         <div className="flex items-center gap-2 mb-4">
           <BookOpen className="w-5 h-5 text-primary" />
-          <h3 className="text-lg font-bold">Como Usar</h3>
+          <h3 className="text-lg font-bold">Como aproveitar ao máximo</h3>
         </div>
         <ol className="space-y-3 text-sm text-muted-foreground list-decimal list-inside">
           <li>
-            <strong className="text-foreground">Configure sua meta</strong> — Defina o valor inicial, a meta (ex: R$1M), o prazo e as taxas no assistente.
+            <strong className="text-foreground">Defina sua meta</strong> — Escolha quanto quer acumular, em quanto tempo e com qual aporte mensal.
           </li>
           <li>
-            <strong className="text-foreground">Divida os aportes</strong> — Cada pessoa define quanto vai investir em Tesouro Selic e CDB por mês.
+            <strong className="text-foreground">Cadastre sua renda e gastos</strong> — Assim o app entende sua realidade e dá orientações personalizadas.
           </li>
           <li>
-            <strong className="text-foreground">Simule o crescimento</strong> — Veja no gráfico e na tabela como seu patrimônio cresce com juros compostos.
+            <strong className="text-foreground">Simule cenários</strong> — Veja como cada decisão impacta o tempo até sua meta.
           </li>
           <li>
-            <strong className="text-foreground">Registre todo mês</strong> — Na aba "Plano Mensal", anote o valor real depositado e acompanhe sua sequência.
+            <strong className="text-foreground">Registre seus aportes todo mês</strong> — Anote quanto realmente investiu e acompanhe sua evolução.
           </li>
           <li>
-            <strong className="text-foreground">Exporte e faça backup</strong> — Use os botões de CSV e JSON para salvar ou compartilhar o plano entre celulares.
+            <strong className="text-foreground">Exporte seus dados</strong> — Faça backup em JSON ou CSV para não perder nada.
           </li>
         </ol>
       </Card>
@@ -32,12 +32,11 @@ export function HowToUse() {
         <div className="flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
           <div className="text-sm text-muted-foreground">
-            <p className="font-semibold text-foreground mb-1">Aviso Importante</p>
+            <p className="font-semibold text-foreground mb-1">Aviso importante</p>
             <p>
-              Esta ferramenta é apenas para fins educacionais e de planejamento pessoal.
-              Não constitui recomendação de investimento personalizada. Rentabilidades passadas
-              não garantem resultados futuros. Consulte um assessor de investimentos antes de
-              tomar decisões financeiras.
+              Este app é uma ferramenta educacional e de planejamento pessoal.
+              Não substitui a orientação de um profissional de investimentos.
+              Rentabilidades passadas não garantem resultados futuros.
             </p>
           </div>
         </div>

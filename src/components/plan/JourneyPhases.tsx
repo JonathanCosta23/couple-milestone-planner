@@ -28,7 +28,7 @@ export function JourneyPhases({ appData, config, monthRecords, startDate }: Prop
       {/* Current Phase Banner */}
       <Card className="glass-card-strong p-5 lg:p-8 text-center">
         <p className="text-4xl lg:text-5xl mb-2">{phaseInfo.emoji}</p>
-        <h3 className="text-lg lg:text-xl font-bold">{phaseInfo.name}</h3>
+        <h3 className="text-lg lg:text-xl font-bold">Você está na fase: {phaseInfo.name}</h3>
         <p className="text-sm lg:text-base text-muted-foreground mt-1">{phaseInfo.description}</p>
       </Card>
 
@@ -60,18 +60,18 @@ export function JourneyPhases({ appData, config, monthRecords, startDate }: Prop
 
       {/* Details */}
       <Card className="glass-card p-4 lg:p-6 space-y-4 lg:space-y-5">
-        <Section title="🎯 Prioridades" items={phaseInfo.priorities} />
-        <Section title="✅ Próximos Passos" items={phaseInfo.nextSteps} />
-        <Section title="💡 Recomendações" items={phaseInfo.recommendations} />
-        <Section title="⚠️ Riscos Comuns" items={phaseInfo.commonRisks} variant="warning" />
+        <Section title="🎯 O que focar agora" items={phaseInfo.priorities} />
+        <Section title="✅ Seus próximos passos" items={phaseInfo.nextSteps} />
+        <Section title="💡 Dicas para esta fase" items={phaseInfo.recommendations} />
+        <Section title="⚠️ Cuidado com" items={phaseInfo.commonRisks} variant="warning" />
         {phaseInfo.exitCriteria.length > 0 && (
-          <Section title="🚪 Para avançar" items={phaseInfo.exitCriteria} variant="accent" />
+          <Section title="🚪 O que falta para avançar" items={phaseInfo.exitCriteria} variant="accent" />
         )}
       </Card>
 
       {/* All Phases Mini List */}
       <Card className="glass-card p-4 lg:p-6">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Todas as Fases</h4>
+        <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">As 8 fases da jornada</h4>
         <div className="space-y-2">
           {JOURNEY_PHASES.map((phase, i) => {
             const isActive = phase.id === currentPhase;
@@ -85,7 +85,7 @@ export function JourneyPhases({ appData, config, monthRecords, startDate }: Prop
                 <div className="flex-1 min-w-0">
                   <p className={`font-medium truncate ${isActive ? "text-primary" : ""}`}>{phase.name}</p>
                 </div>
-                {isActive && <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-medium">Atual</span>}
+                {isActive && <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-medium">Você está aqui</span>}
                 {isPast && <Check className="w-4 h-4 text-primary" />}
               </div>
             );

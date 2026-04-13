@@ -32,7 +32,7 @@ export function MentorshipHome({ appData, config, monthRecords, startDate }: Pro
     <Card className="glass-card p-4 space-y-3">
       <div className="flex items-center gap-2">
         <Sparkles className="w-4 h-4 text-primary" />
-        <p className="text-sm font-semibold">Recomendações do Mentor</p>
+        <p className="text-sm font-semibold">O que o app recomenda agora</p>
       </div>
       <div className="space-y-2">
         {recs.slice(0, 4).map((rec, i) => (

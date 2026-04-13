@@ -27,8 +27,8 @@ export function FinancialGlossary() {
     <div className="space-y-4">
       <Card className="glass-card-strong p-4 text-center">
         <BookOpen className="w-6 h-6 text-primary mx-auto mb-2" />
-        <h3 className="font-bold">Glossário Financeiro</h3>
-        <p className="text-xs text-muted-foreground mt-1">Termos essenciais explicados de forma simples</p>
+        <h3 className="font-bold">Glossário</h3>
+        <p className="text-xs text-muted-foreground mt-1">Os termos que você vai encontrar por aqui — explicados sem enrolação</p>
       </Card>
 
       <div className="relative">

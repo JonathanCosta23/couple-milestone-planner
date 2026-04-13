@@ -110,12 +110,12 @@ export function Wizard({ onComplete }: WizardProps) {
       <Card className="glass-card-strong p-6 animate-fade-in-up">
         {step === 0 && (
           <div className="space-y-5">
-            <h2 className="text-xl font-bold">Meta e Prazo</h2>
+            <h2 className="text-xl font-bold">Qual sua meta?</h2>
             <div className="grid gap-4">
               <div>
                 <Label htmlFor="initial">
-                  Valor inicial
-                  <Tip text="Quanto você já tem investido ou pode aportar de imediato." />
+                  Quanto já tem investido
+                  <Tip text="Valor que você já tem aplicado ou pode investir agora." />
                 </Label>
                 <CurrencyInput
                   id="initial"
@@ -125,8 +125,8 @@ export function Wizard({ onComplete }: WizardProps) {
               </div>
               <div>
                 <Label htmlFor="target">
-                  Meta
-                  <Tip text="Objetivo financeiro." />
+                  Quanto quer acumular
+                  <Tip text="Seu objetivo de patrimônio. Pode ser R$ 1 milhão ou qualquer outro valor." />
                 </Label>
                 <CurrencyInput
                   id="target"
@@ -135,7 +135,7 @@ export function Wizard({ onComplete }: WizardProps) {
                 />
               </div>
               <div>
-                <Label htmlFor="years">Prazo (anos)</Label>
+                <Label htmlFor="years">Em quantos anos</Label>
                 <Input
                   id="years"
                   type="number"
@@ -182,7 +182,7 @@ export function Wizard({ onComplete }: WizardProps) {
 
         {step === 1 && (
           <div className="space-y-5">
-            <h2 className="text-xl font-bold">Aportes Mensais por Pessoa</h2>
+            <h2 className="text-xl font-bold">Quanto investir por mês</h2>
             {config.contributors.map((c, idx) => (
               <div key={idx} className="p-4 rounded-xl bg-muted/50 space-y-3 relative">
                 {config.contributors.length > 1 && (
@@ -268,7 +268,7 @@ export function Wizard({ onComplete }: WizardProps) {
 
         {step === 2 && (
           <div className="space-y-5">
-            <h2 className="text-xl font-bold">Resumo do Plano</h2>
+            <h2 className="text-xl font-bold">Confira e comece</h2>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between py-2 border-b border-border/50">
                 <span className="text-muted-foreground">Valor inicial</span>
