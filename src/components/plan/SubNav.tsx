@@ -14,18 +14,20 @@ interface Props {
 
 export function SubNav({ items, active, onChange }: Props) {
   return (
-    <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1 pr-4">
+    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide snap-scroll-x -mx-1 px-1 pr-6">
       {items.map(item => (
         <Button
           key={item.id}
           size="sm"
           variant={active === item.id ? "default" : "outline"}
-          className={`text-xs shrink-0 h-8 rounded-full px-3.5 ${
-            active === item.id ? "" : "bg-card/60"
+          className={`text-xs shrink-0 h-9 rounded-full px-4 touch-target transition-all ${
+            active === item.id 
+              ? "shadow-sm" 
+              : "bg-card/60 hover:bg-card"
           }`}
           onClick={() => onChange(item.id)}
         >
-          {item.icon && <span className="mr-1">{item.icon}</span>}
+          {item.icon && <span className="mr-1.5 text-sm">{item.icon}</span>}
           {item.label}
         </Button>
       ))}

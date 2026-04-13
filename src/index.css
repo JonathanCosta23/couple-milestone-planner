@@ -119,15 +119,18 @@
 }
 
 @layer components {
-  /* Card system */
+  /* ── Card system ── */
   .glass-card {
     @apply bg-card border border-border/60 rounded-2xl shadow-sm;
   }
   .glass-card-strong {
     @apply bg-card border border-border/70 rounded-2xl shadow-md;
   }
+  .glass-card-hero {
+    @apply bg-card border border-primary/20 rounded-2xl shadow-lg;
+  }
 
-  /* Gradient hero */
+  /* ── Gradient hero ── */
   .gradient-hero {
     background: linear-gradient(
       160deg,
@@ -145,7 +148,7 @@
     );
   }
 
-  /* Text gradient */
+  /* ── Text gradient ── */
   .text-gradient {
     @apply bg-clip-text text-transparent;
     background-image: linear-gradient(135deg, hsl(152 64% 42%), hsl(199 80% 48%));
@@ -154,12 +157,12 @@
     background-image: linear-gradient(135deg, hsl(152 64% 50%), hsl(199 80% 55%));
   }
 
-  /* Safe area for mobile nav */
+  /* ── Safe area for mobile nav ── */
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
-  /* Hide scrollbar */
+  /* ── Hide scrollbar ── */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -168,14 +171,53 @@
     display: none;
   }
 
-  /* Status colors */
+  /* ── Snap scroll for sub-nav ── */
+  .snap-scroll-x {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  .snap-scroll-x > * {
+    scroll-snap-align: start;
+  }
+
+  /* ── Status colors ── */
   .status-good { @apply text-primary; }
   .status-warning { @apply text-warning; }
   .status-danger { @apply text-destructive; }
 
-  /* Section header */
+  /* ── Section labels ── */
   .section-label {
-    @apply text-[11px] font-semibold uppercase tracking-wider text-muted-foreground;
+    @apply text-xs font-semibold uppercase tracking-wider text-muted-foreground;
+  }
+  .section-title {
+    @apply text-base font-bold text-foreground;
+  }
+
+  /* ── Empty state ── */
+  .empty-state {
+    @apply glass-card p-6 text-center space-y-3;
+  }
+  .empty-state-icon {
+    @apply text-4xl;
+  }
+  .empty-state-title {
+    @apply text-sm font-semibold text-foreground;
+  }
+  .empty-state-desc {
+    @apply text-xs text-muted-foreground leading-relaxed max-w-xs mx-auto;
+  }
+
+  /* ── Action card (next step, alert) ── */
+  .action-card {
+    @apply glass-card p-4 border-l-4 border-l-primary;
+  }
+  .alert-card {
+    @apply glass-card p-4 border-l-4 border-l-warning;
+  }
+
+  /* ── Accessible touch targets ── */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
   }
 }
 
@@ -201,6 +243,10 @@
     0% { opacity: 0; transform: translateX(8px); }
     100% { opacity: 1; transform: translateX(0); }
   }
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
   .animate-milestone-pop {
     animation: milestone-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
   }
@@ -216,5 +262,8 @@
   }
   .animate-slide-in-right {
     animation: slide-in-right 0.3s ease-out forwards;
+  }
+  .animate-pulse-soft {
+    animation: pulse-soft 2s ease-in-out infinite;
   }
 }
