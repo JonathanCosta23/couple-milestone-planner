@@ -17,7 +17,7 @@ interface Props {
   core: FinancialCoreState;
 }
 
-export function ProjectionRealistic({ appData, config, monthRecords, startDate }: Props) {
+export function ProjectionRealistic({ appData, config, monthRecords, startDate, core }: Props) {
   const [showNet, setShowNet] = useState(true);
   const [showReal, setShowReal] = useState(true);
 

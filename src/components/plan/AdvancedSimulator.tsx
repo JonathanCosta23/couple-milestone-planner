@@ -34,7 +34,7 @@ function CurrencyInput({ value, onChange, id, label }: { value: number; onChange
   );
 }
 
-export function AdvancedSimulator({ appData, config, monthRecords, startDate }: Props) {
+export function AdvancedSimulator({ appData, config, monthRecords, startDate, core }: Props) {
   const monthly = config.contributors.reduce((s, c) => s + c.plannedSelic + c.plannedCDB, 0);
   const [mode, setMode] = useState<"simple" | "advanced">("simple");
   const [customWealth, setCustomWealth] = useState(config.initialAmount);
