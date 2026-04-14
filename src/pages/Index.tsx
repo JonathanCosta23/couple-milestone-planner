@@ -38,7 +38,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthPage } from "@/components/auth/AuthPage";
 import { DataMigrationDialog } from "@/components/auth/DataMigrationDialog";
 import { AccountPrompt } from "@/components/auth/AccountPrompt";
-import { generateProjection, getReachedMilestones } from "@/lib/calculator";
+import { generateProjection } from "@/lib/calculator";
 import { MILESTONES, EMOTIONAL_GOAL_LABELS } from "@/lib/types";
 import { parseImportJSON, saveBackup, ImportPreview } from "@/lib/storage";
 import { loadAppData, saveAppData } from "@/lib/appStorage";
