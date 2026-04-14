@@ -9,11 +9,14 @@ import { Calculator, TrendingUp, Clock, DollarSign, ArrowUpRight, ArrowDownRight
 import { ContextualEducation } from "./ContextualEducation";
 import { AppData } from "@/lib/models";
 
+import { FinancialCoreState } from "@/hooks/useFinancialCore";
+
 interface Props {
   appData: AppData;
   config: PlanConfig;
   monthRecords: MonthRecord[];
   startDate: string;
+  core: FinancialCoreState;
 }
 
 function CurrencyInput({ value, onChange, id, label }: { value: number; onChange: (v: number) => void; id: string; label: string }) {
