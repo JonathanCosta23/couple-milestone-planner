@@ -43,23 +43,52 @@ export function AdvancedSimulator({ appData, config, monthRecords, startDate, co
   const [customRate, setCustomRate] = useState(config.selicRate * 100);
   const [customInflation, setCustomInflation] = useState(4.5);
 
+  // Check if using default values (no custom tweaks) — use core.projection
+  const isDefault = customWealth === config.initialAmount
+    && customMonthly === monthly
+    && customExtra === 0
+    && Math.abs(customRate - config.selicRate * 100) < 0.01
+    && Math.abs(customInflation - 4.5) < 0.01;
+
   const scenarios = useMemo(
     () => generateScenarioSuite(config, monthRecords, startDate, customWealth),
     [config, monthRecords, startDate, customWealth]
   );
 
-  const custom = useMemo(() => simulateAdvancedScenario(config, monthRecords, startDate, {
-    currentWealth: customWealth,
-    monthlyContribution: customMonthly,
-    extraContribution: customExtra,
-    annualRate: customRate / 100,
-    inflationRate: customInflation / 100,
-    months: config.years * 12,
-    skippedMonths: 0,
-  }), [customWealth, customMonthly, customExtra, customRate, customInflation, config, monthRecords, startDate]);
+  const custom = useMemo(() => {
+    // When using defaults, derive from core.projection to avoid recalculation
+    if (isDefault) {
+      return {
+        finalWealth: core.projection.finalNominal,
+        realWealth: core.projection.finalReal,
+        passiveIncome4pct: core.projection.estimatedPassiveIncome,
+        monthsToTarget: core.projection.monthsToTargetNominal,
+      };
+    }
+    return simulateAdvancedScenario(config, monthRecords, startDate, {
+      currentWealth: customWealth,
+      monthlyContribution: customMonthly,
+      extraContribution: customExtra,
+      annualRate: customRate / 100,
+      inflationRate: customInflation / 100,
+      months: config.years * 12,
+      skippedMonths: 0,
+    });
+  }, [customWealth, customMonthly, customExtra, customRate, customInflation, config, monthRecords, startDate, isDefault, core.projection]);
 
   // Simple mode: quick result with nominal/real/líquido
   const simpleResult = useMemo(() => {
+    if (isDefault) {
+      return {
+        nominal: core.projection.finalNominal,
+        net: core.projection.finalNet,
+        real: core.projection.finalReal,
+        passiveIncome: core.projection.estimatedPassiveIncome,
+        monthsToTarget: core.projection.monthsToTargetNominal,
+        inflationLoss: core.projection.finalNominal - core.projection.finalReal,
+        taxLoss: core.projection.finalNominal - core.projection.finalNet,
+      };
+    }
     const taxRate = 0.15;
     const gains = custom.finalWealth - (customWealth + customMonthly * config.years * 12);
     const netWealth = custom.finalWealth - Math.max(0, gains * taxRate);
@@ -72,7 +101,7 @@ export function AdvancedSimulator({ appData, config, monthRecords, startDate, co
       inflationLoss: custom.finalWealth - custom.realWealth,
       taxLoss: custom.finalWealth - netWealth,
     };
-  }, [custom, customWealth, customMonthly, config.years]);
+  }, [custom, customWealth, customMonthly, config.years, isDefault, core.projection]);
 
   return (
     <div className="space-y-4 lg:space-y-6">

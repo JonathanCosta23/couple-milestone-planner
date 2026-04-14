@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlanConfig, MonthRecord, formatBRL, formatBRLCompact } from "@/lib/types";
-import { generateRealisticProjection, RealisticProjectionRow, generateScenarioSuite, simulateAdvancedScenario, AdvancedScenarioResult } from "@/lib/financialEngine";
+import { simulateAdvancedScenario } from "@/lib/financialEngine";
 import { AppData } from "@/lib/models";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from "recharts";
 import { TrendingUp, Eye, EyeOff, ArrowUpRight, ArrowDownRight, Clock, DollarSign, Shield } from "lucide-react";
@@ -21,31 +21,28 @@ export function ProjectionRealistic({ appData, config, monthRecords, startDate, 
   const [showNet, setShowNet] = useState(true);
   const [showReal, setShowReal] = useState(true);
 
-  const projection = useMemo(
-    () => generateRealisticProjection(config, monthRecords, startDate),
-    [config, monthRecords, startDate]
-  );
+  // Use core.projection instead of recalculating
+  const { projection: proj } = core;
 
-  // Sample every 12 months for chart
-  const chartData = useMemo(() => {
-    return projection
-      .filter((_, i) => i % 12 === 11 || i === projection.length - 1)
-      .map(row => ({
-        year: Math.ceil(row.month / 12),
-        nominal: Math.round(row.nominal),
-        net: Math.round(row.net),
-        real: Math.round(row.real),
-      }));
-  }, [projection]);
-
-  const lastRow = projection[projection.length - 1];
-  const nominalFinal = lastRow?.nominal || 0;
-  const netFinal = lastRow?.net || 0;
-  const realFinal = lastRow?.real || 0;
+  const nominalFinal = proj.finalNominal;
+  const netFinal = proj.finalNet;
+  const realFinal = proj.finalReal;
   const inflationLoss = nominalFinal - realFinal;
   const taxLoss = nominalFinal - netFinal;
 
-  // 7 scenarios
+  // Build chart data from core.projection.nominal/net/real
+  const chartData = useMemo(() => {
+    return proj.nominal
+      .filter((_, i) => i % 12 === 11 || i === proj.nominal.length - 1)
+      .map((p, idx) => ({
+        year: Math.ceil(p.monthIndex / 12) || 1,
+        nominal: Math.round(p.balance),
+        net: Math.round(proj.net[proj.nominal.indexOf(p)]?.balance ?? 0),
+        real: Math.round(proj.real[proj.nominal.indexOf(p)]?.balance ?? 0),
+      }));
+  }, [proj]);
+
+  // 7 scenarios (these are stress tests, not base projection — keep separate)
   const monthly = config.contributors.reduce((s, c) => s + c.plannedSelic + c.plannedCDB, 0);
   const months = config.years * 12;
   const currentWealth = appData.investments.filter(i => i.active).reduce((s, i) => s + i.currentBalance, 0) + config.initialAmount;
@@ -63,7 +60,7 @@ export function ProjectionRealistic({ appData, config, monthRecords, startDate, 
     ];
   }, [config, monthRecords, startDate, currentWealth, monthly, months]);
 
-  const baseScenario = scenarios[1]; // Atual
+  const baseScenario = scenarios[1];
 
   return (
     <div className="space-y-4 lg:space-y-6">
