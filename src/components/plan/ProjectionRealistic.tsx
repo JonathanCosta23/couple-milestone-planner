@@ -7,14 +7,17 @@ import { AppData } from "@/lib/models";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from "recharts";
 import { TrendingUp, Eye, EyeOff, ArrowUpRight, ArrowDownRight, Clock, DollarSign, Shield } from "lucide-react";
 
+import { FinancialCoreState } from "@/hooks/useFinancialCore";
+
 interface Props {
   appData: AppData;
   config: PlanConfig;
   monthRecords: MonthRecord[];
   startDate: string;
+  core: FinancialCoreState;
 }
 
-export function ProjectionRealistic({ appData, config, monthRecords, startDate }: Props) {
+export function ProjectionRealistic({ appData, config, monthRecords, startDate, core }: Props) {
   const [showNet, setShowNet] = useState(true);
   const [showReal, setShowReal] = useState(true);
 

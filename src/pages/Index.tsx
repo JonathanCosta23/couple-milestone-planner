@@ -356,13 +356,13 @@ const Index = () => {
               </div>
             )}
             {planoSub === "simulador" && (
-              <AdvancedSimulator appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+              <AdvancedSimulator appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {planoSub === "estrutura" && (
               <PatrimonialArchitecture appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {planoSub === "projecao" && (
-              <ProjectionRealistic appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+              <ProjectionRealistic appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {planoSub === "diagnostico" && (
               <FinancialDiagnostic appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />

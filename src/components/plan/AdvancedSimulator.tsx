@@ -9,11 +9,14 @@ import { Calculator, TrendingUp, Clock, DollarSign, ArrowUpRight, ArrowDownRight
 import { ContextualEducation } from "./ContextualEducation";
 import { AppData } from "@/lib/models";
 
+import { FinancialCoreState } from "@/hooks/useFinancialCore";
+
 interface Props {
   appData: AppData;
   config: PlanConfig;
   monthRecords: MonthRecord[];
   startDate: string;
+  core: FinancialCoreState;
 }
 
 function CurrencyInput({ value, onChange, id, label }: { value: number; onChange: (v: number) => void; id: string; label: string }) {
@@ -31,7 +34,7 @@ function CurrencyInput({ value, onChange, id, label }: { value: number; onChange
   );
 }
 
-export function AdvancedSimulator({ appData, config, monthRecords, startDate }: Props) {
+export function AdvancedSimulator({ appData, config, monthRecords, startDate, core }: Props) {
   const monthly = config.contributors.reduce((s, c) => s + c.plannedSelic + c.plannedCDB, 0);
   const [mode, setMode] = useState<"simple" | "advanced">("simple");
   const [customWealth, setCustomWealth] = useState(config.initialAmount);
