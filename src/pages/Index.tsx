@@ -38,7 +38,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthPage } from "@/components/auth/AuthPage";
 import { DataMigrationDialog } from "@/components/auth/DataMigrationDialog";
 import { AccountPrompt } from "@/components/auth/AccountPrompt";
-import { generateProjection, getReachedMilestones } from "@/lib/calculator";
+
 import { MILESTONES, EMOTIONAL_GOAL_LABELS } from "@/lib/types";
 import { parseImportJSON, saveBackup, ImportPreview } from "@/lib/storage";
 import { loadAppData, saveAppData } from "@/lib/appStorage";
@@ -215,13 +215,11 @@ const Index = () => {
   const shouldShowAccountPrompt = !user && !authLoading && !accountPromptDismissed && data.wizardComplete &&
     (data.monthRecords.length > 0 || appData.incomes.length > 0 || appData.expenses.length > 0);
 
-  const planned = useMemo(
-    () => data.wizardComplete ? generateProjection(data.config, "planned", data.monthRecords, data.startDate) : [],
-    [data]
-  );
-  const reached = useMemo(() => getReachedMilestones(planned, MILESTONES), [planned]);
-  const highestReached = reached.length > 0 ? Math.max(...reached) : null;
-  const newMilestone = highestReached && !dismissedMilestones.includes(highestReached) ? highestReached : null;
+  // Milestone popup: only fires for REALIZED wealth, never projected
+  const newMilestone = useMemo(() => {
+    const queue = core.milestones.celebrationQueue;
+    return queue.length > 0 ? queue[queue.length - 1].value : null;
+  }, [core.milestones.celebrationQueue]);
 
   const goalLabel = data.emotionalGoal
     ? data.emotionalGoal === "outro" ? (data.emotionalGoalCustom || null) : EMOTIONAL_GOAL_LABELS[data.emotionalGoal]
