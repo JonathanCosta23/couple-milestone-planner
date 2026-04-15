@@ -395,12 +395,9 @@ export function generateId(): string {
 export function createDefaultAppData(): AppData {
   return {
     schemaVersion: "7.0.0",
-    mode: "couple",
-    primaryProfile: { id: generateId(), name: "Jonathan", age: 25, avatarColor: "hsl(var(--primary))" },
-    partner: {
-      profile: { id: generateId(), name: "Isabella", age: 25, avatarColor: "hsl(var(--accent))" },
-      addedAt: new Date().toISOString(),
-    },
+    mode: "solo",
+    primaryProfile: { id: generateId(), name: "", age: 25, avatarColor: "hsl(var(--primary))" },
+    partner: undefined,
     incomes: [],
     expenses: [],
     recurringExpenses: [],
