@@ -51,7 +51,7 @@ export function migrateFromLegacy(planData: PlanData): AppData {
   const c0 = planData.config.contributors[0];
   appData.primaryProfile = {
     id: generateId(),
-    name: c0?.name || "Pessoa 1",
+    name: c0?.name || "",
     age: c0?.age || 25,
     avatarColor: "hsl(var(--primary))",
   };
@@ -68,7 +68,7 @@ export function migrateFromLegacy(planData: PlanData): AppData {
     appData.partner = {
       profile: {
         id: generateId(),
-        name: c1.name || "Pessoa 2",
+        name: c1.name || "",
         age: c1.age || 25,
         avatarColor: "hsl(var(--accent))",
       },
@@ -81,23 +81,25 @@ export function migrateFromLegacy(planData: PlanData): AppData {
   // Migrate financial profile to incomes
   if (planData.financialProfile) {
     const fp = planData.financialProfile;
-    if (fp.incomeJonathan && fp.incomeJonathan > 0) {
+    const primaryIncome = fp.incomePrimary || fp.incomeJonathan || 0;
+    if (primaryIncome > 0) {
       appData.incomes.push({
         id: generateId(),
         profileId: appData.primaryProfile.id,
         label: "Salário",
-        amount: fp.incomeJonathan,
+        amount: primaryIncome,
         type: "salary",
         recurrence: "monthly",
         active: true,
       });
     }
-    if (fp.incomeIsabella && fp.incomeIsabella > 0 && appData.partner) {
+    const partnerIncome = fp.incomePartner || fp.incomeIsabella || 0;
+    if (partnerIncome > 0 && appData.partner) {
       appData.incomes.push({
         id: generateId(),
         profileId: appData.partner.profile.id,
         label: "Salário",
-        amount: fp.incomeIsabella,
+        amount: partnerIncome,
         type: "salary",
         recurrence: "monthly",
         active: true,
