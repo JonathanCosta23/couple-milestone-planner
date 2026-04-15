@@ -58,7 +58,7 @@ export function FinancialProfileSetup({ config, profile: initialProfile, emotion
           <div className="grid gap-4">
             <div>
               <Label htmlFor="income-j">
-                Renda mensal — {config.contributors[0].name}
+                Renda mensal — {config.contributors[0]?.name || "Você"}
                 <Tip text="Salário líquido ou renda mensal total." />
               </Label>
               <Input
@@ -66,16 +66,16 @@ export function FinancialProfileSetup({ config, profile: initialProfile, emotion
                 type="number"
                 min={0}
                 step={500}
-                value={profile.incomeJonathan || ""}
+                value={profile.incomePrimary || ""}
                 placeholder="Opcional"
-                onChange={(e) => setProfile({ ...profile, incomeJonathan: Number(e.target.value) || undefined })}
+                onChange={(e) => setProfile({ ...profile, incomePrimary: Number(e.target.value) || undefined })}
                 className="text-right"
               />
             </div>
             {config.contributors[1] && (
               <div>
                 <Label htmlFor="income-i">
-                  Renda mensal — {config.contributors[1].name}
+                  Renda mensal — {config.contributors[1].name || "Parceiro(a)"}
                   <Tip text="Salário líquido ou renda mensal total." />
                 </Label>
                 <Input
@@ -83,9 +83,9 @@ export function FinancialProfileSetup({ config, profile: initialProfile, emotion
                   type="number"
                   min={0}
                   step={500}
-                  value={profile.incomeIsabella || ""}
+                  value={profile.incomePartner || ""}
                   placeholder="Opcional"
-                  onChange={(e) => setProfile({ ...profile, incomeIsabella: Number(e.target.value) || undefined })}
+                  onChange={(e) => setProfile({ ...profile, incomePartner: Number(e.target.value) || undefined })}
                   className="text-right"
                 />
               </div>
@@ -149,7 +149,7 @@ export function FinancialProfileSetup({ config, profile: initialProfile, emotion
           )}
 
           {/* Quick insights */}
-          {((profile.incomeJonathan || 0) > 0 || (profile.incomeIsabella || 0) > 0) && (
+          {((profile.incomePrimary || 0) > 0 || (profile.incomePartner || 0) > 0) && (
             <div className="grid grid-cols-2 gap-3">
               <Card className="p-3 bg-muted/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase">Taxa de Poupança</p>
