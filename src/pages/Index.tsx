@@ -44,6 +44,7 @@ import { parseImportJSON, saveBackup, ImportPreview } from "@/lib/storage";
 import { loadAppData, saveAppData } from "@/lib/appStorage";
 import { loadPlanData, savePlanData } from "@/lib/storage";
 import { useFinancialCore } from "@/hooks/useFinancialCore";
+import { useCelebratedMilestones } from "@/hooks/useCelebratedMilestones";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Download, Upload, RotateCcw, Settings, ArrowLeft, User, LogOut, Cloud, Loader2 } from "lucide-react";
@@ -97,7 +98,7 @@ const Index = () => {
   const { loadFromCloud, saveToCloud, hasLocalData, hasCloudData } = useCloudSync();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [dismissedMilestones, setDismissedMilestones] = useState<number[]>([]);
+  const { celebrated: dismissedMilestones, celebrate: celebrateMilestone } = useCelebratedMilestones(user?.id);
   const [showQuickDeposit, setShowQuickDeposit] = useState(false);
   const [showFinancialSetup, setShowFinancialSetup] = useState(false);
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
@@ -596,7 +597,7 @@ const Index = () => {
 
       <MilestoneAlert
         milestone={newMilestone}
-        onDismiss={() => { if (newMilestone) setDismissedMilestones((prev) => [...prev, newMilestone]); }}
+        onDismiss={() => { if (newMilestone) celebrateMilestone(newMilestone); }}
         config={data.config}
       />
 
