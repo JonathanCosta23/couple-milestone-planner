@@ -257,7 +257,7 @@ export function Wizard({ onComplete }: WizardProps) {
               className="w-full border-dashed"
               onClick={addContributor}
             >
-              <UserPlus className="w-4 h-4 mr-2" /> Adicionar outra pessoa
+              <UserPlus className="w-4 h-4 mr-2" /> Adicionar parceiro(a)
             </Button>
 
             <p className="text-sm text-muted-foreground text-center">
@@ -292,7 +292,7 @@ export function Wizard({ onComplete }: WizardProps) {
               </div>
               {config.contributors.map((c, i) => (
                 <div key={i} className="flex justify-between py-2 border-b border-border/50">
-                  <span className="text-muted-foreground">{c.name || `Pessoa ${i + 1}`}</span>
+                  <span className="text-muted-foreground">{c.name || (i === 0 ? "Você" : "Parceiro(a)")}</span>
                   <span className="font-semibold">
                     {formatBRL(c.plannedSelic)} Selic + {formatBRL(c.plannedCDB)} CDB
                   </span>
