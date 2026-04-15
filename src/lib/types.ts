@@ -40,7 +40,11 @@ export interface ProjectionRow {
 }
 
 export interface FinancialProfile {
+  incomePrimary?: number;
+  incomePartner?: number;
+  /** @deprecated Use incomePrimary. Kept for legacy migration. */
   incomeJonathan?: number;
+  /** @deprecated Use incomePartner. Kept for legacy migration. */
   incomeIsabella?: number;
   monthlyExpenses?: number;
   emergencyFund?: number;

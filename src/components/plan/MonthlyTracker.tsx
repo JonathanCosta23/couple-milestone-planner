@@ -308,7 +308,7 @@ function MonthCard({
               <div key={cIdx} className="rounded-xl bg-muted/30 p-3 space-y-3">
                 <p className="text-sm font-semibold flex items-center gap-2">
                   <span className={`w-2 h-2 rounded-full ${dotColors[cIdx % dotColors.length]}`} />
-                  {c.name || `Pessoa ${cIdx + 1}`}
+                  {c.name || (cIdx === 0 ? "Você" : "Parceiro(a)")}
                 </p>
 
                 {/* Planned row */}

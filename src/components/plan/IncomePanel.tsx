@@ -103,7 +103,7 @@ export function IncomePanel({ appData, config, monthRecords, startDate, onAddInc
               </div>
               {profiles.length > 1 && (
                 <div>
-                  <Label className="text-xs">Pessoa</Label>
+                  <Label className="text-xs">Titular</Label>
                   <Select value={selectedProfileId} onValueChange={setSelectedProfileId}>
                     <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>

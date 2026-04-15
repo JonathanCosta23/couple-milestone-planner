@@ -173,7 +173,7 @@ export function ExpensePanel({
               options={[{ value: "all", label: "Todos" }, { value: "individual", label: "Individual" }, { value: "shared", label: "Compartilhado" }]} />
           </div>
           {appData.mode === "couple" && (
-            <FilterSelect label="Pessoa" value={filterPerson} onChange={setFilterPerson}
+            <FilterSelect label="Titular" value={filterPerson} onChange={setFilterPerson}
               options={[{ value: "all", label: "Todos" }, ...profiles.map(p => ({ value: p.id, label: p.name }))]} />
           )}
         </Card>
