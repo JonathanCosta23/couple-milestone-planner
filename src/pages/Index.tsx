@@ -98,7 +98,7 @@ const Index = () => {
   const { loadFromCloud, saveToCloud, hasLocalData, hasCloudData } = useCloudSync();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [dismissedMilestones, setDismissedMilestones] = useState<number[]>([]);
+  const { celebrated: dismissedMilestones, celebrate: celebrateMilestone } = useCelebratedMilestones(user?.id);
   const [showQuickDeposit, setShowQuickDeposit] = useState(false);
   const [showFinancialSetup, setShowFinancialSetup] = useState(false);
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
