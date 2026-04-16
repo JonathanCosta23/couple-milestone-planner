@@ -500,6 +500,60 @@ export type Database = {
           },
         ]
       }
+      monthly_member_tracking: {
+        Row: {
+          actual_cdb: number
+          actual_selic: number
+          created_at: string
+          id: string
+          monthly_tracking_id: string
+          plan_member_id: string
+          planned_cdb: number
+          planned_selic: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actual_cdb?: number
+          actual_selic?: number
+          created_at?: string
+          id?: string
+          monthly_tracking_id: string
+          plan_member_id: string
+          planned_cdb?: number
+          planned_selic?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actual_cdb?: number
+          actual_selic?: number
+          created_at?: string
+          id?: string
+          monthly_tracking_id?: string
+          plan_member_id?: string
+          planned_cdb?: number
+          planned_selic?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_member_tracking_monthly_tracking_id_fkey"
+            columns: ["monthly_tracking_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_tracking"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monthly_member_tracking_plan_member_id_fkey"
+            columns: ["plan_member_id"]
+            isOneToOne: false
+            referencedRelation: "plan_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       monthly_tracking: {
         Row: {
           actual_total: number
@@ -552,6 +606,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "monthly_tracking_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_members: {
+        Row: {
+          age: number | null
+          avatar_color: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          is_primary: boolean
+          name: string
+          plan_id: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          age?: number | null
+          avatar_color?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          name?: string
+          plan_id: string
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          age?: number | null
+          avatar_color?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          name?: string
+          plan_id?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_members_plan_id_fkey"
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "plans"
