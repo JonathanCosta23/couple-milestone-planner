@@ -89,9 +89,12 @@ const Index = () => {
   } = usePlanData();
 
   const {
-    appData, setAppData, addIncome, updateIncome, deleteIncome,
+    appData, setAppData, setMode, addPartner, removePartner,
+    updatePrimaryProfile, updatePartnerProfile,
+    addIncome, updateIncome, deleteIncome,
     addExpense, updateExpense, deleteExpense, duplicateExpense, markExpensePaid, convertToRecurring,
     addDebt, updateDebt, deleteDebt,
+    addInvestment, updateInvestment, deleteInvestment,
   } = useAppData();
 
   const { user, loading: authLoading, signOut } = useAuth();
