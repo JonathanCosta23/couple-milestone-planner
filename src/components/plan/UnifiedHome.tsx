@@ -40,6 +40,7 @@ function getActivationSteps(appData: AppData, monthRecords: MonthRecord[]) {
 export function UnifiedHome({ appData, config, monthRecords, startDate, onNavigateToTab, onOpenQuickDeposit, core }: Props) {
   const currentKey = getCurrentMonthKey();
   const [showFinancials, setShowFinancials] = useState(false);
+  const [titularFilter, setTitularFilter] = useState<string>("all");
   const { metrics, insights, allocation, projection } = core;
 
   const currentMonth = useMemo(() => getCurrentMonthDeposited(config, monthRecords), [config, monthRecords]);
