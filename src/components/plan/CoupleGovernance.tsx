@@ -5,38 +5,48 @@ import { Progress } from "@/components/ui/progress";
 import { AppData } from "@/lib/models";
 import { PlanConfig, formatBRLCompact } from "@/lib/types";
 import type { FinancialCoreState } from "@/hooks/useFinancialCore";
-import { Users, User, Eye, Shield, ArrowRight } from "lucide-react";
+import { Users, User, Eye, Shield, ArrowRight, UserPlus } from "lucide-react";
 
 interface Props {
   appData: AppData;
   config: PlanConfig;
   core: FinancialCoreState;
+  onNavigateToTab?: (tab: string) => void;
 }
 
 type ViewMode = "consolidated" | "individual";
 
-export function CoupleGovernance({ appData, config, core }: Props) {
+export function CoupleGovernance({ appData, config, core, onNavigateToTab }: Props) {
   const [view, setView] = useState<ViewMode>("consolidated");
   const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
   const { allocation, metrics } = core;
 
-  const isCoupleMode = appData.mode === "couple" && appData.partner;
+  const isCoupleMode = appData.mode === "couple" && appData.partner && !appData.partner.removedAt;
   const totalWealth = metrics.grossWealth;
   const titulares = allocation.titulares;
 
   const profiles = [
-    { id: appData.primaryProfile.id, name: appData.primaryProfile.name },
-    ...(appData.partner ? [{ id: appData.partner.profile.id, name: appData.partner.profile.name }] : []),
+    { id: appData.primaryProfile.id, name: appData.primaryProfile.name || "Você" },
+    ...(isCoupleMode && appData.partner ? [{ id: appData.partner.profile.id, name: appData.partner.profile.name || "Parceiro(a)" }] : []),
   ];
 
+  // Solo mode — show smart empty state with CTA to activate couple
   if (!isCoupleMode) {
     return (
-      <Card className="glass-card p-6 text-center">
-        <Users className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-        <h3 className="font-bold">Governança Patrimonial</h3>
-        <p className="text-sm text-muted-foreground mt-2">
-          Ative o modo casal no seu plano para visualizar a distribuição por titular, proteção individual e recomendações conjuntas.
+      <Card className="glass-card p-6 text-center space-y-4">
+        <Users className="w-10 h-10 text-muted-foreground mx-auto" />
+        <h3 className="font-bold text-lg">Governança Patrimonial</h3>
+        <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
+          A governança patrimonial fica disponível quando o modo casal está ativado.
+          Com ela, você visualiza a distribuição por titular, proteção individual e recomendações conjuntas.
         </p>
+        <Button
+          variant="outline"
+          className="mx-auto"
+          onClick={() => onNavigateToTab?.("dados")}
+        >
+          <UserPlus className="w-4 h-4 mr-2" /> Ativar modo casal
+        </Button>
       </Card>
     );
   }
