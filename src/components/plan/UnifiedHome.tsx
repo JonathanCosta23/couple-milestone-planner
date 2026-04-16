@@ -207,6 +207,42 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
           onClick={() => onNavigateToTab("estrutura")} />
       </div>
 
+      {/* ── Resumo de ativos cadastrados ── */}
+      {appData.investments.filter(i => i.active).length > 0 && (
+        <Card
+          className="glass-card p-4 lg:p-5 cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all animate-fade-in-up"
+          onClick={() => onNavigateToTab("patrimonio")}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Wallet className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-bold">Seu patrimônio</p>
+                <p className="text-sm lg:text-base font-semibold">
+                  {appData.investments.filter(i => i.active).length} {appData.investments.filter(i => i.active).length === 1 ? "ativo cadastrado" : "ativos cadastrados"}
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-muted-foreground" />
+          </div>
+          <div className="space-y-2">
+            {allocation.buckets.filter(b => b.amount > 0).map(bucket => (
+              <div key={bucket.id} className="space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground truncate">{bucket.label}</span>
+                  <span className="font-medium shrink-0 ml-2">
+                    {formatBRLCompact(bucket.amount)} <span className="text-muted-foreground">({(bucket.percentage * 100).toFixed(0)}%)</span>
+                  </span>
+                </div>
+                <Progress value={bucket.percentage * 100} className="h-1.5 rounded-full" />
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {/* ── Activation checklist ── */}
       {!allStepsComplete && (
         <Card className="glass-card p-4 lg:p-5 animate-fade-in-up">
