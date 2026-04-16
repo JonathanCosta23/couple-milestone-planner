@@ -458,7 +458,16 @@ const Index = () => {
             )}
             {perfilSub === "ajuda" && <HowToUse />}
             {perfilSub === "dados" && (
-              <div className="space-y-2">
+              <div className="space-y-4">
+                <PlanModeSelector
+                  appData={appData}
+                  onSetMode={setMode}
+                  onAddPartner={addPartner}
+                  onRemovePartner={removePartner}
+                  onUpdatePrimaryProfile={updatePrimaryProfile}
+                  onUpdatePartnerProfile={updatePartnerProfile}
+                />
+                <div className="space-y-2">
                 {!user && (
                   <Button variant="default" className="w-full justify-start h-12 rounded-xl" onClick={() => setShowAuth(true)}>
                     <User className="w-4 h-4 mr-2.5" /> Criar conta / Entrar
