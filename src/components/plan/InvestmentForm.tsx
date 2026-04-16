@@ -170,28 +170,32 @@ export function InvestmentForm({ appData, open, onOpenChange, editingInvestment,
           {/* Values */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Valor atual (R$)</Label>
-              <Input
-                type="number"
-                min={0}
-                step={100}
-                value={form.currentBalance || ""}
-                placeholder="0"
-                onChange={(e) => setForm(prev => ({ ...prev, currentBalance: Number(e.target.value) || 0 }))}
-                className="text-right"
-              />
+              <Label>Valor atual</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  value={form.currentBalance ? form.currentBalance.toLocaleString("pt-BR") : ""}
+                  placeholder="0"
+                  onChange={(e) => setForm(prev => ({ ...prev, currentBalance: Number(e.target.value.replace(/\D/g, "")) || 0 }))}
+                  className="text-right pl-10"
+                />
+              </div>
             </div>
             <div>
-              <Label>Aporte mensal (R$)</Label>
-              <Input
-                type="number"
-                min={0}
-                step={100}
-                value={form.monthlyContribution || ""}
-                placeholder="0"
-                onChange={(e) => setForm(prev => ({ ...prev, monthlyContribution: Number(e.target.value) || 0 }))}
-                className="text-right"
-              />
+              <Label>Aporte mensal</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  value={form.monthlyContribution ? form.monthlyContribution.toLocaleString("pt-BR") : ""}
+                  placeholder="0"
+                  onChange={(e) => setForm(prev => ({ ...prev, monthlyContribution: Number(e.target.value.replace(/\D/g, "")) || 0 }))}
+                  className="text-right pl-10"
+                />
+              </div>
             </div>
           </div>
 
