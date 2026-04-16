@@ -38,6 +38,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthPage } from "@/components/auth/AuthPage";
 import { DataMigrationDialog } from "@/components/auth/DataMigrationDialog";
 import { AccountPrompt } from "@/components/auth/AccountPrompt";
+import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
 
 import { MILESTONES, EMOTIONAL_GOAL_LABELS } from "@/lib/types";
 import { parseImportJSON, saveBackup, ImportPreview } from "@/lib/storage";
