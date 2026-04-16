@@ -376,13 +376,13 @@ const Index = () => {
               <BehavioralPanel appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {planoSub === "patrimonio" && (
-              <WealthDistribution appData={appData} config={data.config} core={core} />
+              <WealthDistribution appData={appData} config={data.config} core={core} onAddInvestment={addInvestment} onUpdateInvestment={updateInvestment} onDeleteInvestment={deleteInvestment} />
             )}
             {planoSub === "concentracao" && (
-              <ConcentrationMap appData={appData} config={data.config} core={core} />
+              <ConcentrationMap appData={appData} config={data.config} core={core} onNavigateToTab={handleNavigateToTab} />
             )}
             {planoSub === "governanca" && (
-              <CoupleGovernance appData={appData} config={data.config} core={core} />
+              <CoupleGovernance appData={appData} config={data.config} core={core} onNavigateToTab={handleNavigateToTab} />
             )}
           </div>
         );
