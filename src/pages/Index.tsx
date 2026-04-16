@@ -492,6 +492,7 @@ const Index = () => {
                   onClick={() => { if (confirm("Tem certeza? Essa ação não pode ser desfeita.")) resetPlan(); }}>
                   <RotateCcw className="w-4 h-4 mr-2.5" /> Resetar plano
                 </Button>
+                </div>
               </div>
             )}
           </div>
