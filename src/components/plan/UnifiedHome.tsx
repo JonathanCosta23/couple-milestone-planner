@@ -209,40 +209,95 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
       </div>
 
       {/* ── Resumo de ativos cadastrados ── */}
-      {appData.investments.filter(i => i.active).length > 0 && (
-        <Card
-          className="glass-card p-4 lg:p-5 cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all animate-fade-in-up"
-          onClick={() => onNavigateToTab("patrimonio")}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Wallet className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-bold">Seu patrimônio</p>
-                <p className="text-sm lg:text-base font-semibold">
-                  {appData.investments.filter(i => i.active).length} {appData.investments.filter(i => i.active).length === 1 ? "ativo cadastrado" : "ativos cadastrados"}
-                </p>
-              </div>
-            </div>
-            <ArrowRight className="w-4 h-4 text-muted-foreground" />
-          </div>
-          <div className="space-y-2">
-            {allocation.buckets.filter(b => b.amount > 0).map(bucket => (
-              <div key={bucket.id} className="space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground truncate">{bucket.label}</span>
-                  <span className="font-medium shrink-0 ml-2">
-                    {formatBRLCompact(bucket.amount)} <span className="text-muted-foreground">({(bucket.percentage * 100).toFixed(0)}%)</span>
-                  </span>
+      {(() => {
+        const activeInvestments = appData.investments.filter(i => i.active);
+        if (activeInvestments.length === 0) return null;
+
+        const isCoupleActive = appData.mode === "couple" && appData.partner && !appData.partner.removedAt;
+        const primaryId = appData.primaryProfile.id;
+        const partnerId = appData.partner?.profile.id;
+        const primaryName = appData.primaryProfile.name?.trim() || "Você";
+        const partnerName = appData.partner?.profile.name?.trim() || "Parceiro(a)";
+
+        const filtered = isCoupleActive && titularFilter !== "all"
+          ? activeInvestments.filter(i => (i.titular || i.profileId) === titularFilter)
+          : activeInvestments;
+
+        const totalFiltered = filtered.reduce((s, i) => s + (i.currentBalance || 0), 0);
+        const bucketMap = new Map<string, { label: string; amount: number }>();
+        filtered.forEach(inv => {
+          const id = inv.bucket || "crescimento";
+          const existing = bucketMap.get(id);
+          const label = allocation.buckets.find(b => b.id === id)?.label || id;
+          bucketMap.set(id, { label, amount: (existing?.amount || 0) + (inv.currentBalance || 0) });
+        });
+        const bucketsToShow = Array.from(bucketMap.entries())
+          .map(([id, v]) => ({ id, label: v.label, amount: v.amount, percentage: totalFiltered > 0 ? v.amount / totalFiltered : 0 }))
+          .filter(b => b.amount > 0)
+          .sort((a, b) => b.amount - a.amount);
+
+        return (
+          <Card className="glass-card p-4 lg:p-5 animate-fade-in-up">
+            <div
+              className="flex items-center justify-between mb-3 cursor-pointer"
+              onClick={() => onNavigateToTab("patrimonio")}
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Wallet className="w-4 h-4 text-primary" />
                 </div>
-                <Progress value={bucket.percentage * 100} className="h-1.5 rounded-full" />
+                <div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-bold">Seu patrimônio</p>
+                  <p className="text-sm lg:text-base font-semibold">
+                    {filtered.length} {filtered.length === 1 ? "ativo" : "ativos"} · {formatBRLCompact(totalFiltered)}
+                  </p>
+                </div>
               </div>
-            ))}
-          </div>
-        </Card>
-      )}
+              <ArrowRight className="w-4 h-4 text-muted-foreground" />
+            </div>
+
+            {isCoupleActive && (
+              <div className="flex gap-1.5 mb-3" onClick={(e) => e.stopPropagation()}>
+                {[
+                  { id: "all", label: "Todos" },
+                  { id: primaryId, label: primaryName },
+                  ...(partnerId ? [{ id: partnerId, label: partnerName }] : []),
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setTitularFilter(opt.id)}
+                    className={`flex-1 text-[11px] px-2 py-1.5 rounded-lg font-medium transition-colors ${
+                      titularFilter === opt.id
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {bucketsToShow.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-3">Sem ativos para este titular</p>
+            ) : (
+              <div className="space-y-2">
+                {bucketsToShow.map(bucket => (
+                  <div key={bucket.id} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground truncate">{bucket.label}</span>
+                      <span className="font-medium shrink-0 ml-2">
+                        {formatBRLCompact(bucket.amount)} <span className="text-muted-foreground">({(bucket.percentage * 100).toFixed(0)}%)</span>
+                      </span>
+                    </div>
+                    <Progress value={bucket.percentage * 100} className="h-1.5 rounded-full" />
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        );
+      })()}
 
       {/* ── Activation checklist ── */}
       {!allStepsComplete && (
