@@ -323,6 +323,24 @@ const Index = () => {
       return (
         <Wizard onComplete={(config) => {
           completeWizard(config);
+          // Sync primary profile name from wizard
+          const primary = config.contributors[0];
+          if (primary?.name) {
+            updatePrimaryProfile({ name: primary.name });
+          }
+          // Sync couple mode + partner from wizard
+          const partner = config.contributors[1];
+          if (partner?.name) {
+            if (!appData.partner || appData.partner.removedAt) {
+              addPartner(partner.name);
+            } else {
+              updatePartnerProfile({ name: partner.name });
+              setMode("couple");
+            }
+          } else if (appData.partner && !appData.partner.removedAt) {
+            // Wizard says solo — soft-remove partner
+            setMode("solo");
+          }
           if (!data.financialProfile) {
             setShowFinancialSetup(true);
           }
