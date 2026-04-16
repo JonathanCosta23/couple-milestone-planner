@@ -38,6 +38,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthPage } from "@/components/auth/AuthPage";
 import { DataMigrationDialog } from "@/components/auth/DataMigrationDialog";
 import { AccountPrompt } from "@/components/auth/AccountPrompt";
+import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
 
 import { MILESTONES, EMOTIONAL_GOAL_LABELS } from "@/lib/types";
 import { parseImportJSON, saveBackup, ImportPreview } from "@/lib/storage";
@@ -89,9 +90,12 @@ const Index = () => {
   } = usePlanData();
 
   const {
-    appData, setAppData, addIncome, updateIncome, deleteIncome,
+    appData, setAppData, setMode, addPartner, removePartner,
+    updatePrimaryProfile, updatePartnerProfile,
+    addIncome, updateIncome, deleteIncome,
     addExpense, updateExpense, deleteExpense, duplicateExpense, markExpensePaid, convertToRecurring,
     addDebt, updateDebt, deleteDebt,
+    addInvestment, updateInvestment, deleteInvestment,
   } = useAppData();
 
   const { user, loading: authLoading, signOut } = useAuth();
@@ -373,13 +377,13 @@ const Index = () => {
               <BehavioralPanel appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {planoSub === "patrimonio" && (
-              <WealthDistribution appData={appData} config={data.config} core={core} />
+              <WealthDistribution appData={appData} config={data.config} core={core} onAddInvestment={addInvestment} onUpdateInvestment={updateInvestment} onDeleteInvestment={deleteInvestment} />
             )}
             {planoSub === "concentracao" && (
-              <ConcentrationMap appData={appData} config={data.config} core={core} />
+              <ConcentrationMap appData={appData} config={data.config} core={core} onNavigateToTab={handleNavigateToTab} />
             )}
             {planoSub === "governanca" && (
-              <CoupleGovernance appData={appData} config={data.config} core={core} />
+              <CoupleGovernance appData={appData} config={data.config} core={core} onNavigateToTab={handleNavigateToTab} />
             )}
           </div>
         );
@@ -454,7 +458,16 @@ const Index = () => {
             )}
             {perfilSub === "ajuda" && <HowToUse />}
             {perfilSub === "dados" && (
-              <div className="space-y-2">
+              <div className="space-y-4">
+                <PlanModeSelector
+                  appData={appData}
+                  onSetMode={setMode}
+                  onAddPartner={addPartner}
+                  onRemovePartner={removePartner}
+                  onUpdatePrimaryProfile={updatePrimaryProfile}
+                  onUpdatePartnerProfile={updatePartnerProfile}
+                />
+                <div className="space-y-2">
                 {!user && (
                   <Button variant="default" className="w-full justify-start h-12 rounded-xl" onClick={() => setShowAuth(true)}>
                     <User className="w-4 h-4 mr-2.5" /> Criar conta / Entrar
@@ -479,6 +492,7 @@ const Index = () => {
                   onClick={() => { if (confirm("Tem certeza? Essa ação não pode ser desfeita.")) resetPlan(); }}>
                   <RotateCcw className="w-4 h-4 mr-2.5" /> Resetar plano
                 </Button>
+                </div>
               </div>
             )}
           </div>

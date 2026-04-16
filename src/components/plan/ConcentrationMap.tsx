@@ -1,14 +1,16 @@
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { AppData } from "@/lib/models";
 import { PlanConfig, formatBRLCompact } from "@/lib/types";
 import type { FinancialCoreState } from "@/hooks/useFinancialCore";
-import { Building2, PieChart, Users, AlertTriangle } from "lucide-react";
+import { Building2, PieChart, Users, AlertTriangle, Plus } from "lucide-react";
 
 interface Props {
   appData: AppData;
   config: PlanConfig;
   core: FinancialCoreState;
+  onNavigateToTab?: (tab: string) => void;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -17,15 +19,14 @@ const TYPE_LABELS: Record<string, string> = {
   "crypto": "Crypto", "poupanca": "Poupança", "other": "Outros",
 };
 
-export function ConcentrationMap({ appData, config, core }: Props) {
+export function ConcentrationMap({ appData, config, core, onNavigateToTab }: Props) {
   const { allocation, metrics } = core;
   const activeInvestments = appData.investments.filter(i => i.active);
   const totalWealth = metrics.grossWealth;
+  const isCouple = appData.mode === "couple" && appData.partner && !appData.partner.removedAt;
 
-  // Build concentration data from allocation service
   const byInstitution = allocation.institutions;
 
-  // By asset class
   const classMap = new Map<string, number>();
   activeInvestments.forEach(i => classMap.set(i.type, (classMap.get(i.type) || 0) + i.currentBalance));
   const byClass = Array.from(classMap.entries())
@@ -37,13 +38,33 @@ export function ConcentrationMap({ appData, config, core }: Props) {
     }))
     .sort((a, b) => b.balance - a.balance);
 
-  // By titular from allocation
   const byTitular = allocation.titulares;
 
   const dangerCount = byInstitution.filter(i => i.isOverLimit).length + byClass.filter(c => c.status === "danger").length;
   const warningCount = byInstitution.filter(i => i.fgcCovered > i.fgcLimit * 0.7 && !i.isOverLimit).length + byClass.filter(c => c.status === "warning").length;
 
   const hasData = activeInvestments.length > 0;
+
+  if (!hasData) {
+    return (
+      <div className="space-y-4 lg:space-y-5">
+        <Card className="glass-card-strong p-4 lg:p-5 text-center">
+          <PieChart className="w-6 h-6 lg:w-7 lg:h-7 text-primary mx-auto mb-2" />
+          <h3 className="font-bold lg:text-lg">Mapa de Concentração</h3>
+        </Card>
+        <Card className="glass-card p-6 text-center space-y-3">
+          <PieChart className="w-10 h-10 text-muted-foreground mx-auto" />
+          <p className="text-sm font-medium">Sem ativos cadastrados</p>
+          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+            Cadastre seus investimentos para visualizar concentração por ativo, instituição e conglomerado.
+          </p>
+          <Button variant="outline" className="mx-auto" onClick={() => onNavigateToTab?.("patrimonio")}>
+            <Plus className="w-4 h-4 mr-2" /> Cadastrar investimento
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 lg:space-y-5">
@@ -119,7 +140,8 @@ export function ConcentrationMap({ appData, config, core }: Props) {
         </Card>
       )}
 
-      {byTitular.length > 1 && (
+      {/* Only show titular section in couple mode */}
+      {isCouple && byTitular.length > 1 && (
         <Card className="glass-card p-4 lg:p-5 space-y-3">
           <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
             <Users className="w-3.5 h-3.5" /> Por Titular
@@ -137,14 +159,6 @@ export function ConcentrationMap({ appData, config, core }: Props) {
               </div>
             ))}
           </div>
-        </Card>
-      )}
-
-      {!hasData && (
-        <Card className="glass-card p-6 text-center">
-          <p className="text-sm text-muted-foreground">
-            Cadastre seus investimentos para visualizar a distribuição e os riscos de concentração.
-          </p>
         </Card>
       )}
     </div>
