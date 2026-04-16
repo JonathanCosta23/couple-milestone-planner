@@ -45,6 +45,7 @@ import { parseImportJSON, saveBackup, ImportPreview } from "@/lib/storage";
 import { loadAppData, saveAppData } from "@/lib/appStorage";
 import { loadPlanData, savePlanData } from "@/lib/storage";
 import { useFinancialCore } from "@/hooks/useFinancialCore";
+import { usePlan } from "@/hooks/usePlan";
 import { useCelebratedMilestones } from "@/hooks/useCelebratedMilestones";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -100,6 +101,9 @@ const Index = () => {
 
   const { user, loading: authLoading, signOut } = useAuth();
   const { loadFromCloud, saveToCloud, hasLocalData, hasCloudData } = useCloudSync();
+  // Fonte canônica do modo do plano + nomes dos membros (Fase 1.D).
+  // Quando há plano no Supabase, sobrescreve appData.mode/primaryProfile/partner via cloudPlan overlay.
+  const { plan: cloudPlanRow, members: cloudMembers } = usePlan();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { celebrated: dismissedMilestones, celebrate: celebrateMilestone } = useCelebratedMilestones(user?.id);
@@ -130,7 +134,12 @@ const Index = () => {
     startDate: data.startDate,
     profile: data.financialProfile,
     celebratedMilestones: dismissedMilestones,
+    cloudPlan: { plan: cloudPlanRow, members: cloudMembers },
   });
+
+  // AppData efetivo: leitura canônica de modo + nomes vinda da nuvem quando disponível.
+  // Componentes filhos devem consumir este valor no lugar de appData diretamente.
+  const effectiveAppData = core.effectiveAppData;
 
   // ── Cloud sync: load data when user logs in ──
   useEffect(() => {
