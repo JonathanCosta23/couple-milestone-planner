@@ -167,6 +167,7 @@ export function usePlanData() {
 
   return {
     data,
+    setData,
     updateConfig,
     completeWizard,
     updateMonthRecord,
