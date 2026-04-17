@@ -85,12 +85,18 @@ export function IncomePanel({ appData, config, monthRecords, startDate, onAddInc
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs">Descrição</Label>
-                <Input value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} className="h-8 text-sm" placeholder="Ex: Salário" />
+                <Input value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} className="h-10 lg:h-8 text-base lg:text-sm" placeholder="Ex: Salário" />
               </div>
               <div>
                 <Label className="text-xs">Valor (R$)</Label>
-                <Input type="text" inputMode="numeric" value={form.amount ? form.amount.toLocaleString("pt-BR") : ""}
-                  onChange={e => setForm({ ...form, amount: Number(e.target.value.replace(/\D/g, "")) || 0 })} className="h-8 text-sm text-right" />
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={form.amount ? form.amount.toLocaleString("pt-BR") : ""}
+                  onChange={e => setForm({ ...form, amount: Number(e.target.value.replace(/\D/g, "")) || 0 })}
+                  className="h-10 lg:h-8 text-base lg:text-sm text-right"
+                />
               </div>
               <div>
                 <Label className="text-xs">Tipo</Label>

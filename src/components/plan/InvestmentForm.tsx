@@ -100,7 +100,7 @@ export function InvestmentForm({ appData, open, onOpenChange, editingInvestment,
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {isEditing ? <Pencil className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
@@ -172,28 +172,30 @@ export function InvestmentForm({ appData, open, onOpenChange, editingInvestment,
             <div>
               <Label>Valor atual</Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">R$</span>
                 <Input
                   type="text"
-                  inputMode="numeric"
+                  inputMode="decimal"
+                  autoComplete="off"
                   value={form.currentBalance ? form.currentBalance.toLocaleString("pt-BR") : ""}
                   placeholder="0"
                   onChange={(e) => setForm(prev => ({ ...prev, currentBalance: Number(e.target.value.replace(/\D/g, "")) || 0 }))}
-                  className="text-right pl-10"
+                  className="text-right pl-10 h-11 lg:h-10 text-base lg:text-sm"
                 />
               </div>
             </div>
             <div>
               <Label>Aporte mensal</Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">R$</span>
                 <Input
                   type="text"
-                  inputMode="numeric"
+                  inputMode="decimal"
+                  autoComplete="off"
                   value={form.monthlyContribution ? form.monthlyContribution.toLocaleString("pt-BR") : ""}
                   placeholder="0"
                   onChange={(e) => setForm(prev => ({ ...prev, monthlyContribution: Number(e.target.value.replace(/\D/g, "")) || 0 }))}
-                  className="text-right pl-10"
+                  className="text-right pl-10 h-11 lg:h-10 text-base lg:text-sm"
                 />
               </div>
             </div>

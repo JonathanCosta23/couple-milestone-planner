@@ -350,7 +350,7 @@ function ExpenseFormDialog({ open, onOpenChange, expense, monthKey, profiles, co
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-md w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>{expense ? "Editar Gasto" : "Novo Gasto"}</DialogTitle>
         </DialogHeader>
@@ -361,7 +361,16 @@ function ExpenseFormDialog({ open, onOpenChange, expense, monthKey, profiles, co
           </div>
           <div>
             <Label className="text-xs">Valor (R$)</Label>
-            <Input type="number" min={0} step={0.01} value={form.amount || ""} onChange={e => update("amount", parseFloat(e.target.value) || 0)} placeholder="0,00" />
+            <Input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step={0.01}
+              value={form.amount || ""}
+              onChange={e => update("amount", parseFloat(e.target.value) || 0)}
+              placeholder="0,00"
+              className="h-11 lg:h-10 text-base lg:text-sm"
+            />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>

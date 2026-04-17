@@ -247,7 +247,7 @@ function DebtFormDialog({ open, onOpenChange, debt, profiles, coupleMode, onSave
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-md w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader><DialogTitle>{debt ? "Editar Dívida" : "Nova Dívida"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div>
@@ -268,31 +268,31 @@ function DebtFormDialog({ open, onOpenChange, debt, profiles, coupleMode, onSave
             </div>
             <div>
               <Label className="text-xs">Valor Total (R$)</Label>
-              <Input type="number" min={0} value={form.totalAmount || ""} onChange={e => update("totalAmount", parseFloat(e.target.value) || 0)} />
+              <Input type="number" inputMode="decimal" min={0} value={form.totalAmount || ""} onChange={e => update("totalAmount", parseFloat(e.target.value) || 0)} className="h-11 lg:h-10 text-base lg:text-sm" />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-2">
             <div>
               <Label className="text-xs">Parcela Atual</Label>
-              <Input type="number" min={1} value={form.currentInstallment} onChange={e => update("currentInstallment", parseInt(e.target.value) || 1)} />
+              <Input type="number" inputMode="numeric" min={1} value={form.currentInstallment} onChange={e => update("currentInstallment", parseInt(e.target.value) || 1)} className="h-11 lg:h-10 text-base lg:text-sm" />
             </div>
             <div>
               <Label className="text-xs">Total Parcelas</Label>
-              <Input type="number" min={1} value={form.totalInstallments} onChange={e => update("totalInstallments", parseInt(e.target.value) || 1)} />
+              <Input type="number" inputMode="numeric" min={1} value={form.totalInstallments} onChange={e => update("totalInstallments", parseInt(e.target.value) || 1)} className="h-11 lg:h-10 text-base lg:text-sm" />
             </div>
             <div>
               <Label className="text-xs">Valor/mês (R$)</Label>
-              <Input type="number" min={0} value={form.monthlyPayment || ""} onChange={e => update("monthlyPayment", parseFloat(e.target.value) || 0)} />
+              <Input type="number" inputMode="decimal" min={0} value={form.monthlyPayment || ""} onChange={e => update("monthlyPayment", parseFloat(e.target.value) || 0)} className="h-11 lg:h-10 text-base lg:text-sm" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label className="text-xs">Juros (% a.a.)</Label>
-              <Input type="number" min={0} step={0.1} value={form.interestRate || ""} onChange={e => update("interestRate", parseFloat(e.target.value) || 0)} />
+              <Input type="number" inputMode="decimal" min={0} step={0.1} value={form.interestRate || ""} onChange={e => update("interestRate", parseFloat(e.target.value) || 0)} className="h-11 lg:h-10 text-base lg:text-sm" />
             </div>
             <div>
               <Label className="text-xs">Dia Vencimento</Label>
-              <Input type="number" min={1} max={31} value={form.dueDay} onChange={e => update("dueDay", parseInt(e.target.value) || 1)} />
+              <Input type="number" inputMode="numeric" min={1} max={31} value={form.dueDay} onChange={e => update("dueDay", parseInt(e.target.value) || 1)} className="h-11 lg:h-10 text-base lg:text-sm" />
             </div>
           </div>
           <div>
