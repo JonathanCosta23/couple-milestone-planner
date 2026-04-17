@@ -111,7 +111,7 @@ const Index = () => {
   const {
     data, completeWizard, updateConfig, updateMonthRecord, updateMonthNotes,
     toggleMonthCompleted, generateAutoPlan, generateNextYear, resetPlan,
-    setData: setPlanRawData,
+    setData: setPlanRawData, exportJSON,
     importJSON, updateNotificationSettings, updateFinancialProfile, completeOnboarding,
   } = usePlanData();
 
@@ -153,7 +153,7 @@ const Index = () => {
     setNavSection, setPlanoSub, setHistoricoSub, setPerfilSub,
     goToSection, navigateToTab: handleNavigateToTab,
   } = useAppNavigation();
-  const exportImport = useExportImport({ data, exportJSON: () => "", importJSON });
+  const exportImport = useExportImport({ data, exportJSON, importJSON });
   const fileInputRef = exportImport.fileInputRef;
 
   const core = useFinancialCore({
