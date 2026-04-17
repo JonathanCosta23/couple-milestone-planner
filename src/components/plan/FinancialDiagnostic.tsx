@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { PlanConfig, MonthRecord, formatBRL, formatBRLCompact } from "@/lib/types";
+import { PlanConfig, MonthRecord, formatBRLCompact } from "@/lib/types";
 import { AppData } from "@/lib/models";
 import type { FinancialCoreState } from "@/hooks/useFinancialCore";
 import {
@@ -195,8 +195,8 @@ export function FinancialDiagnostic({ appData, config, monthRecords, startDate, 
           <Activity className="w-4 h-4 text-primary" /> Raio-X do seu mês
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-4">
-          <Metric label="O que entra" value={formatBRL(metrics.totalIncome)} icon={ArrowUpRight} positive />
-          <Metric label="O que sai" value={formatBRL(metrics.totalExpenses)} icon={ArrowDownRight} />
+          <Metric label="O que entra" value={formatBRLCompact(metrics.totalIncome)} icon={ArrowUpRight} positive />
+          <Metric label="O que sai" value={formatBRLCompact(metrics.totalExpenses)} icon={ArrowDownRight} />
           <Metric label="Sobra para investir" value={`${(metrics.savingsRate * 100).toFixed(0)}%`} icon={TrendingUp} positive={metrics.savingsRate > 0.15} />
           <Metric label="Já investe" value={`${(metrics.investmentRate * 100).toFixed(0)}%`} icon={Target} positive={metrics.investmentRate > 0.1} />
           <Metric label="Gastos fixos" value={`${metrics.totalIncome > 0 ? ((metrics.fixedExpenses / metrics.totalIncome) * 100).toFixed(0) : 0}%`} icon={PieChart} />
@@ -271,10 +271,10 @@ function Metric({ label, value, icon: Icon, positive }: {
   label: string; value: string; icon: React.ElementType; positive?: boolean;
 }) {
   return (
-    <div className="text-center p-2 lg:p-3 rounded-lg bg-muted/30">
+    <div className="text-center p-2 lg:p-3 rounded-lg bg-muted/30 min-w-0">
       <Icon className={`w-3.5 h-3.5 lg:w-4 lg:h-4 mx-auto mb-1 ${positive ? "text-primary" : "text-muted-foreground"}`} />
-      <p className="text-[10px] sm:text-xs text-muted-foreground uppercase">{label}</p>
-      <p className={`text-sm lg:text-base font-bold ${positive ? "text-primary" : "text-foreground"}`}>{value}</p>
+      <p className="text-[10px] sm:text-xs text-muted-foreground uppercase leading-tight break-words">{label}</p>
+      <p className={`text-sm lg:text-base font-bold break-words ${positive ? "text-primary" : "text-foreground"}`}>{value}</p>
     </div>
   );
 }
