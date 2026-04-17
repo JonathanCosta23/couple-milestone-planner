@@ -17,9 +17,10 @@ import { PlanConfig, formatBRL, getCurrentMonthKey, monthKeyToLabel } from "@/li
 import {
   Plus, Pencil, Trash2, Copy, CheckCircle, RefreshCw, Filter,
   LayoutList, LayoutGrid, Calendar, BarChart3, ArrowUpDown,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Receipt,
 } from "lucide-react";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface Props {
   appData: AppData;
@@ -183,13 +184,16 @@ export function ExpensePanel({
       {viewMode === "list" && (
         <div className="space-y-2">
           {monthExpenses.length === 0 && (
-            <Card className="glass-card p-6 text-center">
-              <p className="text-sm font-semibold mb-1">Nenhum gasto neste mês</p>
-              <p className="text-muted-foreground text-xs mb-3">Registre seus gastos para descobrir quanto realmente sobra para investir.</p>
-              <Button size="sm" className="mt-1" onClick={() => { setEditingExpense(null); setShowForm(true); }}>
-                <Plus className="w-4 h-4 mr-1" /> Registrar primeiro gasto
-              </Button>
-            </Card>
+            <EmptyState
+              icon={Receipt}
+              title="Nenhum gasto neste mês"
+              description="Registre seus gastos para descobrir quanto realmente sobra para investir."
+              action={{
+                label: "Registrar primeiro gasto",
+                icon: Plus,
+                onClick: () => { setEditingExpense(null); setShowForm(true); },
+              }}
+            />
           )}
           {monthExpenses.map(e => (
             <ExpenseRow key={e.id} expense={e} profiles={profiles} coupleMode={appData.mode === "casal"}
@@ -208,9 +212,14 @@ export function ExpensePanel({
             <ExpenseCard key={e.id} expense={e} onEdit={() => handleEdit(e)} onDelete={() => handleDelete(e.id)} />
           ))}
           {monthExpenses.length === 0 && (
-            <Card className="glass-card p-4 text-center col-span-2">
-              <p className="text-muted-foreground text-sm">Nenhum gasto neste mês.</p>
-            </Card>
+            <div className="col-span-2 sm:col-span-3 lg:col-span-4">
+              <EmptyState
+                size="compact"
+                icon={Receipt}
+                title="Nenhum gasto neste mês"
+                description="Use a visualização em lista para registrar o primeiro."
+              />
+            </div>
           )}
         </div>
       )}
@@ -350,7 +359,7 @@ function ExpenseFormDialog({ open, onOpenChange, expense, monthKey, profiles, co
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-md w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>{expense ? "Editar Gasto" : "Novo Gasto"}</DialogTitle>
         </DialogHeader>
@@ -361,7 +370,16 @@ function ExpenseFormDialog({ open, onOpenChange, expense, monthKey, profiles, co
           </div>
           <div>
             <Label className="text-xs">Valor (R$)</Label>
-            <Input type="number" min={0} step={0.01} value={form.amount || ""} onChange={e => update("amount", parseFloat(e.target.value) || 0)} placeholder="0,00" />
+            <Input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step={0.01}
+              value={form.amount || ""}
+              onChange={e => update("amount", parseFloat(e.target.value) || 0)}
+              placeholder="0,00"
+              className="h-11 lg:h-10 text-base lg:text-sm"
+            />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
