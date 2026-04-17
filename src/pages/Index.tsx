@@ -37,7 +37,6 @@ import { SubNav } from "@/components/plan/SubNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthPage } from "@/components/auth/AuthPage";
 import { DataMigrationDialog } from "@/components/auth/DataMigrationDialog";
-import { AccountPrompt } from "@/components/auth/AccountPrompt";
 import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
 
 import { MILESTONES, EMOTIONAL_GOAL_LABELS, PlanConfig } from "@/lib/types";
@@ -114,13 +113,9 @@ const Index = () => {
   const [showFinancialSetup, setShowFinancialSetup] = useState(false);
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
   const [showImportDialog, setShowImportDialog] = useState(false);
-  const [showAuth, setShowAuth] = useState(false);
   const [showMigrationDialog, setShowMigrationDialog] = useState(false);
   const [cloudHasData, setCloudHasData] = useState(false);
   const [migrationLoading, setMigrationLoading] = useState(false);
-  const [accountPromptDismissed, setAccountPromptDismissed] = useState(() => {
-    return localStorage.getItem("plano-account-prompt-dismissed") === "true";
-  });
   const [syncing, setSyncing] = useState(false);
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -332,15 +327,6 @@ const Index = () => {
     toast.success("Até logo! 👋");
   };
 
-  const handleDismissPrompt = () => {
-    setAccountPromptDismissed(true);
-    localStorage.setItem("plano-account-prompt-dismissed", "true");
-  };
-
-  // Show account prompt when user has meaningful data but no account
-  const shouldShowAccountPrompt = !user && !authLoading && !accountPromptDismissed && data.wizardComplete &&
-    (data.monthRecords.length > 0 || appData.incomes.length > 0 || appData.expenses.length > 0);
-
   // Milestone popup: only fires for REALIZED wealth, never projected
   const newMilestone = useMemo(() => {
     const queue = core.milestones.celebrationQueue;
@@ -399,9 +385,16 @@ const Index = () => {
     setImportPreview(null);
   };
 
-  // ── Auth page ──
-  if (showAuth) {
-    return <AuthPage onClose={() => setShowAuth(false)} onSuccess={() => setShowAuth(false)} showBackButton />;
+  // ── Login obrigatório: porta de entrada do app ──
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  if (!user) {
+    return <AuthPage />;
   }
 
   // ── Onboarding ──
@@ -448,9 +441,6 @@ const Index = () => {
       case "home":
         return (
           <div className="space-y-4">
-            {shouldShowAccountPrompt && (
-              <AccountPrompt onCreateAccount={() => setShowAuth(true)} onDismiss={handleDismissPrompt} />
-            )}
             <UnifiedHome
               appData={effectiveAppData}
               config={data.config}
@@ -582,11 +572,6 @@ const Index = () => {
                   onUpdatePartnerProfile={handleUpdatePartnerProfile}
                 />
                 <div className="space-y-2">
-                {!user && (
-                  <Button variant="default" className="w-full justify-start h-12 rounded-xl" onClick={() => setShowAuth(true)}>
-                    <User className="w-4 h-4 mr-2.5" /> Criar conta / Entrar
-                  </Button>
-                )}
                 <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={() => setShowFinancialSetup(true)}>
                   <Settings className="w-4 h-4 mr-2.5" /> Perfil financeiro
                 </Button>
@@ -597,11 +582,9 @@ const Index = () => {
                   <Upload className="w-4 h-4 mr-2.5" /> Importar dados
                 </Button>
                 <NotificationSettings settings={data.notificationSettings} onUpdate={updateNotificationSettings} />
-                {user && (
-                  <Button variant="outline" className="w-full justify-start h-12 rounded-xl text-muted-foreground" onClick={handleSignOut}>
-                    <LogOut className="w-4 h-4 mr-2.5" /> Sair da conta
-                  </Button>
-                )}
+                <Button variant="outline" className="w-full justify-start h-12 rounded-xl text-muted-foreground" onClick={handleSignOut}>
+                  <LogOut className="w-4 h-4 mr-2.5" /> Sair da conta
+                </Button>
                 <Button variant="outline" className="w-full justify-start h-12 rounded-xl text-destructive hover:text-destructive"
                   onClick={() => { if (confirm("Tem certeza? Essa ação não pode ser desfeita.")) resetPlan(); }}>
                   <RotateCcw className="w-4 h-4 mr-2.5" /> Resetar plano
@@ -655,36 +638,27 @@ const Index = () => {
             )}
 
             {/* User menu */}
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
-                    {(user.user_metadata?.full_name || user.email || "U")[0].toUpperCase()}
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <div className="px-3 py-2">
-                    <p className="text-sm font-medium truncate">{user.user_metadata?.full_name || "Usuário"}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                  </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => { setNavSection("perfil"); setPerfilSub("dados"); }}>
-                    <Settings className="w-4 h-4 mr-2" /> Configurações
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
-                    <LogOut className="w-4 h-4 mr-2" /> Sair
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <button
-                onClick={() => setShowAuth(true)}
-                className="text-xs text-primary font-medium hover:underline hidden sm:block"
-              >
-                Entrar
-              </button>
-            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
+                  {(user.user_metadata?.full_name || user.email || "U")[0].toUpperCase()}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="px-3 py-2">
+                  <p className="text-sm font-medium truncate">{user.user_metadata?.full_name || "Usuário"}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => { setNavSection("perfil"); setPerfilSub("dados"); }}>
+                  <Settings className="w-4 h-4 mr-2" /> Configurações
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
+                  <LogOut className="w-4 h-4 mr-2" /> Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <ThemeToggle />
           </div>
