@@ -379,7 +379,7 @@ const Index = () => {
               <AccountPrompt onCreateAccount={() => setShowAuth(true)} onDismiss={handleDismissPrompt} />
             )}
             <UnifiedHome
-              appData={appData}
+              appData={effectiveAppData}
               config={data.config}
               monthRecords={data.monthRecords}
               startDate={data.startDate}
@@ -400,31 +400,31 @@ const Index = () => {
               </div>
             )}
             {planoSub === "simulador" && (
-              <AdvancedSimulator appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
+              <AdvancedSimulator appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {planoSub === "estrutura" && (
-              <PatrimonialArchitecture appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
+              <PatrimonialArchitecture appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {planoSub === "projecao" && (
-              <ProjectionRealistic appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
+              <ProjectionRealistic appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {planoSub === "diagnostico" && (
-              <FinancialDiagnostic appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
+              <FinancialDiagnostic appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {planoSub === "jornada" && (
-              <JourneyPhases appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
+              <JourneyPhases appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {planoSub === "comportamento" && (
-              <BehavioralPanel appData={appData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
+              <BehavioralPanel appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {planoSub === "patrimonio" && (
-              <WealthDistribution appData={appData} config={data.config} core={core} onAddInvestment={addInvestment} onUpdateInvestment={updateInvestment} onDeleteInvestment={deleteInvestment} />
+              <WealthDistribution appData={effectiveAppData} config={data.config} core={core} onAddInvestment={addInvestment} onUpdateInvestment={updateInvestment} onDeleteInvestment={deleteInvestment} />
             )}
             {planoSub === "concentracao" && (
-              <ConcentrationMap appData={appData} config={data.config} core={core} onNavigateToTab={handleNavigateToTab} />
+              <ConcentrationMap appData={effectiveAppData} config={data.config} core={core} onNavigateToTab={handleNavigateToTab} />
             )}
             {planoSub === "governanca" && (
-              <CoupleGovernance appData={appData} config={data.config} core={core} onNavigateToTab={handleNavigateToTab} />
+              <CoupleGovernance appData={effectiveAppData} config={data.config} core={core} onNavigateToTab={handleNavigateToTab} />
             )}
           </div>
         );
@@ -446,7 +446,7 @@ const Index = () => {
             )}
             {historicoSub === "gastos" && (
               <ExpensePanel
-                appData={appData}
+                appData={effectiveAppData}
                 config={data.config}
                 onAddExpense={addExpense}
                 onUpdateExpense={updateExpense}
@@ -458,7 +458,7 @@ const Index = () => {
             )}
             {historicoSub === "renda" && (
               <IncomePanel
-                appData={appData}
+                appData={effectiveAppData}
                 config={data.config}
                 monthRecords={data.monthRecords}
                 startDate={data.startDate}
@@ -469,7 +469,7 @@ const Index = () => {
             )}
             {historicoSub === "dividas" && (
               <DebtModule
-                appData={appData}
+                appData={effectiveAppData}
                 config={data.config}
                 onAddDebt={addDebt}
                 onUpdateDebt={updateDebt}
