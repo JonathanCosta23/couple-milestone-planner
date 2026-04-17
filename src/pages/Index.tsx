@@ -411,28 +411,58 @@ const Index = () => {
   }, [data.wizardComplete, data.config.contributors.length]);
 
   // ── Migration handlers ──
-  const handleMigrateLocal = async () => {
+  /**
+   * Decisão: usar dados deste dispositivo e SOBRESCREVER a conta.
+   * O modal já garantiu confirmação secundária; aqui criamos backup local antes.
+   */
+  const handleUseLocal = async () => {
     if (!user) return;
     setMigrationLoading(true);
+    backupBeforeDestructiveOp();
     await saveToCloud(user.id, data, appData);
     setMigrationLoading(false);
     setShowMigrationDialog(false);
-    toast.success("Dados locais salvos na sua conta! ☁️");
+    setLocalSnapshot(null);
+    setCloudSnapshot(null);
+    toast.success("Conta atualizada com os dados deste dispositivo. Backup local criado.");
   };
 
-  const handleKeepCloud = async () => {
+  /**
+   * Decisão: usar dados da conta. Os dados locais são guardados em backup
+   * automático (não destruídos imediatamente) e o app passa a refletir a nuvem.
+   */
+  const handleUseCloud = async () => {
     if (!user) return;
     setMigrationLoading(true);
+    backupBeforeDestructiveOp();
     const cloudData = await loadFromCloud(user.id);
     if (cloudData?.planData) {
       importJSON(JSON.stringify(cloudData.planData));
     }
     if (cloudData?.appData) {
-      setAppData(cloudData.appData as any);
+      setAppData(cloudData.appData as AppData);
     }
     setMigrationLoading(false);
     setShowMigrationDialog(false);
-    toast.success("Dados da conta carregados! ☁️");
+    setLocalSnapshot(null);
+    setCloudSnapshot(null);
+    toast.success("Dados da conta carregados. Versão local guardada em backup.");
+  };
+
+  /**
+   * Decisão: adiar. Regra do produto: durante esta sessão usamos os dados
+   * da conta para evitar sobrescrita acidental, e o modal pode reaparecer depois.
+   */
+  const handleDecideLater = async () => {
+    if (!user) return;
+    const cloudData = await loadFromCloud(user.id);
+    if (cloudData?.planData) importJSON(JSON.stringify(cloudData.planData));
+    if (cloudData?.appData) setAppData(cloudData.appData as AppData);
+    setShowMigrationDialog(false);
+    toast.message("Decisão adiada", {
+      description:
+        "Por enquanto, vamos usar os dados da sua conta. Você poderá revisar esse conflito depois.",
+    });
   };
 
   const handleSignOut = async () => {
