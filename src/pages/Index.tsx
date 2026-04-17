@@ -37,12 +37,14 @@ import { SubNav } from "@/components/plan/SubNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthPage } from "@/components/auth/AuthPage";
 import { DataMigrationDialog, type ConflictSnapshot } from "@/components/auth/DataMigrationDialog";
+import { BlobMigrationDialog } from "@/components/auth/BlobMigrationDialog";
 import { backupBeforeDestructiveOp } from "@/lib/services/dataMigrationService";
+import { migrateBlobToTables, previewBlobMigration, loadAppDataFromBlob } from "@/lib/services/blobMigrationService";
 import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
 import { RestoreBackupButton } from "@/components/plan/RestoreBackupButton";
 
 import { MILESTONES, EMOTIONAL_GOAL_LABELS, PlanConfig, type PlanData } from "@/lib/types";
-import type { PlanMode, Investment, AppData } from "@/lib/models";
+import type { PlanMode, Investment, Income, Expense, Debt, AppData } from "@/lib/models";
 import { parseImportJSON, saveBackup, ImportPreview } from "@/lib/storage";
 import { loadAppData, saveAppData } from "@/lib/appStorage";
 import { loadPlanData, savePlanData } from "@/lib/storage";
@@ -50,6 +52,11 @@ import { useFinancialCore } from "@/hooks/useFinancialCore";
 import { usePlan } from "@/hooks/usePlan";
 import { usePlanWriter } from "@/hooks/usePlanWriter";
 import { useAssetWriter, assetRowToInvestment } from "@/hooks/useAssetWriter";
+import { useIncomeWriter } from "@/hooks/useIncomeWriter";
+import { useExpenseWriter } from "@/hooks/useExpenseWriter";
+import { useDebtWriter } from "@/hooks/useDebtWriter";
+import { useMonthlyTrackingWriter } from "@/hooks/useMonthlyTrackingWriter";
+import { useDataHydration } from "@/hooks/useDataHydration";
 import { useCelebratedMilestones } from "@/hooks/useCelebratedMilestones";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -89,7 +96,8 @@ const PERFIL_SUBS = [
 
 const Index = () => {
   const {
-    data, completeWizard, updateConfig, updateMonthRecord, updateMonthNotes,
+    data, setData: setPlanRawData,
+    completeWizard, updateConfig, updateMonthRecord, updateMonthNotes,
     toggleMonthCompleted, generateAutoPlan, generateNextYear, resetPlan, exportJSON, importJSON,
     updateNotificationSettings, updateFinancialProfile, completeOnboarding,
   } = usePlanData();
@@ -106,10 +114,13 @@ const Index = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const { loadFromCloud, saveToCloud, hasLocalData, hasCloudData } = useCloudSync();
   // Fonte canônica do modo do plano + nomes dos membros (Fase 1.D).
-  // Quando há plano no Supabase, sobrescreve appData.mode/primaryProfile/partner via cloudPlan overlay.
   const { plan: cloudPlanRow, members: cloudMembers, primaryMember: cloudPrimaryMember, partnerMember: cloudPartnerMember, refresh: refreshCloudPlan } = usePlan();
   const planWriter = usePlanWriter();
   const assetWriter = useAssetWriter();
+  const incomeWriter = useIncomeWriter();
+  const expenseWriter = useExpenseWriter();
+  const debtWriter = useDebtWriter();
+  const trackingWriter = useMonthlyTrackingWriter();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { celebrated: dismissedMilestones, celebrate: celebrateMilestone } = useCelebratedMilestones(user?.id);
@@ -123,6 +134,12 @@ const Index = () => {
   const [cloudSnapshot, setCloudSnapshot] = useState<ConflictSnapshot | null>(null);
   const [syncing, setSyncing] = useState(false);
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Blob migration (D2=B): controle do modal de migração assistida.
+  const [showBlobMigration, setShowBlobMigration] = useState(false);
+  const [blobMigrationCounts, setBlobMigrationCounts] = useState({ incomes: 0, expenses: 0, debts: 0 });
+  const [blobAppDataCache, setBlobAppDataCache] = useState<AppData | null>(null);
+  const blobCheckedRef = useRef(false);
 
   // Navigation state — 4 tabs
   const [navSection, setNavSection] = useState<NavSection>("home");
@@ -396,6 +413,169 @@ const Index = () => {
     })();
     return () => { cancelled = true; };
   }, [user, cloudPlanRow?.id, assetWriter, setAppData]);
+
+  // ── Hidratação Fase 2.C: income/expenses/debts/tracking das tabelas → estado ──
+  const hydration = useDataHydration({
+    userId: user?.id,
+    planId: cloudPlanRow?.id,
+    members: cloudMembers,
+    setAppData,
+    setPlanData: setPlanRawData,
+  });
+
+  // ── D2=B: detecta blob/local com itens ainda não normalizados e oferece migrar ──
+  useEffect(() => {
+    if (!user || !cloudPlanRow || !hydration.hydrated || blobCheckedRef.current) return;
+    blobCheckedRef.current = true;
+    (async () => {
+      const remoteBlob = await loadAppDataFromBlob(user.id);
+      const candidate: AppData | null = remoteBlob ?? (
+        (appData.incomes.length + appData.expenses.length + appData.debts.length) > 0
+          ? appData : null
+      );
+      const preview = previewBlobMigration(candidate);
+      const counts = {
+        incomes: hydration.counts.incomes === 0 ? preview.incomes : 0,
+        expenses: hydration.counts.expenses === 0 ? preview.expenses : 0,
+        debts: hydration.counts.debts === 0 ? preview.debts : 0,
+      };
+      if (counts.incomes + counts.expenses + counts.debts > 0 && candidate) {
+        setBlobAppDataCache(candidate);
+        setBlobMigrationCounts(counts);
+        setShowBlobMigration(true);
+      }
+    })();
+  }, [user, cloudPlanRow, hydration.hydrated, hydration.counts, appData]);
+
+  const handleBlobMigrate = useCallback(async () => {
+    if (!user || !cloudPlanRow || !blobAppDataCache) return;
+    backupBeforeDestructiveOp();
+    const summary = await migrateBlobToTables(user.id, cloudPlanRow.id, blobAppDataCache, cloudMembers);
+    setShowBlobMigration(false);
+    if (summary.errors.length > 0) toast.error(`Migração concluída com avisos: ${summary.errors.join("; ")}`);
+    else toast.success(`Migrado: ${summary.incomes} renda(s), ${summary.expenses} gasto(s), ${summary.debts} dívida(s).`);
+    hydration.forceRefresh();
+  }, [user, cloudPlanRow, blobAppDataCache, cloudMembers, hydration]);
+
+  const handleBlobLater = useCallback(() => {
+    setShowBlobMigration(false);
+    toast.message("Tudo bem!", { description: "Você pode migrar depois nas configurações." });
+  }, []);
+
+  // ── Resolve plan_member_id a partir do profileId do appData ──
+  const resolveMemberId = useCallback((profileId?: string): string | null => {
+    if (!profileId) return null;
+    if (appData.primaryProfile?.id === profileId) return cloudPrimaryMember?.id ?? null;
+    if (appData.partner?.profile?.id === profileId) return cloudPartnerMember?.id ?? null;
+    return null;
+  }, [appData.primaryProfile?.id, appData.partner?.profile?.id, cloudPrimaryMember?.id, cloudPartnerMember?.id]);
+
+  // ── Income handlers (cache local + persistência real) ──
+  const handleAddIncome = useCallback(async (income: Income) => {
+    addIncome(income);
+    if (user && cloudPlanRow) {
+      const r = await incomeWriter.createIncome(cloudPlanRow.id, income, resolveMemberId(income.profileId));
+      if (r.error) toast.error(`Falha ao salvar renda: ${r.error}`);
+      else if (r.data) updateIncome(income.id, { id: r.data.id } as Partial<Income>);
+    }
+  }, [addIncome, updateIncome, user, cloudPlanRow, incomeWriter, resolveMemberId]);
+
+  const handleUpdateIncome = useCallback(async (id: string, updates: Partial<Income>) => {
+    updateIncome(id, updates);
+    if (user && cloudPlanRow) {
+      const memberId = updates.profileId !== undefined ? resolveMemberId(updates.profileId) : undefined;
+      const r = await incomeWriter.updateIncome(cloudPlanRow.id, id, updates, memberId);
+      if (r.error) toast.error(`Falha ao atualizar renda: ${r.error}`);
+    }
+  }, [updateIncome, user, cloudPlanRow, incomeWriter, resolveMemberId]);
+
+  const handleDeleteIncome = useCallback(async (id: string) => {
+    deleteIncome(id);
+    if (user) { const r = await incomeWriter.deleteIncome(id); if (r.error) toast.error(`Falha ao remover renda: ${r.error}`); }
+  }, [deleteIncome, user, incomeWriter]);
+
+  // ── Expense handlers ──
+  const handleAddExpense = useCallback(async (expense: Expense) => {
+    addExpense(expense);
+    if (user && cloudPlanRow) {
+      const r = await expenseWriter.createExpense(cloudPlanRow.id, expense, resolveMemberId(expense.responsibleProfileId));
+      if (r.error) toast.error(`Falha ao salvar gasto: ${r.error}`);
+      else if (r.data) updateExpense(expense.id, { id: r.data.id } as Partial<Expense>);
+    }
+  }, [addExpense, updateExpense, user, cloudPlanRow, expenseWriter, resolveMemberId]);
+
+  const handleUpdateExpense = useCallback(async (id: string, updates: Partial<Expense>) => {
+    updateExpense(id, updates);
+    if (user && cloudPlanRow) {
+      const memberId = updates.responsibleProfileId !== undefined ? resolveMemberId(updates.responsibleProfileId) : undefined;
+      const r = await expenseWriter.updateExpense(cloudPlanRow.id, id, updates, memberId);
+      if (r.error) toast.error(`Falha ao atualizar gasto: ${r.error}`);
+    }
+  }, [updateExpense, user, cloudPlanRow, expenseWriter, resolveMemberId]);
+
+  const handleDeleteExpense = useCallback(async (id: string) => {
+    deleteExpense(id);
+    if (user) { const r = await expenseWriter.deleteExpense(id); if (r.error) toast.error(`Falha ao remover gasto: ${r.error}`); }
+  }, [deleteExpense, user, expenseWriter]);
+
+  // ── Debt handlers ──
+  const handleAddDebt = useCallback(async (debt: Debt) => {
+    addDebt(debt);
+    if (user && cloudPlanRow) {
+      const r = await debtWriter.createDebt(cloudPlanRow.id, debt, resolveMemberId(debt.profileId));
+      if (r.error) toast.error(`Falha ao salvar dívida: ${r.error}`);
+      else if (r.data) updateDebt(debt.id, { id: r.data.id } as Partial<Debt>);
+    }
+  }, [addDebt, updateDebt, user, cloudPlanRow, debtWriter, resolveMemberId]);
+
+  const handleUpdateDebt = useCallback(async (id: string, updates: Partial<Debt>) => {
+    updateDebt(id, updates);
+    if (user && cloudPlanRow) {
+      const memberId = updates.profileId !== undefined ? resolveMemberId(updates.profileId) : undefined;
+      const r = await debtWriter.updateDebt(cloudPlanRow.id, id, updates, memberId);
+      if (r.error) toast.error(`Falha ao atualizar dívida: ${r.error}`);
+    }
+  }, [updateDebt, user, cloudPlanRow, debtWriter, resolveMemberId]);
+
+  const handleDeleteDebt = useCallback(async (id: string) => {
+    deleteDebt(id);
+    if (user) { const r = await debtWriter.deleteDebt(id); if (r.error) toast.error(`Falha ao remover dívida: ${r.error}`); }
+  }, [deleteDebt, user, debtWriter]);
+
+  // ── MonthlyTracker: persiste o mês inteiro a cada edição (idempotente) ──
+  const persistMonth = useCallback(async (monthKey: string) => {
+    if (!user || !cloudPlanRow || cloudMembers.length === 0) return;
+    const record = data.monthRecords.find((r) => r.monthKey === monthKey);
+    const ordered = [...cloudMembers].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
+    const memberInputs = ordered.map((m, idx) => {
+      const contrib = data.config.contributors[idx];
+      const dep = record?.deposits[idx];
+      return {
+        planMemberId: m.id,
+        plannedSelic: contrib?.plannedSelic ?? 0,
+        plannedCDB: contrib?.plannedCDB ?? 0,
+        actualSelic: dep?.actualSelic ?? 0,
+        actualCDB: dep?.actualCDB ?? 0,
+      };
+    });
+    await trackingWriter.upsertMonth(cloudPlanRow.id, monthKey, memberInputs, record?.notes ?? "", record?.completed);
+  }, [user, cloudPlanRow, cloudMembers, data.monthRecords, data.config.contributors, trackingWriter]);
+
+  const handleUpdateMonth = useCallback((monthKey: string, contributorIndex: number, deposit: { actualSelic: number; actualCDB: number }, notes?: string) => {
+    updateMonthRecord(monthKey, contributorIndex, deposit, notes);
+    setTimeout(() => { void persistMonth(monthKey); }, 0);
+  }, [updateMonthRecord, persistMonth]);
+
+  const handleUpdateMonthNotes = useCallback((monthKey: string, notes: string) => {
+    updateMonthNotes(monthKey, notes);
+    if (user && cloudPlanRow) void trackingWriter.updateMonthNotes(cloudPlanRow.id, monthKey, notes);
+  }, [updateMonthNotes, user, cloudPlanRow, trackingWriter]);
+
+  const handleToggleMonthCompleted = useCallback((monthKey: string) => {
+    toggleMonthCompleted(monthKey);
+    setTimeout(() => { void persistMonth(monthKey); }, 0);
+  }, [toggleMonthCompleted, persistMonth]);
+
 
   // ── Backfill: sync wizard contributors → appData mode/partner ──
   useEffect(() => {
