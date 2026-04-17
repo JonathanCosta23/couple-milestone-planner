@@ -72,9 +72,11 @@ import { useDebtWriter } from "@/hooks/useDebtWriter";
 import { useMonthlyTrackingWriter } from "@/hooks/useMonthlyTrackingWriter";
 import { useDataHydration } from "@/hooks/useDataHydration";
 import { useCelebratedMilestones } from "@/hooks/useCelebratedMilestones";
+import { useAppNavigation } from "@/hooks/useAppNavigation";
+import { useExportImport } from "@/hooks/useExportImport";
+import { AppHeader } from "@/components/plan/AppHeader";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Download, Upload, RotateCcw, Settings, ArrowLeft, LogOut, Cloud, Loader2 } from "lucide-react";
+import { Download, Upload, RotateCcw, Settings, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 // Sub-nav definitions — shorter labels, better mobile fit
@@ -136,12 +138,9 @@ const Index = () => {
   const debtWriter = useDebtWriter();
   const trackingWriter = useMonthlyTrackingWriter();
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { celebrated: dismissedMilestones, celebrate: celebrateMilestone } = useCelebratedMilestones(user?.id);
   const [showQuickDeposit, setShowQuickDeposit] = useState(false);
   const [showFinancialSetup, setShowFinancialSetup] = useState(false);
-  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
-  const [showImportDialog, setShowImportDialog] = useState(false);
   const [showMigrationDialog, setShowMigrationDialog] = useState(false);
   const [migrationLoading, setMigrationLoading] = useState(false);
   const [localSnapshot, setLocalSnapshot] = useState<ConflictSnapshot | null>(null);
@@ -155,11 +154,20 @@ const Index = () => {
   const [blobAppDataCache, setBlobAppDataCache] = useState<AppData | null>(null);
   const blobCheckedRef = useRef(false);
 
-  // Navigation state — 4 tabs
-  const [navSection, setNavSection] = useState<NavSection>("home");
-  const [planoSub, setPlanoSub] = useState("aportes");
-  const [historicoSub, setHistoricoSub] = useState("tracker");
-  const [perfilSub, setPerfilSub] = useState("aprender");
+  // Navigation: extraído para hook dedicado (useAppNavigation)
+  const {
+    navSection, planoSub, historicoSub, perfilSub,
+    setNavSection, setPlanoSub, setHistoricoSub, setPerfilSub,
+    goToSection, navigateToTab: handleNavigateToTab,
+  } = useAppNavigation();
+
+  // Export/Import JSON: extraído para hook dedicado (useExportImport)
+  const exportImport = useExportImport({
+    data,
+    exportJSON,
+    importJSON,
+  });
+  const fileInputRef = exportImport.fileInputRef;
 
   const core = useFinancialCore({
     appData,
