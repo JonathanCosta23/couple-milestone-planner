@@ -683,53 +683,8 @@ const Index = () => {
     ? data.emotionalGoal === "outro" ? (data.emotionalGoalCustom || null) : EMOTIONAL_GOAL_LABELS[data.emotionalGoal]
     : null;
 
-  const handleNavigateToTab = (tab: string) => {
-    const planoTabs = ["aportes", "estrutura", "simulador", "projecao", "diagnostico", "jornada", "comportamento", "patrimonio", "concentracao", "governanca"];
-    const historicoTabs = ["tracker", "gastos", "renda", "dividas"];
-    const perfilTabs = ["aprender", "glossario", "armadilhas", "investir", "compartilhar", "ajuda", "dados"];
-
-    if (planoTabs.includes(tab)) { setNavSection("plano"); setPlanoSub(tab); }
-    else if (historicoTabs.includes(tab)) { setNavSection("historico"); setHistoricoSub(tab); }
-    else if (perfilTabs.includes(tab)) { setNavSection("perfil"); setPerfilSub(tab); }
-    else { setNavSection("home"); }
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleExportJSON = () => {
-    const json = exportJSON();
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "plano-do-milhao.json";
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Dados exportados com sucesso!");
-  };
-
-  const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const result = ev.target?.result as string;
-      const preview = parseImportJSON(result);
-      setImportPreview(preview);
-      setShowImportDialog(true);
-    };
-    reader.readAsText(file);
-    e.target.value = "";
-  };
-
-  const handleConfirmImport = () => {
-    if (importPreview?.valid && importPreview.data) {
-      saveBackup(data);
-      importJSON(JSON.stringify(importPreview.data));
-      toast.success("Dados importados com sucesso!");
-    }
-    setShowImportDialog(false);
-    setImportPreview(null);
-  };
+  // (handleNavigateToTab, handleExportJSON, handleImportJSON, handleConfirmImport
+  //  foram extraídos para useAppNavigation e useExportImport)
 
   // ── Login obrigatório: porta de entrada do app ──
   if (authLoading) {
@@ -949,68 +904,15 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20 lg:pb-4">
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border/40">
-        <div className="flex items-center justify-between h-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
-          <h1 className="text-sm font-bold text-gradient lg:text-base">Plano do Milhão</h1>
-          <div className="flex items-center gap-3">
-            {/* Cloud sync indicator */}
-            {user && syncing && (
-              <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                <span className="hidden sm:inline">Salvando...</span>
-              </div>
-            )}
-            {user && !syncing && (
-              <div className="flex items-center gap-1 text-[10px] text-emerald-500">
-                <Cloud className="w-3 h-3" />
-                <span className="hidden sm:inline">Salvo</span>
-              </div>
-            )}
-
-            {/* Desktop inline nav */}
-            {data.wizardComplete && (
-              <nav className="hidden lg:flex items-center gap-1">
-                {(["home", "plano", "historico", "perfil"] as NavSection[]).map(s => (
-                  <button
-                    key={s}
-                    onClick={() => { setNavSection(s); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                      navSection === s ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                    }`}
-                  >
-                    {s === "home" ? "Início" : s === "plano" ? "Plano" : s === "historico" ? "Histórico" : "Perfil"}
-                  </button>
-                ))}
-              </nav>
-            )}
-
-            {/* User menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
-                  {(user.user_metadata?.full_name || user.email || "U")[0].toUpperCase()}
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <div className="px-3 py-2">
-                  <p className="text-sm font-medium truncate">{user.user_metadata?.full_name || "Usuário"}</p>
-                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => { setNavSection("perfil"); setPerfilSub("dados"); }}>
-                  <Settings className="w-4 h-4 mr-2" /> Configurações
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
-                  <LogOut className="w-4 h-4 mr-2" /> Sair
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
+      <AppHeader
+        user={user}
+        syncing={syncing}
+        navSection={navSection}
+        showDesktopNav={data.wizardComplete}
+        onChangeSection={goToSection}
+        onOpenSettings={() => { setNavSection("perfil"); setPerfilSub("dados"); }}
+        onSignOut={handleSignOut}
+      />
 
       {data.wizardComplete && navSection === "home" && (
         <Hero goalLabel={goalLabel} config={data.config} contributorCount={data.config.contributors.length} />
