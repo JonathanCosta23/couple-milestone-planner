@@ -32,6 +32,7 @@ interface HydrationStatus {
   loading: boolean;
   counts: { incomes: number; expenses: number; debts: number; months: number };
   error: string | null;
+  forceRefresh: () => void;
 }
 
 export function useDataHydration({
@@ -42,12 +43,19 @@ export function useDataHydration({
   const debtWriter = useDebtWriter();
   const trackingWriter = useMonthlyTrackingWriter();
 
+  const ranKeyRef = useRef<string | null>(null);
+
+  const forceRefresh = useCallback(() => {
+    ranKeyRef.current = null;
+    setStatus((s) => ({ ...s, hydrated: false }));
+  }, []);
+
   const [status, setStatus] = useState<HydrationStatus>({
     hydrated: false, loading: false,
     counts: { incomes: 0, expenses: 0, debts: 0, months: 0 },
     error: null,
+    forceRefresh,
   });
-  const ranKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!userId || !planId) return;
@@ -131,6 +139,7 @@ export function useDataHydration({
           },
           error:
             incRes.error || expRes.error || debtRes.error || monthsRes.error || null,
+          forceRefresh,
         });
       } catch (err) {
         if (cancelled) return;
@@ -139,13 +148,7 @@ export function useDataHydration({
     })();
 
     return () => { cancelled = true; };
-  }, [userId, planId, members, setAppData, setPlanData, incomeWriter, expenseWriter, debtWriter, trackingWriter]);
+  }, [userId, planId, members, setAppData, setPlanData, incomeWriter, expenseWriter, debtWriter, trackingWriter, forceRefresh]);
 
-  /** Permite forçar re-hidratação (ex.: depois de migrar o blob). */
-  const forceRefresh = useCallback(() => {
-    ranKeyRef.current = null;
-    setStatus((s) => ({ ...s, hydrated: false }));
-  }, []);
-
-  return { ...status, forceRefresh } as HydrationStatus & { forceRefresh: () => void };
+  return status;
 }
