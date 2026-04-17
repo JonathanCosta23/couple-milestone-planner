@@ -33,7 +33,7 @@ export function useAssetActions(deps: Deps): AssetActions {
     if (!user || !planId) return;
     const memberId = resolveMemberId(inv.profileId);
     const r = await writer.createAsset(planId, inv, memberId);
-    if (r.error) toast.error(`Falha ao salvar investimento: ${r.error}`);
+    if (r.error) toast.error(`Falha ao salvar investimento: ${toFriendlyError(r.error)}`);
     else if (r.data) updateInvestmentLocal(inv.id, { id: r.data.id } as Partial<Investment>);
   }, [user, planId, writer, resolveMemberId, addInvestmentLocal, updateInvestmentLocal]);
 
@@ -42,7 +42,7 @@ export function useAssetActions(deps: Deps): AssetActions {
     if (!user || !planId) return;
     const memberId = resolveMemberId(updates.profileId);
     const r = await writer.updateAsset(planId, id, updates, memberId);
-    if (r.error) toast.error(`Falha ao atualizar investimento: ${r.error}`);
+    if (r.error) toast.error(`Falha ao atualizar investimento: ${toFriendlyError(r.error)}`);
   }, [user, planId, writer, resolveMemberId, updateInvestmentLocal]);
 
   const remove = useCallback(async (id: string) => {

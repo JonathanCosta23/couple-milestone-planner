@@ -6,6 +6,7 @@ import { useCallback } from "react";
 import { toast } from "sonner";
 import type { Income } from "@/lib/models";
 import { useIncomeWriter } from "@/hooks/useIncomeWriter";
+import { toFriendlyError } from "@/lib/errors/friendlyError";
 
 interface Deps {
   user: { id: string } | null;
@@ -30,7 +31,7 @@ export function useIncomeActions(deps: Deps): IncomeActions {
     addIncomeLocal(income);
     if (!user || !planId) return;
     const r = await writer.createIncome(planId, income, resolveMemberId(income.profileId));
-    if (r.error) toast.error(`Falha ao salvar renda: ${r.error}`);
+    if (r.error) toast.error(`Falha ao salvar renda: ${toFriendlyError(r.error)}`);
     else if (r.data) updateIncomeLocal(income.id, { id: r.data.id } as Partial<Income>);
   }, [user, planId, writer, resolveMemberId, addIncomeLocal, updateIncomeLocal]);
 
@@ -39,14 +40,14 @@ export function useIncomeActions(deps: Deps): IncomeActions {
     if (!user || !planId) return;
     const memberId = updates.profileId !== undefined ? resolveMemberId(updates.profileId) : undefined;
     const r = await writer.updateIncome(planId, id, updates, memberId);
-    if (r.error) toast.error(`Falha ao atualizar renda: ${r.error}`);
+    if (r.error) toast.error(`Falha ao atualizar renda: ${toFriendlyError(r.error)}`);
   }, [user, planId, writer, resolveMemberId, updateIncomeLocal]);
 
   const remove = useCallback(async (id: string) => {
     deleteIncomeLocal(id);
     if (!user) return;
     const r = await writer.deleteIncome(id);
-    if (r.error) toast.error(`Falha ao remover renda: ${r.error}`);
+    if (r.error) toast.error(`Falha ao remover renda: ${toFriendlyError(r.error)}`);
   }, [user, writer, deleteIncomeLocal]);
 
   return { add, update, remove };

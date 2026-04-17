@@ -8,6 +8,7 @@ import type { PlanMode, AppData } from "@/lib/models";
 import type { PlanConfig } from "@/lib/types";
 import type { PlanRow, PlanMemberRow } from "@/hooks/usePlan";
 import { usePlanWriter } from "@/hooks/usePlanWriter";
+import { toFriendlyError } from "@/lib/errors/friendlyError";
 
 interface Deps {
   user: { id: string } | null;

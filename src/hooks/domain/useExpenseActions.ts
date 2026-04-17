@@ -5,6 +5,7 @@ import { useCallback } from "react";
 import { toast } from "sonner";
 import type { Expense } from "@/lib/models";
 import { useExpenseWriter } from "@/hooks/useExpenseWriter";
+import { toFriendlyError } from "@/lib/errors/friendlyError";
 
 interface Deps {
   user: { id: string } | null;
@@ -29,7 +30,7 @@ export function useExpenseActions(deps: Deps): ExpenseActions {
     addExpenseLocal(expense);
     if (!user || !planId) return;
     const r = await writer.createExpense(planId, expense, resolveMemberId(expense.responsibleProfileId));
-    if (r.error) toast.error(`Falha ao salvar gasto: ${r.error}`);
+    if (r.error) toast.error(`Falha ao salvar gasto: ${toFriendlyError(r.error)}`);
     else if (r.data) updateExpenseLocal(expense.id, { id: r.data.id } as Partial<Expense>);
   }, [user, planId, writer, resolveMemberId, addExpenseLocal, updateExpenseLocal]);
 
@@ -38,14 +39,14 @@ export function useExpenseActions(deps: Deps): ExpenseActions {
     if (!user || !planId) return;
     const memberId = updates.responsibleProfileId !== undefined ? resolveMemberId(updates.responsibleProfileId) : undefined;
     const r = await writer.updateExpense(planId, id, updates, memberId);
-    if (r.error) toast.error(`Falha ao atualizar gasto: ${r.error}`);
+    if (r.error) toast.error(`Falha ao atualizar gasto: ${toFriendlyError(r.error)}`);
   }, [user, planId, writer, resolveMemberId, updateExpenseLocal]);
 
   const remove = useCallback(async (id: string) => {
     deleteExpenseLocal(id);
     if (!user) return;
     const r = await writer.deleteExpense(id);
-    if (r.error) toast.error(`Falha ao remover gasto: ${r.error}`);
+    if (r.error) toast.error(`Falha ao remover gasto: ${toFriendlyError(r.error)}`);
   }, [user, writer, deleteExpenseLocal]);
 
   return { add, update, remove };

@@ -5,6 +5,7 @@ import { useCallback } from "react";
 import { toast } from "sonner";
 import type { Debt } from "@/lib/models";
 import { useDebtWriter } from "@/hooks/useDebtWriter";
+import { toFriendlyError } from "@/lib/errors/friendlyError";
 
 interface Deps {
   user: { id: string } | null;
@@ -29,7 +30,7 @@ export function useDebtActions(deps: Deps): DebtActions {
     addDebtLocal(debt);
     if (!user || !planId) return;
     const r = await writer.createDebt(planId, debt, resolveMemberId(debt.profileId));
-    if (r.error) toast.error(`Falha ao salvar dívida: ${r.error}`);
+    if (r.error) toast.error(`Falha ao salvar dívida: ${toFriendlyError(r.error)}`);
     else if (r.data) updateDebtLocal(debt.id, { id: r.data.id } as Partial<Debt>);
   }, [user, planId, writer, resolveMemberId, addDebtLocal, updateDebtLocal]);
 
@@ -38,14 +39,14 @@ export function useDebtActions(deps: Deps): DebtActions {
     if (!user || !planId) return;
     const memberId = updates.profileId !== undefined ? resolveMemberId(updates.profileId) : undefined;
     const r = await writer.updateDebt(planId, id, updates, memberId);
-    if (r.error) toast.error(`Falha ao atualizar dívida: ${r.error}`);
+    if (r.error) toast.error(`Falha ao atualizar dívida: ${toFriendlyError(r.error)}`);
   }, [user, planId, writer, resolveMemberId, updateDebtLocal]);
 
   const remove = useCallback(async (id: string) => {
     deleteDebtLocal(id);
     if (!user) return;
     const r = await writer.deleteDebt(id);
-    if (r.error) toast.error(`Falha ao remover dívida: ${r.error}`);
+    if (r.error) toast.error(`Falha ao remover dívida: ${toFriendlyError(r.error)}`);
   }, [user, writer, deleteDebtLocal]);
 
   return { add, update, remove };
