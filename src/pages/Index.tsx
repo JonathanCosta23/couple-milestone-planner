@@ -104,7 +104,8 @@ const Index = () => {
   const { loadFromCloud, saveToCloud, hasLocalData, hasCloudData } = useCloudSync();
   // Fonte canônica do modo do plano + nomes dos membros (Fase 1.D).
   // Quando há plano no Supabase, sobrescreve appData.mode/primaryProfile/partner via cloudPlan overlay.
-  const { plan: cloudPlanRow, members: cloudMembers } = usePlan();
+  const { plan: cloudPlanRow, members: cloudMembers, primaryMember: cloudPrimaryMember, partnerMember: cloudPartnerMember, refresh: refreshCloudPlan } = usePlan();
+  const planWriter = usePlanWriter();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { celebrated: dismissedMilestones, celebrate: celebrateMilestone } = useCelebratedMilestones(user?.id);
