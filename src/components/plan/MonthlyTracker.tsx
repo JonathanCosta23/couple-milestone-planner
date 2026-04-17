@@ -131,23 +131,23 @@ export function MonthlyTracker({
   return (
     <div className="space-y-6 lg:space-y-8">
       {/* Stats bar */}
-      <div className="grid grid-cols-3 gap-3 lg:gap-4">
-        <Card className="glass-card p-3 flex items-center gap-2">
-          <div className="flex -space-x-0.5">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
+        <Card className="glass-card p-2.5 sm:p-3 flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-2 text-center sm:text-left">
+          <div className="flex -space-x-0.5 shrink-0">
             {Array.from({ length: Math.min(Math.max(1, streak), 3) }).map((_, i) => (
               <span key={i} className="text-base" style={{ opacity: streak > 0 ? 1 : 0.3 }}>🔥</span>
             ))}
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Sequência</p>
-            <p className="text-lg font-bold leading-tight">{streak}</p>
+            <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wider leading-tight">Sequência</p>
+            <p className="text-base sm:text-lg font-bold leading-tight">{streak}</p>
           </div>
         </Card>
-        <Card className="glass-card p-3 flex items-center gap-3">
-          <Percent className="w-5 h-5 text-primary shrink-0" />
+        <Card className="glass-card p-2.5 sm:p-3 flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-3 text-center sm:text-left">
+          <Percent className="w-4 h-4 sm:w-5 sm:h-5 text-primary shrink-0" />
           <div className="min-w-0">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">12 meses</p>
-            <p className="text-lg font-bold leading-tight">{(completion12 * 100).toFixed(0)}%</p>
+            <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wider leading-tight">12 meses</p>
+            <p className="text-base sm:text-lg font-bold leading-tight">{(completion12 * 100).toFixed(0)}%</p>
           </div>
         </Card>
         <Card className="glass-card p-3 flex items-center justify-center">

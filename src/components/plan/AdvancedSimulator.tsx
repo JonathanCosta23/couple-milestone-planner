@@ -185,24 +185,24 @@ export function AdvancedSimulator({ appData, config, monthRecords, startDate, co
       {mode === "simple" && (
         <>
           {/* 3 results: nominal, líquido, real */}
-          <div className="grid grid-cols-3 gap-3">
-            <Card className="glass-card p-3.5 lg:p-5 text-center">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            <Card className="glass-card p-2.5 sm:p-3.5 lg:p-5 text-center min-w-0">
               <DollarSign className="w-4 h-4 lg:w-5 lg:h-5 text-primary mx-auto mb-1" />
-              <p className="text-[10px] sm:text-xs text-muted-foreground uppercase">Nominal</p>
-              <p className="text-base lg:text-lg font-extrabold text-primary">{formatBRLCompact(simpleResult.nominal)}</p>
-              <p className="text-[9px] sm:text-[10px] text-muted-foreground">O número que aparece na conta</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground uppercase truncate">Nominal</p>
+              <p className="text-sm sm:text-base lg:text-lg font-extrabold text-primary whitespace-nowrap">{formatBRLCompact(simpleResult.nominal)}</p>
+              <p className="text-[9px] sm:text-[10px] text-muted-foreground leading-tight mt-0.5">Saldo bruto</p>
             </Card>
-            <Card className="glass-card p-3.5 lg:p-5 text-center">
+            <Card className="glass-card p-2.5 sm:p-3.5 lg:p-5 text-center min-w-0">
               <Shield className="w-4 h-4 lg:w-5 lg:h-5 text-accent mx-auto mb-1" />
-              <p className="text-[10px] sm:text-xs text-muted-foreground uppercase">Líquido</p>
-              <p className="text-base lg:text-lg font-extrabold text-accent">{formatBRLCompact(simpleResult.net)}</p>
-              <p className="text-[9px] sm:text-[10px] text-muted-foreground">Depois de pagar imposto</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground uppercase truncate">Líquido</p>
+              <p className="text-sm sm:text-base lg:text-lg font-extrabold text-accent whitespace-nowrap">{formatBRLCompact(simpleResult.net)}</p>
+              <p className="text-[9px] sm:text-[10px] text-muted-foreground leading-tight mt-0.5">Após imposto</p>
             </Card>
-            <Card className="glass-card p-3.5 lg:p-5 text-center">
+            <Card className="glass-card p-2.5 sm:p-3.5 lg:p-5 text-center min-w-0">
               <Eye className="w-4 h-4 lg:w-5 lg:h-5 text-warning mx-auto mb-1" />
-              <p className="text-[10px] sm:text-xs text-muted-foreground uppercase">Real</p>
-              <p className="text-base lg:text-lg font-extrabold text-warning">{formatBRLCompact(simpleResult.real)}</p>
-              <p className="text-[9px] sm:text-[10px] text-muted-foreground">O que ele compra de verdade</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground uppercase truncate">Real</p>
+              <p className="text-sm sm:text-base lg:text-lg font-extrabold text-warning whitespace-nowrap">{formatBRLCompact(simpleResult.real)}</p>
+              <p className="text-[9px] sm:text-[10px] text-muted-foreground leading-tight mt-0.5">Poder de compra</p>
             </Card>
           </div>
 
