@@ -40,12 +40,14 @@ import { DataMigrationDialog } from "@/components/auth/DataMigrationDialog";
 import { AccountPrompt } from "@/components/auth/AccountPrompt";
 import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
 
-import { MILESTONES, EMOTIONAL_GOAL_LABELS } from "@/lib/types";
+import { MILESTONES, EMOTIONAL_GOAL_LABELS, PlanConfig } from "@/lib/types";
+import type { PlanMode } from "@/lib/models";
 import { parseImportJSON, saveBackup, ImportPreview } from "@/lib/storage";
 import { loadAppData, saveAppData } from "@/lib/appStorage";
 import { loadPlanData, savePlanData } from "@/lib/storage";
 import { useFinancialCore } from "@/hooks/useFinancialCore";
 import { usePlan } from "@/hooks/usePlan";
+import { usePlanWriter } from "@/hooks/usePlanWriter";
 import { useCelebratedMilestones } from "@/hooks/useCelebratedMilestones";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -103,7 +105,8 @@ const Index = () => {
   const { loadFromCloud, saveToCloud, hasLocalData, hasCloudData } = useCloudSync();
   // Fonte canônica do modo do plano + nomes dos membros (Fase 1.D).
   // Quando há plano no Supabase, sobrescreve appData.mode/primaryProfile/partner via cloudPlan overlay.
-  const { plan: cloudPlanRow, members: cloudMembers } = usePlan();
+  const { plan: cloudPlanRow, members: cloudMembers, primaryMember: cloudPrimaryMember, partnerMember: cloudPartnerMember, refresh: refreshCloudPlan } = usePlan();
+  const planWriter = usePlanWriter();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { celebrated: dismissedMilestones, celebrate: celebrateMilestone } = useCelebratedMilestones(user?.id);
@@ -140,6 +143,101 @@ const Index = () => {
   // AppData efetivo: leitura canônica de modo + nomes vinda da nuvem quando disponível.
   // Componentes filhos devem consumir este valor no lugar de appData diretamente.
   const effectiveAppData = core.effectiveAppData;
+
+  // ── Handlers que escrevem na nuvem (plans + plan_members) e mantêm cache local ──
+  // Mantém useCloudSync rodando em paralelo (rede de segurança até a Fase 2.D).
+  const handleWizardComplete = useCallback(async (config: PlanConfig) => {
+    completeWizard(config);
+    const primary = config.contributors[0];
+    const partner = config.contributors[1];
+
+    if (primary?.name) updatePrimaryProfile({ name: primary.name });
+    if (partner?.name) {
+      if (!appData.partner || appData.partner.removedAt) addPartner(partner.name);
+      else { updatePartnerProfile({ name: partner.name }); setMode("casal"); }
+    } else if (appData.partner && !appData.partner.removedAt) {
+      setMode("individual");
+    }
+
+    if (user) {
+      const mode: PlanMode = partner?.name ? "casal" : "individual";
+      const totalMonthly = config.contributors.reduce((s, c) => s + c.plannedSelic + c.plannedCDB, 0);
+      const result = await planWriter.createPlanFromWizard({
+        mode,
+        goalAmount: config.targetAmount,
+        initialAmount: config.initialAmount,
+        monthlyContribution: totalMonthly,
+        goalYears: config.years,
+        primaryName: primary?.name || "Você",
+        primaryAge: primary?.age ?? null,
+        partnerName: partner?.name || null,
+        partnerAge: partner?.age ?? null,
+        wizardComplete: true,
+      });
+      if (result.error) toast.error(`Falha ao salvar plano na nuvem: ${result.error}`);
+      else await refreshCloudPlan();
+    }
+
+    if (!data.financialProfile) setShowFinancialSetup(true);
+  }, [appData.partner, completeWizard, updatePrimaryProfile, addPartner, updatePartnerProfile, setMode, user, planWriter, refreshCloudPlan, data.financialProfile]);
+
+  const handleSetMode = useCallback(async (mode: PlanMode) => {
+    setMode(mode);
+    if (user && cloudPlanRow) {
+      const partnerProfile = appData.partner?.profile;
+      const result = await planWriter.setPlanMode(
+        cloudPlanRow.id,
+        mode,
+        mode === "casal" && partnerProfile?.name
+          ? { name: partnerProfile.name, age: partnerProfile.age ?? null }
+          : undefined
+      );
+      if (result.error) toast.error(`Falha ao trocar modo: ${result.error}`);
+      else await refreshCloudPlan();
+    }
+  }, [setMode, user, cloudPlanRow, appData.partner, planWriter, refreshCloudPlan]);
+
+  const handleAddPartner = useCallback(async (name: string, age?: number) => {
+    addPartner(name, age);
+    if (user && cloudPlanRow) {
+      const result = await planWriter.addPartner(cloudPlanRow.id, { name, age: age ?? null });
+      if (result.error) toast.error(`Falha ao adicionar parceiro: ${result.error}`);
+      else await refreshCloudPlan();
+    }
+  }, [addPartner, user, cloudPlanRow, planWriter, refreshCloudPlan]);
+
+  const handleRemovePartner = useCallback(async () => {
+    removePartner();
+    if (user && cloudPlanRow) {
+      const result = await planWriter.removePartner(cloudPlanRow.id);
+      if (result.error) toast.error(`Falha ao remover parceiro: ${result.error}`);
+      else await refreshCloudPlan();
+    }
+  }, [removePartner, user, cloudPlanRow, planWriter, refreshCloudPlan]);
+
+  const handleUpdatePrimaryProfile = useCallback(async (profile: { name?: string; age?: number }) => {
+    updatePrimaryProfile(profile);
+    if (user && cloudPrimaryMember) {
+      const result = await planWriter.updateMember(cloudPrimaryMember.id, {
+        name: profile.name ?? cloudPrimaryMember.name,
+        age: profile.age ?? cloudPrimaryMember.age,
+      });
+      if (result.error) toast.error(`Falha ao atualizar titular: ${result.error}`);
+      else await refreshCloudPlan();
+    }
+  }, [updatePrimaryProfile, user, cloudPrimaryMember, planWriter, refreshCloudPlan]);
+
+  const handleUpdatePartnerProfile = useCallback(async (profile: { name?: string; age?: number }) => {
+    updatePartnerProfile(profile);
+    if (user && cloudPartnerMember) {
+      const result = await planWriter.updateMember(cloudPartnerMember.id, {
+        name: profile.name ?? cloudPartnerMember.name,
+        age: profile.age ?? cloudPartnerMember.age,
+      });
+      if (result.error) toast.error(`Falha ao atualizar parceiro: ${result.error}`);
+      else await refreshCloudPlan();
+    }
+  }, [updatePartnerProfile, user, cloudPartnerMember, planWriter, refreshCloudPlan]);
 
   // ── Cloud sync: load data when user logs in ──
   useEffect(() => {
@@ -343,32 +441,7 @@ const Index = () => {
 
   const renderContent = () => {
     if (!data.wizardComplete) {
-      return (
-        <Wizard onComplete={(config) => {
-          completeWizard(config);
-          // Sync primary profile name from wizard
-          const primary = config.contributors[0];
-          if (primary?.name) {
-            updatePrimaryProfile({ name: primary.name });
-          }
-          // Sync couple mode + partner from wizard
-          const partner = config.contributors[1];
-          if (partner?.name) {
-            if (!appData.partner || appData.partner.removedAt) {
-              addPartner(partner.name);
-            } else {
-              updatePartnerProfile({ name: partner.name });
-              setMode("casal");
-            }
-          } else if (appData.partner && !appData.partner.removedAt) {
-            // Wizard says individual — soft-remove partner
-            setMode("individual");
-          }
-          if (!data.financialProfile) {
-            setShowFinancialSetup(true);
-          }
-        }} />
-      );
+      return <Wizard onComplete={handleWizardComplete} />;
     }
 
     switch (navSection) {
@@ -501,12 +574,12 @@ const Index = () => {
             {perfilSub === "dados" && (
               <div className="space-y-4">
                 <PlanModeSelector
-                  appData={appData}
-                  onSetMode={setMode}
-                  onAddPartner={addPartner}
-                  onRemovePartner={removePartner}
-                  onUpdatePrimaryProfile={updatePrimaryProfile}
-                  onUpdatePartnerProfile={updatePartnerProfile}
+                  appData={effectiveAppData}
+                  onSetMode={handleSetMode}
+                  onAddPartner={handleAddPartner}
+                  onRemovePartner={handleRemovePartner}
+                  onUpdatePrimaryProfile={handleUpdatePrimaryProfile}
+                  onUpdatePartnerProfile={handleUpdatePartnerProfile}
                 />
                 <div className="space-y-2">
                 {!user && (
