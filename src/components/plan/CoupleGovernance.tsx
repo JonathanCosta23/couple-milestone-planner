@@ -6,6 +6,7 @@ import { AppData } from "@/lib/models";
 import { PlanConfig, formatBRLCompact } from "@/lib/types";
 import type { FinancialCoreState } from "@/hooks/useFinancialCore";
 import { Users, User, Eye, Shield, ArrowRight, UserPlus } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface Props {
   appData: AppData;
@@ -33,21 +34,16 @@ export function CoupleGovernance({ appData, config, core, onNavigateToTab }: Pro
   // Solo mode — show smart empty state with CTA to activate couple
   if (!isCoupleMode) {
     return (
-      <Card className="glass-card p-6 text-center space-y-4">
-        <Users className="w-10 h-10 text-muted-foreground mx-auto" />
-        <h3 className="font-bold text-lg">Governança Patrimonial</h3>
-        <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
-          A governança patrimonial fica disponível quando o modo casal está ativado.
-          Com ela, você visualiza a distribuição por titular, proteção individual e recomendações conjuntas.
-        </p>
-        <Button
-          variant="outline"
-          className="mx-auto"
-          onClick={() => onNavigateToTab?.("dados")}
-        >
-          <UserPlus className="w-4 h-4 mr-2" /> Ativar modo casal
-        </Button>
-      </Card>
+      <EmptyState
+        icon={Users}
+        title="Governança patrimonial"
+        description="Disponível quando o modo casal está ativado. Você passa a ver distribuição por titular, proteção individual e recomendações conjuntas."
+        action={{
+          label: "Ativar modo casal",
+          icon: UserPlus,
+          onClick: () => onNavigateToTab?.("dados"),
+        }}
+      />
     );
   }
 
