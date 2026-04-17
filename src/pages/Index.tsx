@@ -47,6 +47,7 @@ import { loadPlanData, savePlanData } from "@/lib/storage";
 import { useFinancialCore } from "@/hooks/useFinancialCore";
 import { usePlan } from "@/hooks/usePlan";
 import { usePlanWriter } from "@/hooks/usePlanWriter";
+import { useAssetWriter, assetRowToInvestment } from "@/hooks/useAssetWriter";
 import { useCelebratedMilestones } from "@/hooks/useCelebratedMilestones";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -106,6 +107,7 @@ const Index = () => {
   // Quando há plano no Supabase, sobrescreve appData.mode/primaryProfile/partner via cloudPlan overlay.
   const { plan: cloudPlanRow, members: cloudMembers, primaryMember: cloudPrimaryMember, partnerMember: cloudPartnerMember, refresh: refreshCloudPlan } = usePlan();
   const planWriter = usePlanWriter();
+  const assetWriter = useAssetWriter();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { celebrated: dismissedMilestones, celebrate: celebrateMilestone } = useCelebratedMilestones(user?.id);
