@@ -237,13 +237,12 @@ const Index = () => {
   }, [updatePartnerProfile, user, cloudPartnerMember, planWriter, refreshCloudPlan]);
 
   // ── Investimentos: escrita real em assets + cache local (Fase 2.B) ──
-  const resolveMemberIdForInvestment = useCallback((profileId?: string): string | null => {
-    if (!profileId) return cloudPrimaryMember?.id ?? null;
-    // profileId no app é o id do Profile local; se bater com nome do member, mapeia
-    if (profileId === appData.primaryProfile.id) return cloudPrimaryMember?.id ?? null;
-    if (appData.partner && profileId === appData.partner.profile.id) return cloudPartnerMember?.id ?? null;
-    return cloudPrimaryMember?.id ?? null;
-  }, [appData.primaryProfile.id, appData.partner, cloudPrimaryMember, cloudPartnerMember]);
+  // assets.member_id tem FK para a tabela `members` (legado), não `plan_members`.
+  // Até consolidarmos as duas tabelas, deixamos null — ownership já é garantido por user_id + plan_id.
+  // O profileId permanece persistido no cache local (appData) e na hidratação a partir de assets.
+  const resolveMemberIdForInvestment = useCallback((_profileId?: string): string | null => {
+    return null;
+  }, []);
 
   const handleAddInvestment = useCallback(async (inv: Investment) => {
     addInvestment(inv);
