@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { PlanConfig, MonthDeposit, EMPTY_DEPOSIT, formatBRL, getCurrentMonthKey, monthKeyToFullLabel } from "@/lib/types";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,8 +23,6 @@ const DOT_COLORS = ["bg-primary", "bg-accent", "bg-chart-3", "bg-chart-4", "bg-c
 export function QuickDeposit({ open, onOpenChange, config, monthRecords, onUpdateMonth, onToggleCompleted }: QuickDepositProps) {
   const currentKey = getCurrentMonthKey();
   const record = monthRecords.find((r) => r.monthKey === currentKey);
-
-  const activeContributors = config.contributors.filter(c => c.plannedSelic > 0 || c.plannedCDB > 0);
 
   const [values, setValues] = useState<number[]>(() =>
     config.contributors.map((_, i) => {
@@ -56,63 +54,65 @@ export function QuickDeposit({ open, onOpenChange, config, monthRecords, onUpdat
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-card-strong max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-primary" />
-            Registrar aporte
-          </DialogTitle>
-          <p className="text-xs text-muted-foreground">{monthKeyToFullLabel(currentKey)}</p>
-        </DialogHeader>
+    <ResponsiveModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title={
+        <span className="flex items-center gap-2">
+          <DollarSign className="w-5 h-5 text-primary" />
+          Registrar aporte
+        </span>
+      }
+      description={monthKeyToFullLabel(currentKey)}
+      maxWidth="max-w-sm"
+    >
+      <div className="space-y-4 pt-2">
+        {config.contributors.map((c, i) => {
+          const hasPlan = c.plannedSelic > 0 || c.plannedCDB > 0;
+          if (!hasPlan) return null;
+          return (
+            <div key={i} className="space-y-1.5">
+              <Label className="text-sm flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full shrink-0 ${DOT_COLORS[i % DOT_COLORS.length]}`} />
+                <span className="truncate">{c.name || `Pessoa ${i + 1}`}</span>
+                <span className="text-xs text-muted-foreground ml-auto shrink-0">
+                  Meta: {formatBRL(c.plannedSelic + c.plannedCDB)}
+                </span>
+              </Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step={100}
+                value={values[i] || ""}
+                placeholder="0"
+                onChange={(e) => {
+                  const newVals = [...values];
+                  newVals[i] = Number(e.target.value) || 0;
+                  setValues(newVals);
+                }}
+                className="text-right h-12 lg:h-10 text-base lg:text-sm"
+              />
+            </div>
+          );
+        })}
 
-        <div className="space-y-4 pt-2">
-          {config.contributors.map((c, i) => {
-            const hasPlan = c.plannedSelic > 0 || c.plannedCDB > 0;
-            if (!hasPlan) return null;
-            return (
-              <div key={i} className="space-y-1.5">
-                <Label className="text-sm flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${DOT_COLORS[i % DOT_COLORS.length]}`} />
-                  {c.name || `Pessoa ${i + 1}`}
-                  <span className="text-xs text-muted-foreground ml-auto">
-                    Meta: {formatBRL(c.plannedSelic + c.plannedCDB)}
-                  </span>
-                </Label>
-                <Input
-                  type="number"
-                  min={0}
-                  step={100}
-                  value={values[i] || ""}
-                  placeholder="0"
-                  onChange={(e) => {
-                    const newVals = [...values];
-                    newVals[i] = Number(e.target.value) || 0;
-                    setValues(newVals);
-                  }}
-                  className="text-right"
-                />
-              </div>
-            );
-          })}
-
-          <div className="flex items-center justify-between py-2">
-            <Label htmlFor="quick-complete" className="text-sm flex items-center gap-2 cursor-pointer">
-              <CheckCircle2 className={`w-4 h-4 ${markComplete ? "text-primary" : "text-muted-foreground"}`} />
-              Marcar mês como concluído
-            </Label>
-            <Switch
-              id="quick-complete"
-              checked={markComplete}
-              onCheckedChange={setMarkComplete}
-            />
-          </div>
-
-          <Button className="w-full" onClick={handleSave}>
-            <DollarSign className="w-4 h-4 mr-1" /> Salvar aporte
-          </Button>
+        <div className="flex items-center justify-between gap-3 py-2">
+          <Label htmlFor="quick-complete" className="text-sm flex items-center gap-2 cursor-pointer min-h-[32px]">
+            <CheckCircle2 className={`w-4 h-4 ${markComplete ? "text-primary" : "text-muted-foreground"}`} />
+            Marcar mês como concluído
+          </Label>
+          <Switch
+            id="quick-complete"
+            checked={markComplete}
+            onCheckedChange={setMarkComplete}
+          />
         </div>
-      </DialogContent>
-    </Dialog>
+
+        <Button className="w-full h-12 lg:h-10 text-base lg:text-sm" onClick={handleSave}>
+          <DollarSign className="w-4 h-4 mr-1" /> Salvar aporte
+        </Button>
+      </div>
+    </ResponsiveModal>
   );
 }
