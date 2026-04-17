@@ -107,9 +107,9 @@ export function ConcentrationMap({ appData, config, core, onNavigateToTab }: Pro
                   </div>
                 </div>
                 <Progress value={inst.percentage * 100} className="h-1.5" />
-                <div className="flex justify-between mt-1.5 text-[10px] text-muted-foreground">
-                  <span>FGC: {formatBRLCompact(inst.fgcCovered)} de {formatBRLCompact(inst.fgcLimit)}</span>
-                  <span className={inst.headroom < 50_000 ? "text-warning font-medium" : ""}>
+                <div className="flex flex-col sm:flex-row sm:justify-between gap-0.5 sm:gap-2 mt-1.5 text-[10px] text-muted-foreground">
+                  <span className="truncate">FGC: {formatBRLCompact(inst.fgcCovered)} de {formatBRLCompact(inst.fgcLimit)}</span>
+                  <span className={inst.headroom < 50_000 ? "text-warning font-medium shrink-0" : "shrink-0"}>
                     Disponível: {formatBRLCompact(inst.headroom)}
                   </span>
                 </div>

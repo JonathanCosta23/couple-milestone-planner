@@ -144,11 +144,11 @@ export function PatrimonialArchitecture({ appData, config, monthRecords, startDa
 
 function MetricPill({ icon: Icon, label, value, sub }: { icon: React.ElementType; label: string; value: string; sub: string }) {
   return (
-    <div className="rounded-lg bg-muted/30 p-2.5 lg:p-3 text-center">
+    <div className="rounded-lg bg-muted/30 p-2.5 lg:p-3 text-center min-w-0">
       <Icon className="w-4 h-4 mx-auto mb-1 text-primary" />
-      <p className="text-[10px] text-muted-foreground uppercase">{label}</p>
-      <p className="text-sm font-bold">{value}</p>
-      <p className="text-[9px] text-muted-foreground">{sub}</p>
+      <p className="text-[10px] text-muted-foreground uppercase truncate">{label}</p>
+      <p className="text-sm font-bold break-words leading-tight">{value}</p>
+      <p className="text-[9px] text-muted-foreground truncate">{sub}</p>
     </div>
   );
 }
