@@ -69,6 +69,7 @@ import {
 } from "@/hooks/domain";
 
 import { useCelebratedMilestones } from "@/hooks/useCelebratedMilestones";
+import { useInsightsLog } from "@/hooks/useInsightsLog";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { useExportImport } from "@/hooks/useExportImport";
 import { AppHeader } from "@/components/plan/AppHeader";
@@ -134,7 +135,8 @@ const Index = () => {
     refresh: refreshCloudPlan,
   } = usePlan();
 
-  const { celebrated: dismissedMilestones, celebrate: celebrateMilestone } = useCelebratedMilestones(user?.id);
+  const { celebrated: dismissedMilestones, celebrate: celebrateMilestone } =
+    useCelebratedMilestones(user?.id, cloudPlanRow?.id ?? null);
   const [showQuickDeposit, setShowQuickDeposit] = useState(false);
   const [showFinancialSetup, setShowFinancialSetup] = useState(false);
 
@@ -163,6 +165,9 @@ const Index = () => {
     cloudPlan: { plan: cloudPlanRow, members: cloudMembers },
   });
   const effectiveAppData = core.effectiveAppData;
+
+  // Persistência de insights gerados (Bloco 3 da Fase 4).
+  useInsightsLog(user?.id, cloudPlanRow?.id ?? null, core.insights.allInsights);
 
   // ── Bloco 2 da Fase 4: handlers de domínio extraídos ──
   // Resolver compartilhado por income/expense/debt.
