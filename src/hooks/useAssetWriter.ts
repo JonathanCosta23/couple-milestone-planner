@@ -72,6 +72,31 @@ function flagsToSecurityLevel(row: AssetRow): SecurityLevel {
 }
 
 /**
+ * Mapa bucket do app (PT) → bucket aceito pelo CHECK constraint da tabela assets (EN).
+ * Tabela aceita: reserve | protection | sovereign | growth.
+ */
+const BUCKET_TO_DB: Record<string, string> = {
+  "reserva": "reserve",
+  "protecao-bancaria": "protection",
+  "base-soberana": "sovereign",
+  "crescimento": "growth",
+};
+const BUCKET_FROM_DB: Record<string, string> = {
+  "reserve": "reserva",
+  "protection": "protecao-bancaria",
+  "sovereign": "base-soberana",
+  "growth": "crescimento",
+};
+
+/** Mapa liquidez do app → CHECK aceito (daily | scheduled | maturity | variable). */
+const LIQUIDITY_TO_DB: Record<string, string> = {
+  "diaria": "daily", "diária": "daily", "daily": "daily",
+  "programada": "scheduled", "scheduled": "scheduled",
+  "vencimento": "maturity", "maturity": "maturity",
+  "variavel": "variable", "variável": "variable", "variable": "variable",
+};
+
+/**
  * Normaliza datas vindas do app (YYYY-MM ou YYYY-MM-DD) para o formato DATE do Postgres.
  * Strings vazias viram null. YYYY-MM é completado com o dia 01.
  */
