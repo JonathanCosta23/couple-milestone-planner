@@ -164,7 +164,7 @@ export type Database = {
             foreignKeyName: "debts_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: false
-            referencedRelation: "members"
+            referencedRelation: "plan_members"
             referencedColumns: ["id"]
           },
           {
@@ -266,7 +266,7 @@ export type Database = {
             foreignKeyName: "expenses_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: false
-            referencedRelation: "members"
+            referencedRelation: "plan_members"
             referencedColumns: ["id"]
           },
           {
@@ -329,7 +329,7 @@ export type Database = {
             foreignKeyName: "income_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: false
-            referencedRelation: "members"
+            referencedRelation: "plan_members"
             referencedColumns: ["id"]
           },
           {
@@ -384,71 +384,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "insights_log_plan_id_fkey"
-            columns: ["plan_id"]
-            isOneToOne: false
-            referencedRelation: "plans"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      members: {
-        Row: {
-          actual_cdb: number
-          actual_selic: number
-          created_at: string
-          current_reserve: number
-          id: string
-          individual_goal: string | null
-          is_active: boolean
-          monthly_expenses: number
-          monthly_income: number
-          name: string
-          plan_id: string
-          planned_cdb: number
-          planned_selic: number
-          role: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          actual_cdb?: number
-          actual_selic?: number
-          created_at?: string
-          current_reserve?: number
-          id?: string
-          individual_goal?: string | null
-          is_active?: boolean
-          monthly_expenses?: number
-          monthly_income?: number
-          name?: string
-          plan_id: string
-          planned_cdb?: number
-          planned_selic?: number
-          role?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          actual_cdb?: number
-          actual_selic?: number
-          created_at?: string
-          current_reserve?: number
-          id?: string
-          individual_goal?: string | null
-          is_active?: boolean
-          monthly_expenses?: number
-          monthly_income?: number
-          name?: string
-          plan_id?: string
-          planned_cdb?: number
-          planned_selic?: number
-          role?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "members_plan_id_fkey"
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "plans"
@@ -538,6 +473,20 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "mmt_plan_member_fkey"
+            columns: ["plan_member_id"]
+            isOneToOne: false
+            referencedRelation: "plan_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mmt_tracking_fkey"
+            columns: ["monthly_tracking_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_tracking"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "monthly_member_tracking_monthly_tracking_id_fkey"
             columns: ["monthly_tracking_id"]
