@@ -21,6 +21,10 @@ const PRE_MIGRATION_BACKUP_KEY = "plano-do-milhao-pre-migration-backup";
 
 export type CanonicalPlanMode = "individual" | "casal";
 
+/**
+ * Aceita modo canônico atual ("individual"/"casal") ou strings legadas
+ * ("solo"/"couple") vindas de JSONs/exports antigos e devolve o canônico.
+ */
 export function toCanonicalMode(mode: LegacyPlanMode | string | null | undefined): CanonicalPlanMode {
   if (mode === "casal" || mode === "couple") return "casal";
   return "individual";
