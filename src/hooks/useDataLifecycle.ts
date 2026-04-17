@@ -48,9 +48,9 @@ interface UseDataLifecycleParams {
   data: PlanData;
   appData: AppData;
   cloudPlanRow: { id: string } | null;
-  cloudMembers: Array<{ id: string; is_primary: boolean; name: string; age: number | null }>;
+  cloudMembers: PlanMemberRow[];
   setAppData: React.Dispatch<React.SetStateAction<AppData>>;
-  setPlanData: (data: PlanData) => void;
+  setPlanData: (mutator: (prev: PlanData) => PlanData) => void;
   importJSON: (json: string) => void;
 }
 
