@@ -333,7 +333,7 @@ const Index = () => {
               <BehavioralPanel appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {planoSub === "patrimonio" && (
-              <WealthDistribution appData={effectiveAppData} config={data.config} core={core} onAddInvestment={handleAddInvestment} onUpdateInvestment={handleUpdateInvestment} onDeleteInvestment={handleDeleteInvestment} />
+              <WealthDistribution appData={effectiveAppData} config={data.config} core={core} onAddInvestment={assetActions.add} onUpdateInvestment={assetActions.update} onDeleteInvestment={assetActions.remove} />
             )}
             {planoSub === "concentracao" && (
               <ConcentrationMap appData={effectiveAppData} config={data.config} core={core} onNavigateToTab={handleNavigateToTab} />
@@ -353,9 +353,9 @@ const Index = () => {
                 config={data.config}
                 monthRecords={data.monthRecords}
                 startDate={data.startDate}
-                onUpdateMonth={handleUpdateMonth}
-                onUpdateNotes={handleUpdateMonthNotes}
-                onToggleCompleted={handleToggleMonthCompleted}
+                onUpdateMonth={trackingActions.updateMonth}
+                onUpdateNotes={trackingActions.updateNotes}
+                onToggleCompleted={trackingActions.toggleCompleted}
                 onGenerateAutoPlan={generateAutoPlan}
               />
             )}
@@ -363,9 +363,9 @@ const Index = () => {
               <ExpensePanel
                 appData={effectiveAppData}
                 config={data.config}
-                onAddExpense={handleAddExpense}
-                onUpdateExpense={handleUpdateExpense}
-                onDeleteExpense={handleDeleteExpense}
+                onAddExpense={expenseActions.add}
+                onUpdateExpense={expenseActions.update}
+                onDeleteExpense={expenseActions.remove}
                 onDuplicateExpense={duplicateExpense}
                 onMarkExpensePaid={markExpensePaid}
                 onConvertToRecurring={convertToRecurring}
@@ -377,18 +377,18 @@ const Index = () => {
                 config={data.config}
                 monthRecords={data.monthRecords}
                 startDate={data.startDate}
-                onAddIncome={handleAddIncome}
-                onUpdateIncome={handleUpdateIncome}
-                onDeleteIncome={handleDeleteIncome}
+                onAddIncome={incomeActions.add}
+                onUpdateIncome={incomeActions.update}
+                onDeleteIncome={incomeActions.remove}
               />
             )}
             {historicoSub === "dividas" && (
               <DebtModule
                 appData={effectiveAppData}
                 config={data.config}
-                onAddDebt={handleAddDebt}
-                onUpdateDebt={handleUpdateDebt}
-                onDeleteDebt={handleDeleteDebt}
+                onAddDebt={debtActions.add}
+                onUpdateDebt={debtActions.update}
+                onDeleteDebt={debtActions.remove}
               />
             )}
           </div>
@@ -417,11 +417,11 @@ const Index = () => {
               <div className="space-y-4">
                 <PlanModeSelector
                   appData={effectiveAppData}
-                  onSetMode={handleSetMode}
-                  onAddPartner={handleAddPartner}
-                  onRemovePartner={handleRemovePartner}
-                  onUpdatePrimaryProfile={handleUpdatePrimaryProfile}
-                  onUpdatePartnerProfile={handleUpdatePartnerProfile}
+                  onSetMode={planActions.setMode}
+                  onAddPartner={planActions.addPartner}
+                  onRemovePartner={planActions.removePartner}
+                  onUpdatePrimaryProfile={planActions.updatePrimaryProfile}
+                  onUpdatePartnerProfile={planActions.updatePartnerProfile}
                 />
                 <div className="space-y-2">
                 <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={() => setShowFinancialSetup(true)}>
