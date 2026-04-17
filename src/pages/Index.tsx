@@ -128,7 +128,307 @@ const Index = () => {
   } = useAppData();
 
   const { user, loading: authLoading, signOut } = useAuth();
-  const { loadFromCloud, saveToCloud, hasLocalData, hasCloudData } = useCloudSync();
+  // Fonte canônica do modo do plano + nomes dos membros (Fase 1.D).
+  const { plan: cloudPlanRow, members: cloudMembers, primaryMember: cloudPrimaryMember, partnerMember: cloudPartnerMember, refresh: refreshCloudPlan } = usePlan();
+  const planWriter = usePlanWriter();
+  const assetWriter = useAssetWriter();
+  const incomeWriter = useIncomeWriter();
+  const expenseWriter = useExpenseWriter();
+  const debtWriter = useDebtWriter();
+  const trackingWriter = useMonthlyTrackingWriter();
+
+  const { celebrated: dismissedMilestones, celebrate: celebrateMilestone } = useCelebratedMilestones(user?.id);
+  const [showQuickDeposit, setShowQuickDeposit] = useState(false);
+  const [showFinancialSetup, setShowFinancialSetup] = useState(false);
+
+  // ── Bloco 1 da Fase 4: ciclo de vida unificado ──
+  // Consolida sync inicial, auto-save, hidratação de assets e migração de blob legado.
+  // Garante ordem determinística (hidratação antes de auto-save) via refs internos.
+  const lifecycle = useDataLifecycle({
+    user,
+    data,
+    appData,
+    cloudPlanRow,
+    cloudMembers,
+    setAppData,
+    setPlanData: setPlanRawData,
+    importJSON,
+  });
+  const syncing = lifecycle.syncing;
+  const hydration = lifecycle.hydration;
+
+  // Navigation: extraído para hook dedicado (useAppNavigation)
+  const {
+    navSection, planoSub, historicoSub, perfilSub,
+    setNavSection, setPlanoSub, setHistoricoSub, setPerfilSub,
+    goToSection, navigateToTab: handleNavigateToTab,
+  } = useAppNavigation();
+
+  // Export/Import JSON: extraído para hook dedicado (useExportImport)
+  const exportImport = useExportImport({
+    data,
+    exportJSON,
+    importJSON,
+  });
+  const fileInputRef = exportImport.fileInputRef;
+
+  const core = useFinancialCore({
+    appData,
+    config: data.config,
+    monthRecords: data.monthRecords,
+    startDate: data.startDate,
+    profile: data.financialProfile,
+    celebratedMilestones: dismissedMilestones,
+    cloudPlan: { plan: cloudPlanRow, members: cloudMembers },
+  });
+
+  // AppData efetivo: leitura canônica de modo + nomes vinda da nuvem quando disponível.
+  const effectiveAppData = core.effectiveAppData;
+
+  // ── Handlers que escrevem na nuvem (plans + plan_members) e mantêm cache local ──
+  const handleWizardComplete = useCallback(async (config: PlanConfig) => {
+    completeWizard(config);
+    const primary = config.contributors[0];
+    const partner = config.contributors[1];
+
+    if (primary?.name) updatePrimaryProfile({ name: primary.name });
+    if (partner?.name) {
+      if (!appData.partner || appData.partner.removedAt) addPartner(partner.name);
+      else { updatePartnerProfile({ name: partner.name }); setMode("casal"); }
+    } else if (appData.partner && !appData.partner.removedAt) {
+      setMode("individual");
+    }
+
+    if (user) {
+      const mode: PlanMode = partner?.name ? "casal" : "individual";
+      const totalMonthly = config.contributors.reduce((s, c) => s + c.plannedSelic + c.plannedCDB, 0);
+      const result = await planWriter.createPlanFromWizard({
+        mode,
+        goalAmount: config.targetAmount,
+        initialAmount: config.initialAmount,
+        monthlyContribution: totalMonthly,
+        goalYears: config.years,
+        primaryName: primary?.name || "Você",
+        primaryAge: primary?.age ?? null,
+        partnerName: partner?.name || null,
+        partnerAge: partner?.age ?? null,
+        wizardComplete: true,
+      });
+      if (result.error) toast.error(`Falha ao salvar plano na nuvem: ${result.error}`);
+      else await refreshCloudPlan();
+    }
+
+    if (!data.financialProfile) setShowFinancialSetup(true);
+  }, [appData.partner, completeWizard, updatePrimaryProfile, addPartner, updatePartnerProfile, setMode, user, planWriter, refreshCloudPlan, data.financialProfile]);
+
+  const handleSetMode = useCallback(async (mode: PlanMode) => {
+    setMode(mode);
+    if (user && cloudPlanRow) {
+      const partnerProfile = appData.partner?.profile;
+      const result = await planWriter.setPlanMode(
+        cloudPlanRow.id,
+        mode,
+        mode === "casal" && partnerProfile?.name
+          ? { name: partnerProfile.name, age: partnerProfile.age ?? null }
+          : undefined
+      );
+      if (result.error) toast.error(`Falha ao trocar modo: ${result.error}`);
+      else await refreshCloudPlan();
+    }
+  }, [setMode, user, cloudPlanRow, appData.partner, planWriter, refreshCloudPlan]);
+
+  const handleAddPartner = useCallback(async (name: string, age?: number) => {
+    addPartner(name, age);
+    if (user && cloudPlanRow) {
+      const result = await planWriter.addPartner(cloudPlanRow.id, { name, age: age ?? null });
+      if (result.error) toast.error(`Falha ao adicionar parceiro: ${result.error}`);
+      else await refreshCloudPlan();
+    }
+  }, [addPartner, user, cloudPlanRow, planWriter, refreshCloudPlan]);
+
+  const handleRemovePartner = useCallback(async () => {
+    removePartner();
+    if (user && cloudPlanRow) {
+      const result = await planWriter.removePartner(cloudPlanRow.id);
+      if (result.error) toast.error(`Falha ao remover parceiro: ${result.error}`);
+      else await refreshCloudPlan();
+    }
+  }, [removePartner, user, cloudPlanRow, planWriter, refreshCloudPlan]);
+
+  const handleUpdatePrimaryProfile = useCallback(async (profile: { name?: string; age?: number }) => {
+    updatePrimaryProfile(profile);
+    if (user && cloudPrimaryMember) {
+      const result = await planWriter.updateMember(cloudPrimaryMember.id, {
+        name: profile.name ?? cloudPrimaryMember.name,
+        age: profile.age ?? cloudPrimaryMember.age,
+      });
+      if (result.error) toast.error(`Falha ao atualizar titular: ${result.error}`);
+      else await refreshCloudPlan();
+    }
+  }, [updatePrimaryProfile, user, cloudPrimaryMember, planWriter, refreshCloudPlan]);
+
+  const handleUpdatePartnerProfile = useCallback(async (profile: { name?: string; age?: number }) => {
+    updatePartnerProfile(profile);
+    if (user && cloudPartnerMember) {
+      const result = await planWriter.updateMember(cloudPartnerMember.id, {
+        name: profile.name ?? cloudPartnerMember.name,
+        age: profile.age ?? cloudPartnerMember.age,
+      });
+      if (result.error) toast.error(`Falha ao atualizar parceiro: ${result.error}`);
+      else await refreshCloudPlan();
+    }
+  }, [updatePartnerProfile, user, cloudPartnerMember, planWriter, refreshCloudPlan]);
+
+  // ── Investimentos: escrita real em assets + cache local ──
+  const resolveMemberIdForInvestment = useCallback((_profileId?: string): string | null => {
+    return null;
+  }, []);
+
+  const handleAddInvestment = useCallback(async (inv: Investment) => {
+    addInvestment(inv);
+    if (user && cloudPlanRow) {
+      const memberId = resolveMemberIdForInvestment(inv.profileId);
+      const result = await assetWriter.createAsset(cloudPlanRow.id, inv, memberId);
+      if (result.error) toast.error(`Falha ao salvar investimento: ${result.error}`);
+      else if (result.data) {
+        updateInvestment(inv.id, { id: result.data.id } as Partial<Investment>);
+      }
+    }
+  }, [addInvestment, updateInvestment, user, cloudPlanRow, assetWriter, resolveMemberIdForInvestment]);
+
+  const handleUpdateInvestment = useCallback(async (id: string, updates: Partial<Investment>) => {
+    updateInvestment(id, updates);
+    if (user && cloudPlanRow) {
+      const memberId = resolveMemberIdForInvestment(updates.profileId);
+      const result = await assetWriter.updateAsset(cloudPlanRow.id, id, updates, memberId);
+      if (result.error) toast.error(`Falha ao atualizar investimento: ${result.error}`);
+    }
+  }, [updateInvestment, user, cloudPlanRow, assetWriter, resolveMemberIdForInvestment]);
+
+  const handleDeleteInvestment = useCallback(async (id: string) => {
+    deleteInvestment(id);
+    if (user) {
+      const result = await assetWriter.deleteAsset(id);
+      if (result.error) {
+        await assetWriter.deactivateAsset(id);
+      }
+    }
+  }, [deleteInvestment, user, assetWriter]);
+
+  // ── Resolve plan_member_id a partir do profileId do appData ──
+  const resolveMemberId = useCallback((profileId?: string): string | null => {
+    if (!profileId) return null;
+    if (appData.primaryProfile?.id === profileId) return cloudPrimaryMember?.id ?? null;
+    if (appData.partner?.profile?.id === profileId) return cloudPartnerMember?.id ?? null;
+    return null;
+  }, [appData.primaryProfile?.id, appData.partner?.profile?.id, cloudPrimaryMember?.id, cloudPartnerMember?.id]);
+
+  // ── Income handlers (cache local + persistência real) ──
+  const handleAddIncome = useCallback(async (income: Income) => {
+    addIncome(income);
+    if (user && cloudPlanRow) {
+      const r = await incomeWriter.createIncome(cloudPlanRow.id, income, resolveMemberId(income.profileId));
+      if (r.error) toast.error(`Falha ao salvar renda: ${r.error}`);
+      else if (r.data) updateIncome(income.id, { id: r.data.id } as Partial<Income>);
+    }
+  }, [addIncome, updateIncome, user, cloudPlanRow, incomeWriter, resolveMemberId]);
+
+  const handleUpdateIncome = useCallback(async (id: string, updates: Partial<Income>) => {
+    updateIncome(id, updates);
+    if (user && cloudPlanRow) {
+      const memberId = updates.profileId !== undefined ? resolveMemberId(updates.profileId) : undefined;
+      const r = await incomeWriter.updateIncome(cloudPlanRow.id, id, updates, memberId);
+      if (r.error) toast.error(`Falha ao atualizar renda: ${r.error}`);
+    }
+  }, [updateIncome, user, cloudPlanRow, incomeWriter, resolveMemberId]);
+
+  const handleDeleteIncome = useCallback(async (id: string) => {
+    deleteIncome(id);
+    if (user) { const r = await incomeWriter.deleteIncome(id); if (r.error) toast.error(`Falha ao remover renda: ${r.error}`); }
+  }, [deleteIncome, user, incomeWriter]);
+
+  // ── Expense handlers ──
+  const handleAddExpense = useCallback(async (expense: Expense) => {
+    addExpense(expense);
+    if (user && cloudPlanRow) {
+      const r = await expenseWriter.createExpense(cloudPlanRow.id, expense, resolveMemberId(expense.responsibleProfileId));
+      if (r.error) toast.error(`Falha ao salvar gasto: ${r.error}`);
+      else if (r.data) updateExpense(expense.id, { id: r.data.id } as Partial<Expense>);
+    }
+  }, [addExpense, updateExpense, user, cloudPlanRow, expenseWriter, resolveMemberId]);
+
+  const handleUpdateExpense = useCallback(async (id: string, updates: Partial<Expense>) => {
+    updateExpense(id, updates);
+    if (user && cloudPlanRow) {
+      const memberId = updates.responsibleProfileId !== undefined ? resolveMemberId(updates.responsibleProfileId) : undefined;
+      const r = await expenseWriter.updateExpense(cloudPlanRow.id, id, updates, memberId);
+      if (r.error) toast.error(`Falha ao atualizar gasto: ${r.error}`);
+    }
+  }, [updateExpense, user, cloudPlanRow, expenseWriter, resolveMemberId]);
+
+  const handleDeleteExpense = useCallback(async (id: string) => {
+    deleteExpense(id);
+    if (user) { const r = await expenseWriter.deleteExpense(id); if (r.error) toast.error(`Falha ao remover gasto: ${r.error}`); }
+  }, [deleteExpense, user, expenseWriter]);
+
+  // ── Debt handlers ──
+  const handleAddDebt = useCallback(async (debt: Debt) => {
+    addDebt(debt);
+    if (user && cloudPlanRow) {
+      const r = await debtWriter.createDebt(cloudPlanRow.id, debt, resolveMemberId(debt.profileId));
+      if (r.error) toast.error(`Falha ao salvar dívida: ${r.error}`);
+      else if (r.data) updateDebt(debt.id, { id: r.data.id } as Partial<Debt>);
+    }
+  }, [addDebt, updateDebt, user, cloudPlanRow, debtWriter, resolveMemberId]);
+
+  const handleUpdateDebt = useCallback(async (id: string, updates: Partial<Debt>) => {
+    updateDebt(id, updates);
+    if (user && cloudPlanRow) {
+      const memberId = updates.profileId !== undefined ? resolveMemberId(updates.profileId) : undefined;
+      const r = await debtWriter.updateDebt(cloudPlanRow.id, id, updates, memberId);
+      if (r.error) toast.error(`Falha ao atualizar dívida: ${r.error}`);
+    }
+  }, [updateDebt, user, cloudPlanRow, debtWriter, resolveMemberId]);
+
+  const handleDeleteDebt = useCallback(async (id: string) => {
+    deleteDebt(id);
+    if (user) { const r = await debtWriter.deleteDebt(id); if (r.error) toast.error(`Falha ao remover dívida: ${r.error}`); }
+  }, [deleteDebt, user, debtWriter]);
+
+  // ── MonthlyTracker: persiste o mês inteiro a cada edição (idempotente) ──
+  const persistMonth = useCallback(async (monthKey: string) => {
+    if (!user || !cloudPlanRow || cloudMembers.length === 0) return;
+    const record = data.monthRecords.find((r) => r.monthKey === monthKey);
+    const ordered = [...cloudMembers].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
+    const memberInputs = ordered.map((m, idx) => {
+      const contrib = data.config.contributors[idx];
+      const dep = record?.deposits[idx];
+      return {
+        planMemberId: m.id,
+        plannedSelic: contrib?.plannedSelic ?? 0,
+        plannedCDB: contrib?.plannedCDB ?? 0,
+        actualSelic: dep?.actualSelic ?? 0,
+        actualCDB: dep?.actualCDB ?? 0,
+      };
+    });
+    await trackingWriter.upsertMonth(cloudPlanRow.id, monthKey, memberInputs, record?.notes ?? "", record?.completed);
+  }, [user, cloudPlanRow, cloudMembers, data.monthRecords, data.config.contributors, trackingWriter]);
+
+  const handleUpdateMonth = useCallback((monthKey: string, contributorIndex: number, deposit: { actualSelic: number; actualCDB: number }, notes?: string) => {
+    updateMonthRecord(monthKey, contributorIndex, deposit, notes);
+    setTimeout(() => { void persistMonth(monthKey); }, 0);
+  }, [updateMonthRecord, persistMonth]);
+
+  const handleUpdateMonthNotes = useCallback((monthKey: string, notes: string) => {
+    updateMonthNotes(monthKey, notes);
+    if (user && cloudPlanRow) void trackingWriter.updateMonthNotes(cloudPlanRow.id, monthKey, notes);
+  }, [updateMonthNotes, user, cloudPlanRow, trackingWriter]);
+
+  const handleToggleMonthCompleted = useCallback((monthKey: string) => {
+    toggleMonthCompleted(monthKey);
+    setTimeout(() => { void persistMonth(monthKey); }, 0);
+  }, [toggleMonthCompleted, persistMonth]);
+
   // Fonte canônica do modo do plano + nomes dos membros (Fase 1.D).
   const { plan: cloudPlanRow, members: cloudMembers, primaryMember: cloudPrimaryMember, partnerMember: cloudPartnerMember, refresh: refreshCloudPlan } = usePlan();
   const planWriter = usePlanWriter();
