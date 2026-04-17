@@ -61,7 +61,7 @@ export function AppHeader({
               <span className="hidden sm:inline">Salvando...</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1 text-[10px] text-emerald-500">
+            <div className="flex items-center gap-1 text-[10px] text-primary">
               <Cloud className="w-3 h-3" />
               <span className="hidden sm:inline">Salvo</span>
             </div>
