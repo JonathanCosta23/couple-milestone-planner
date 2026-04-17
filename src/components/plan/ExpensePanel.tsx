@@ -51,7 +51,7 @@ export function ExpensePanel({
 
   const profiles = useMemo(() => {
     const p = [appData.primaryProfile];
-    if (appData.mode === "couple" && appData.partner && !appData.partner.removedAt) {
+    if (appData.mode === "casal" && appData.partner && !appData.partner.removedAt) {
       p.push(appData.partner.profile);
     }
     return p;
@@ -172,7 +172,7 @@ export function ExpensePanel({
             <FilterSelect label="Pertence" value={filterOwnership} onChange={setFilterOwnership}
               options={[{ value: "all", label: "Todos" }, { value: "individual", label: "Individual" }, { value: "shared", label: "Compartilhado" }]} />
           </div>
-          {appData.mode === "couple" && (
+          {appData.mode === "casal" && (
             <FilterSelect label="Titular" value={filterPerson} onChange={setFilterPerson}
               options={[{ value: "all", label: "Todos" }, ...profiles.map(p => ({ value: p.id, label: p.name }))]} />
           )}
@@ -192,7 +192,7 @@ export function ExpensePanel({
             </Card>
           )}
           {monthExpenses.map(e => (
-            <ExpenseRow key={e.id} expense={e} profiles={profiles} coupleMode={appData.mode === "couple"}
+            <ExpenseRow key={e.id} expense={e} profiles={profiles} coupleMode={appData.mode === "casal"}
               onEdit={() => handleEdit(e)} onDelete={() => handleDelete(e.id)}
               onDuplicate={() => { onDuplicateExpense(e.id); toast.success("Gasto duplicado!"); }}
               onMarkPaid={() => { onMarkExpensePaid(e.id); toast.success("Marcado como pago!"); }}
@@ -242,7 +242,7 @@ export function ExpensePanel({
         expense={editingExpense}
         monthKey={selectedMonth}
         profiles={profiles}
-        coupleMode={appData.mode === "couple"}
+        coupleMode={appData.mode === "casal"}
         onSave={handleSave}
       />
     </div>

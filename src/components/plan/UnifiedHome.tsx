@@ -213,7 +213,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
         const activeInvestments = appData.investments.filter(i => i.active);
         if (activeInvestments.length === 0) return null;
 
-        const isCoupleActive = appData.mode === "couple" && appData.partner && !appData.partner.removedAt;
+        const isCoupleActive = appData.mode === "casal" && appData.partner && !appData.partner.removedAt;
         const primaryId = appData.primaryProfile.id;
         const partnerId = appData.partner?.profile.id;
         const primaryName = appData.primaryProfile.name?.trim() || "Você";

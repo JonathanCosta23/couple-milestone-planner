@@ -42,12 +42,18 @@ export interface ProjectionRow {
 export interface FinancialProfile {
   incomePrimary?: number;
   incomePartner?: number;
-  /** @deprecated Use incomePrimary. Kept for legacy migration. */
-  incomeJonathan?: number;
-  /** @deprecated Use incomePartner. Kept for legacy migration. */
-  incomeIsabella?: number;
   monthlyExpenses?: number;
   emergencyFund?: number;
+}
+
+/**
+ * Forma legada do FinancialProfile, antes da remoção de incomeJonathan/incomeIsabella.
+ * Usada apenas pelo loader de storage para converter dados antigos do localStorage.
+ * NÃO use em código novo. Migrado automaticamente em normalizePlanData.
+ */
+export interface LegacyFinancialProfile extends FinancialProfile {
+  incomeJonathan?: number;
+  incomeIsabella?: number;
 }
 
 export type EmotionalGoal =

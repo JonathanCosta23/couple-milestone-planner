@@ -35,7 +35,7 @@ interface Props {
 
 export function InvestmentForm({ appData, open, onOpenChange, editingInvestment, onSave, onDelete }: Props) {
   const isEditing = !!editingInvestment;
-  const isCouple = appData.mode === "couple" && appData.partner && !appData.partner.removedAt;
+  const isCouple = appData.mode === "casal" && appData.partner && !appData.partner.removedAt;
 
   const profiles = [
     { id: appData.primaryProfile.id, name: appData.primaryProfile.name || "Você" },

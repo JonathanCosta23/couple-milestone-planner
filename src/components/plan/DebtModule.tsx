@@ -218,7 +218,7 @@ export function DebtModule({ appData, config, onAddDebt, onUpdateDebt, onDeleteD
         onOpenChange={(o) => { setShowForm(o); if (!o) setEditingDebt(null); }}
         debt={editingDebt}
         profiles={[appData.primaryProfile, ...(appData.partner && !appData.partner.removedAt ? [appData.partner.profile] : [])]}
-        coupleMode={appData.mode === "couple"}
+        coupleMode={appData.mode === "casal"}
         onSave={handleSave}
       />
     </div>

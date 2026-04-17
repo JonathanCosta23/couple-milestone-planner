@@ -358,11 +358,11 @@ const Index = () => {
               addPartner(partner.name);
             } else {
               updatePartnerProfile({ name: partner.name });
-              setMode("couple");
+              setMode("casal");
             }
           } else if (appData.partner && !appData.partner.removedAt) {
-            // Wizard says solo — soft-remove partner
-            setMode("solo");
+            // Wizard says individual — soft-remove partner
+            setMode("individual");
           }
           if (!data.financialProfile) {
             setShowFinancialSetup(true);

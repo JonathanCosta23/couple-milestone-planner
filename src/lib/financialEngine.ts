@@ -631,7 +631,7 @@ export function calculateConcentrationRisks(appData: AppData, config: PlanConfig
   });
 
   // By titular
-  if (appData.mode === "couple" && appData.partner) {
+  if (appData.mode === "casal" && appData.partner) {
     const byTitular = new Map<string, number>();
     activeInvestments.forEach(i => {
       const titular = i.titular || i.profileId || appData.primaryProfile.id;
@@ -864,7 +864,7 @@ export function generateStructuralAlerts(
   }
 
   // Couple governance - imbalance
-  if (appData.mode === "couple" && appData.partner) {
+  if (appData.mode === "casal" && appData.partner) {
     const titularRisks = concentrations.filter(c => c.type === "titular");
     const imbalanced = titularRisks.find(c => c.percentage > 0.8);
     if (imbalanced) {

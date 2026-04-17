@@ -5,18 +5,28 @@
  */
 
 import { AppData, createDefaultAppData, generateId, PlanMode } from "./models";
-import { PlanData } from "./types";
+import { LegacyFinancialProfile, PlanData } from "./types";
 import { loadPlanData } from "./storage";
 
 const APP_STORAGE_KEY = "plano-do-milhao-app-v7";
 const APP_BACKUP_KEY = "plano-do-milhao-app-backup";
 
-export function normalizeAppData(parsed: Partial<AppData>): AppData {
+/**
+ * Converte qualquer string de modo (legado ou canônico) para o canônico atual.
+ * "solo" → "individual", "couple" → "casal".
+ */
+function toCanonicalMode(mode: unknown): PlanMode {
+  if (mode === "casal" || mode === "couple") return "casal";
+  return "individual";
+}
+
+export function normalizeAppData(parsed: Partial<AppData> & { mode?: unknown }): AppData {
   const defaults = createDefaultAppData();
   return {
     ...defaults,
     ...parsed,
     schemaVersion: "7.0.0",
+    mode: toCanonicalMode(parsed.mode ?? defaults.mode),
     primaryProfile: { ...defaults.primaryProfile, ...(parsed.primaryProfile || {}) },
     partner: parsed.partner !== undefined ? parsed.partner : defaults.partner,
     incomes: Array.isArray(parsed.incomes) ? parsed.incomes : [],
@@ -61,7 +71,7 @@ export function migrateFromLegacy(planData: PlanData): AppData {
     c => c.plannedSelic > 0 || c.plannedCDB > 0
   );
 
-  appData.mode = additionalContributors.length > 0 ? "couple" : "solo";
+  appData.mode = additionalContributors.length > 0 ? "casal" : "individual";
 
   if (additionalContributors.length > 0) {
     const c1 = additionalContributors[0];
@@ -78,9 +88,9 @@ export function migrateFromLegacy(planData: PlanData): AppData {
     appData.partner = undefined;
   }
 
-  // Migrate financial profile to incomes
+  // Migrate financial profile to incomes (lê campos legados via cast retrocompatível)
   if (planData.financialProfile) {
-    const fp = planData.financialProfile;
+    const fp = planData.financialProfile as LegacyFinancialProfile;
     const primaryIncome = fp.incomePrimary || fp.incomeJonathan || 0;
     if (primaryIncome > 0) {
       appData.incomes.push({
