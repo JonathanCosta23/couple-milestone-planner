@@ -857,8 +857,8 @@ const Index = () => {
                 monthRecords={data.monthRecords}
                 startDate={data.startDate}
                 profile={data.financialProfile}
-                onExportJSON={handleExportJSON}
-                onImportClick={() => fileInputRef.current?.click()}
+                onExportJSON={exportImport.handleExport}
+                onImportClick={exportImport.triggerFilePicker}
               />
             )}
             {perfilSub === "ajuda" && <HowToUse />}
@@ -876,16 +876,16 @@ const Index = () => {
                 <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={() => setShowFinancialSetup(true)}>
                   <Settings className="w-4 h-4 mr-2.5" /> Perfil financeiro
                 </Button>
-                <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={handleExportJSON}>
+                <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={exportImport.handleExport}>
                   <Download className="w-4 h-4 mr-2.5" /> Exportar dados
                 </Button>
-                <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={() => fileInputRef.current?.click()}>
+                <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={exportImport.triggerFilePicker}>
                   <Upload className="w-4 h-4 mr-2.5" /> Importar dados
                 </Button>
                 <RestoreBackupButton />
                 <NotificationSettings settings={data.notificationSettings} onUpdate={updateNotificationSettings} />
                 <Button variant="outline" className="w-full justify-start h-12 rounded-xl text-muted-foreground" onClick={handleSignOut}>
-                  <LogOut className="w-4 h-4 mr-2.5" /> Sair da conta
+                  <ArrowLeft className="w-4 h-4 mr-2.5" /> Sair da conta
                 </Button>
                 <Button variant="outline" className="w-full justify-start h-12 rounded-xl text-destructive hover:text-destructive"
                   onClick={() => { if (confirm("Tem certeza? Essa ação não pode ser desfeita.")) resetPlan(); }}>
@@ -924,7 +924,7 @@ const Index = () => {
         </Suspense>
       </main>
 
-      <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportJSON} />
+      <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={exportImport.handleFileChange} />
 
       {data.wizardComplete && (
         <div className="lg:hidden">
@@ -944,12 +944,12 @@ const Index = () => {
             onToggleCompleted={toggleMonthCompleted}
           />
         )}
-        {showImportDialog && (
+        {exportImport.showImportDialog && (
           <ImportDialog
-            open={showImportDialog}
-            onOpenChange={(open) => { setShowImportDialog(open); if (!open) setImportPreview(null); }}
-            preview={importPreview}
-            onConfirm={handleConfirmImport}
+            open={exportImport.showImportDialog}
+            onOpenChange={exportImport.closeDialog}
+            preview={exportImport.importPreview}
+            onConfirm={exportImport.handleConfirm}
           />
         )}
         {showMigrationDialog && (
