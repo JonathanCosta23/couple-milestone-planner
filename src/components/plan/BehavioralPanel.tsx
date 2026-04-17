@@ -59,7 +59,7 @@ export function BehavioralPanel({ appData, config, monthRecords, startDate, core
           <p className="text-[10px] sm:text-xs text-muted-foreground uppercase">de 100</p>
         </div>
         <div className="space-y-3">
-          <HabitBar icon={Flame} label="Aportes consecutivos" value={Math.min(100, metrics.streak * 12)} detail={`${metrics.streak} meses`} />
+          <HabitBar icon={Flame} label="Aportes consecutivos" value={Math.min(100, metrics.streak * 12)} detail={`${metrics.streak} ${metrics.streak === 1 ? "mês" : "meses"}`} />
           <HabitBar icon={Target} label="Compromisso com o plano" value={habits.monthlyDiscipline} />
           <HabitBar icon={Eye} label="Controle de gastos" value={habits.expenseTracking} />
           <HabitBar icon={CreditCard} label="Uso consciente do cartão" value={habits.cardControl} />

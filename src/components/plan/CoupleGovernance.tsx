@@ -60,11 +60,11 @@ export function CoupleGovernance({ appData, config, core, onNavigateToTab }: Pro
       </Card>
 
       <div className="flex gap-2">
-        <Button variant={view === "consolidated" ? "default" : "outline"} size="sm" className="flex-1 rounded-full" onClick={() => setView("consolidated")}>
-          <Eye className="w-4 h-4 mr-1.5" /> Consolidada
+        <Button variant={view === "consolidated" ? "default" : "outline"} size="sm" className="flex-1 min-w-0 min-h-[44px] rounded-full" onClick={() => setView("consolidated")}>
+          <Eye className="w-4 h-4 mr-1.5 shrink-0" /> <span className="truncate">Consolidada</span>
         </Button>
-        <Button variant={view === "individual" ? "default" : "outline"} size="sm" className="flex-1 rounded-full" onClick={() => setView("individual")}>
-          <User className="w-4 h-4 mr-1.5" /> Individual
+        <Button variant={view === "individual" ? "default" : "outline"} size="sm" className="flex-1 min-w-0 min-h-[44px] rounded-full" onClick={() => setView("individual")}>
+          <User className="w-4 h-4 mr-1.5 shrink-0" /> <span className="truncate">Individual</span>
         </Button>
       </div>
 
@@ -144,8 +144,8 @@ export function CoupleGovernance({ appData, config, core, onNavigateToTab }: Pro
         <>
           <div className="flex gap-2 mb-2">
             {profiles.map(p => (
-              <Button key={p.id} variant={selectedProfile === p.id ? "default" : "outline"} size="sm" className="flex-1 rounded-full" onClick={() => setSelectedProfile(p.id)}>
-                {p.name}
+              <Button key={p.id} variant={selectedProfile === p.id ? "default" : "outline"} size="sm" className="flex-1 min-w-0 min-h-[44px] rounded-full" onClick={() => setSelectedProfile(p.id)}>
+                <span className="truncate">{p.name}</span>
               </Button>
             ))}
           </div>
@@ -172,9 +172,9 @@ export function CoupleGovernance({ appData, config, core, onNavigateToTab }: Pro
                   <div className="space-y-2">
                     <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Investimentos</h5>
                     {allInvestments.map(inv => (
-                      <div key={inv.id} className="flex justify-between py-2 px-3 rounded-lg bg-muted/20 text-sm">
-                        <span className="truncate">{inv.name || inv.type} — {inv.institution}</span>
-                        <span className="font-bold shrink-0 ml-2">{formatBRLCompact(inv.currentBalance)}</span>
+                      <div key={inv.id} className="flex justify-between items-center gap-2 py-2 px-3 rounded-lg bg-muted/20 text-sm min-w-0">
+                        <span className="truncate min-w-0 flex-1">{inv.name || inv.type} — {inv.institution}</span>
+                        <span className="font-bold shrink-0">{formatBRLCompact(inv.currentBalance)}</span>
                       </div>
                     ))}
                   </div>
