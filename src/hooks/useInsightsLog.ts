@@ -130,8 +130,25 @@ export function useInsightsLog(
         (existing ?? []).map((r) => [r.insight_type, r]),
       );
 
-      const inserts: Array<Record<string, unknown>> = [];
-      const updates: Array<{ id: string; patch: Record<string, unknown> }> = [];
+      type InsertRow = {
+        user_id: string;
+        plan_id: string;
+        insight_type: string;
+        title: string;
+        message: string;
+        cause: string | null;
+        recommended_action: string | null;
+        severity: string;
+      };
+      type UpdatePatch = {
+        title: string;
+        message: string;
+        cause: string | null;
+        recommended_action: string | null;
+        severity: string;
+      };
+      const inserts: InsertRow[] = [];
+      const updates: Array<{ id: string; patch: UpdatePatch }> = [];
 
       for (const ins of insights) {
         const prev = existingByType.get(ins.id);
