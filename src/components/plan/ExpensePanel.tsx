@@ -183,13 +183,16 @@ export function ExpensePanel({
       {viewMode === "list" && (
         <div className="space-y-2">
           {monthExpenses.length === 0 && (
-            <Card className="glass-card p-6 text-center">
-              <p className="text-sm font-semibold mb-1">Nenhum gasto neste mês</p>
-              <p className="text-muted-foreground text-xs mb-3">Registre seus gastos para descobrir quanto realmente sobra para investir.</p>
-              <Button size="sm" className="mt-1" onClick={() => { setEditingExpense(null); setShowForm(true); }}>
-                <Plus className="w-4 h-4 mr-1" /> Registrar primeiro gasto
-              </Button>
-            </Card>
+            <EmptyState
+              icon={Receipt}
+              title="Nenhum gasto neste mês"
+              description="Registre seus gastos para descobrir quanto realmente sobra para investir."
+              action={{
+                label: "Registrar primeiro gasto",
+                icon: Plus,
+                onClick: () => { setEditingExpense(null); setShowForm(true); },
+              }}
+            />
           )}
           {monthExpenses.map(e => (
             <ExpenseRow key={e.id} expense={e} profiles={profiles} coupleMode={appData.mode === "casal"}
@@ -208,9 +211,14 @@ export function ExpensePanel({
             <ExpenseCard key={e.id} expense={e} onEdit={() => handleEdit(e)} onDelete={() => handleDelete(e.id)} />
           ))}
           {monthExpenses.length === 0 && (
-            <Card className="glass-card p-4 text-center col-span-2">
-              <p className="text-muted-foreground text-sm">Nenhum gasto neste mês.</p>
-            </Card>
+            <div className="col-span-2 sm:col-span-3 lg:col-span-4">
+              <EmptyState
+                size="compact"
+                icon={Receipt}
+                title="Nenhum gasto neste mês"
+                description="Use a visualização em lista para registrar o primeiro."
+              />
+            </div>
           )}
         </div>
       )}

@@ -131,10 +131,17 @@ export function IncomePanel({ appData, config, monthRecords, startDate, onAddInc
         )}
 
         {appData.incomes.length === 0 && !showForm && (
-          <div className="text-center py-4">
-            <p className="text-sm font-semibold mb-1">Nenhuma renda cadastrada</p>
-            <p className="text-xs text-muted-foreground">Adicione sua renda para o app calcular quanto você pode investir sem se apertar.</p>
-          </div>
+          <EmptyState
+            size="compact"
+            icon={DollarSign}
+            title="Nenhuma renda cadastrada"
+            description="Adicione sua renda para o app calcular quanto você pode investir sem se apertar."
+            action={{
+              label: "Adicionar renda",
+              icon: Plus,
+              onClick: () => setShowForm(true),
+            }}
+          />
         )}
 
         {appData.incomes.map(income => {
