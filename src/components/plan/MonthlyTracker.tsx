@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
-import { PlanConfig, MonthRecord, MonthDeposit, MonthStatus, EMPTY_DEPOSIT, formatBRL, generateMonthKeys, monthKeyToLabel, getCurrentMonthKey } from "@/lib/types";
+import { PlanConfig, MonthRecord, MonthDeposit, MonthStatus, EMPTY_DEPOSIT, formatBRL, formatBRLCompact, generateMonthKeys, monthKeyToLabel, getCurrentMonthKey } from "@/lib/types";
 import { getMonthStatus, calculateStreak, calculateCompletionRate, calculateYearCompletion } from "@/lib/calculator";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
