@@ -143,7 +143,7 @@ export function WealthDistribution({ appData, config, core, onAddInvestment, onU
             ) : (
               <div className="space-y-2">
                 {byType.map((item, i) => (
-                  <div key={item.type} className="space-y-1">
+                  <div key={`${item.type}-${i}`} className="space-y-1">
                     <div className="flex justify-between text-sm">
                       <span className="flex items-center gap-2">
                         <span className={`w-2.5 h-2.5 rounded-full ${TYPE_COLORS[i % TYPE_COLORS.length]}`} />
