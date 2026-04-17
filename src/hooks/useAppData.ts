@@ -24,12 +24,12 @@ export function useAppData() {
   const setMode = useCallback((mode: PlanMode) => {
     setAppData((prev) => {
       const updated = { ...prev, mode };
-      // When switching to solo, soft-delete partner but preserve data
-      if (mode === "solo" && prev.partner) {
+      // When switching to individual, soft-delete partner but preserve data
+      if (mode === "individual" && prev.partner) {
         updated.partner = { ...prev.partner, removedAt: new Date().toISOString() };
       }
-      // When switching back to couple, restore partner
-      if (mode === "couple" && prev.partner?.removedAt) {
+      // When switching back to casal, restore partner
+      if (mode === "casal" && prev.partner?.removedAt) {
         updated.partner = { ...prev.partner, removedAt: undefined };
       }
       return updated;
@@ -48,7 +48,7 @@ export function useAppData() {
   const addPartner = useCallback((name: string, age?: number) => {
     setAppData((prev) => ({
       ...prev,
-      mode: "couple" as PlanMode,
+      mode: "casal" as PlanMode,
       partner: {
         profile: { id: generateId(), name, age, avatarColor: "hsl(var(--accent))" },
         addedAt: new Date().toISOString(),
@@ -59,7 +59,7 @@ export function useAppData() {
   const removePartner = useCallback(() => {
     setAppData((prev) => ({
       ...prev,
-      mode: "solo" as PlanMode,
+      mode: "individual" as PlanMode,
       partner: prev.partner ? { ...prev.partner, removedAt: new Date().toISOString() } : undefined,
     }));
   }, []);
@@ -258,7 +258,7 @@ export function useAppData() {
   // ===== Active profiles helper =====
   const getActiveProfiles = useCallback((): Profile[] => {
     const profiles = [appData.primaryProfile];
-    if (appData.mode === "couple" && appData.partner && !appData.partner.removedAt) {
+    if (appData.mode === "casal" && appData.partner && !appData.partner.removedAt) {
       profiles.push(appData.partner.profile);
     }
     return profiles;

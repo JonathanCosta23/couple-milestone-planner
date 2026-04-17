@@ -21,7 +21,7 @@ export function CoupleGovernance({ appData, config, core, onNavigateToTab }: Pro
   const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
   const { allocation, metrics } = core;
 
-  const isCoupleMode = appData.mode === "couple" && appData.partner && !appData.partner.removedAt;
+  const isCoupleMode = appData.mode === "casal" && appData.partner && !appData.partner.removedAt;
   const totalWealth = metrics.grossWealth;
   const titulares = allocation.titulares;
 

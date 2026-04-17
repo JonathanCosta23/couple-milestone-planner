@@ -23,7 +23,7 @@ export function ConcentrationMap({ appData, config, core, onNavigateToTab }: Pro
   const { allocation, metrics } = core;
   const activeInvestments = appData.investments.filter(i => i.active);
   const totalWealth = metrics.grossWealth;
-  const isCouple = appData.mode === "couple" && appData.partner && !appData.partner.removedAt;
+  const isCouple = appData.mode === "casal" && appData.partner && !appData.partner.removedAt;
 
   const byInstitution = allocation.institutions;
 

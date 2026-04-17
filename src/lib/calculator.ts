@@ -285,7 +285,7 @@ export function getEmergencyFundStatus(profile: FinancialProfile): "below" | "in
 }
 
 export function getSavingsRate(profile: FinancialProfile, config: PlanConfig): number {
-  const totalIncome = (profile.incomePrimary || profile.incomeJonathan || 0) + (profile.incomePartner || profile.incomeIsabella || 0);
+  const totalIncome = (profile.incomePrimary || 0) + (profile.incomePartner || 0);
   if (totalIncome <= 0) return 0;
   const totalInvestment = config.contributors.reduce((s, c) => s + c.plannedSelic + c.plannedCDB, 0);
   return totalInvestment / totalIncome;
@@ -332,7 +332,7 @@ export function getMonthlyInsights(config: PlanConfig, monthRecords: MonthRecord
   const subject = isCouple ? "Vocês" : "Você";
 
   if (profile) {
-    const totalIncome = (profile.incomePrimary || profile.incomeJonathan || 0) + (profile.incomePartner || profile.incomeIsabella || 0);
+    const totalIncome = (profile.incomePrimary || 0) + (profile.incomePartner || 0);
     if (totalIncome > 0 && record) {
       const deposited = record.deposits.reduce((s, d) => s + d.actualSelic + d.actualCDB, 0);
       insights.push(`${subject} investiram ${((deposited / totalIncome) * 100).toFixed(0)}% da renda este mês`);

@@ -29,16 +29,16 @@ export function PlanModeSelector({
   const [editName, setEditName] = useState("");
   const [editAge, setEditAge] = useState<number | undefined>();
 
-  const isCouple = appData.mode === "couple" && appData.partner && !appData.partner.removedAt;
+  const isCouple = appData.mode === "casal" && appData.partner && !appData.partner.removedAt;
   const primaryName = appData.primaryProfile.name || "Você";
   const partnerCurrentName = appData.partner?.profile.name || "";
 
   const handleActivateCouple = () => {
     if (appData.partner && !appData.partner.removedAt) {
-      onSetMode("couple");
+      onSetMode("casal");
     } else if (appData.partner?.removedAt) {
       // Restore soft-deleted partner
-      onSetMode("couple");
+      onSetMode("casal");
     } else {
       setShowAddPartner(true);
     }
@@ -93,7 +93,7 @@ export function PlanModeSelector({
               if (isCouple) {
                 setShowRemoveConfirm(true);
               } else {
-                onSetMode("solo");
+                onSetMode("individual");
               }
             }}
             className={`p-4 rounded-xl border-2 text-center transition-all ${
