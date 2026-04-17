@@ -283,30 +283,75 @@ const Index = () => {
   useEffect(() => {
     if (!user) return;
 
+    const buildLocalSnapshot = (): ConflictSnapshot => {
+      const totalWealth =
+        (appData.investments ?? []).reduce((sum, inv) => sum + (inv.currentBalance || 0), 0) || 0;
+      const participants = [
+        appData.primaryProfile?.name,
+        appData.partner && !appData.partner.removedAt ? appData.partner.profile.name : null,
+      ].filter((n): n is string => !!n && n.trim().length > 0);
+      return {
+        updatedAt: new Date().toISOString(),
+        goalAmount: data.config?.targetAmount ?? null,
+        currentWealth: totalWealth,
+        participants,
+        mode: appData.mode === "casal" ? "casal" : "individual",
+      };
+    };
+
+    const buildCloudSnapshot = (
+      cloudPlanData: PlanData | null,
+      cloudAppData: AppData | null,
+    ): ConflictSnapshot | null => {
+      if (!cloudPlanData && !cloudAppData) return null;
+      const investments = (cloudAppData?.investments ?? []) as Array<{ currentBalance?: number }>;
+      const totalWealth = investments.reduce((sum, inv) => sum + (inv?.currentBalance || 0), 0);
+      const participants = [
+        cloudAppData?.primaryProfile?.name,
+        cloudAppData?.partner && !cloudAppData.partner.removedAt
+          ? cloudAppData.partner.profile.name
+          : null,
+      ].filter((n): n is string => !!n && n.trim().length > 0);
+      return {
+        updatedAt:
+          (cloudPlanData as unknown as { updatedAt?: string })?.updatedAt ?? null,
+        goalAmount: cloudPlanData?.config?.targetAmount ?? null,
+        currentWealth: totalWealth,
+        participants,
+        mode: cloudAppData?.mode === "casal" ? "casal" : "individual",
+      };
+    };
+
     const syncFromCloud = async () => {
       const localHasData = hasLocalData();
       const cloudData = await loadFromCloud(user.id);
-      const cloudExists = !!(cloudData?.planData && (cloudData.planData as any).wizardComplete);
+      const cloudExists = !!(
+        cloudData?.planData &&
+        (cloudData.planData as unknown as { wizardComplete?: boolean }).wizardComplete
+      );
 
       if (localHasData && cloudExists) {
-        // Both have data — ask user
-        setCloudHasData(true);
+        // Conflito: pedir confirmação explícita com resumos comparáveis.
+        setLocalSnapshot(buildLocalSnapshot());
+        setCloudSnapshot(
+          buildCloudSnapshot(cloudData?.planData ?? null, cloudData?.appData ?? null),
+        );
         setShowMigrationDialog(true);
       } else if (localHasData && !cloudExists) {
-        // Only local — migrate to cloud silently
+        // Só local — sobe pra nuvem em silêncio (não há nada a sobrescrever).
         await saveToCloud(user.id, data, appData);
         toast.success("Seus dados foram salvos na nuvem! ☁️");
       } else if (!localHasData && cloudExists && cloudData) {
-        // Only cloud — load from cloud
+        // Só nuvem — carrega da nuvem.
         if (cloudData.planData) {
           importJSON(JSON.stringify(cloudData.planData));
         }
         if (cloudData.appData) {
-          setAppData(cloudData.appData as any);
+          setAppData(cloudData.appData as AppData);
         }
         toast.success("Dados carregados da nuvem! ☁️");
       }
-      // Neither has data — do nothing
+      // Sem dados em nenhum dos dois — nada a fazer.
     };
 
     syncFromCloud();
