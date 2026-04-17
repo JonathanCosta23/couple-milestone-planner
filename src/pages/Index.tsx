@@ -46,6 +46,7 @@ import { loadAppData, saveAppData } from "@/lib/appStorage";
 import { loadPlanData, savePlanData } from "@/lib/storage";
 import { useFinancialCore } from "@/hooks/useFinancialCore";
 import { usePlan } from "@/hooks/usePlan";
+import { usePlanWriter } from "@/hooks/usePlanWriter";
 import { useCelebratedMilestones } from "@/hooks/useCelebratedMilestones";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
