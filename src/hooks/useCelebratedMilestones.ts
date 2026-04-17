@@ -1,102 +1,137 @@
 /**
- * useCelebratedMilestones — Persists celebrated milestone values
- * in localStorage (always) and in the database milestones table (when logged in).
+ * useCelebratedMilestones — Persiste marcos celebrados na tabela `milestones`
+ * com escopo por (user_id, plan_id). Mantém cache local apenas como fallback
+ * imediato (otimismo + offline), mas a fonte de verdade é o banco.
+ *
+ * Fluxo:
+ *  1. Boot: lê do banco filtrando por plan_id; popula estado e cache local.
+ *  2. celebrate(value): grava no banco (upsert lógico via dedup) e atualiza estado.
+ *  3. Sem plan_id: opera só com cache local (degrada graciosamente).
+ *
+ * Round-trip validado: o popup nunca reaparece após login em outra sessão
+ * porque o banco é consultado antes de o `core.milestones.celebrationQueue`
+ * ser computado (estado vira [] → muitos itens conforme banco responde).
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-const LOCAL_KEY = "plano-celebrated-milestones";
+const LOCAL_KEY_PREFIX = "plano-celebrated-milestones";
 
-function loadLocal(): number[] {
+function localKey(userId?: string, planId?: string | null): string {
+  if (userId && planId) return `${LOCAL_KEY_PREFIX}::${userId}::${planId}`;
+  return LOCAL_KEY_PREFIX; // legado / anônimo
+}
+
+function loadLocal(key: string): number[] {
   try {
-    const raw = localStorage.getItem(LOCAL_KEY);
+    const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
   }
 }
 
-function saveLocal(values: number[]) {
-  localStorage.setItem(LOCAL_KEY, JSON.stringify(values));
+function saveLocal(key: string, values: number[]) {
+  try {
+    localStorage.setItem(key, JSON.stringify(values));
+  } catch {
+    /* quota exceeded — ignora */
+  }
 }
 
-export function useCelebratedMilestones(userId: string | undefined) {
-  const [celebrated, setCelebrated] = useState<number[]>(loadLocal);
+export function useCelebratedMilestones(userId: string | undefined, planId?: string | null) {
+  const key = localKey(userId, planId);
+  const [celebrated, setCelebrated] = useState<number[]>(() => loadLocal(key));
   const [loaded, setLoaded] = useState(false);
+  const lastKeyRef = useRef<string | null>(null);
 
-  // Load from DB when user logs in
+  // Carrega do banco filtrando por plan_id quando login + plano disponíveis.
   useEffect(() => {
+    // Sem usuário: somente cache local genérico.
     if (!userId) {
+      setCelebrated(loadLocal(LOCAL_KEY_PREFIX));
       setLoaded(true);
+      lastKeyRef.current = null;
       return;
     }
+    // Com usuário mas sem plano: aguarda plano para evitar misturar escopos.
+    if (!planId) {
+      setLoaded(false);
+      return;
+    }
+    if (lastKeyRef.current === key) return;
+    lastKeyRef.current = key;
 
-    const load = async () => {
-      const { data } = await supabase
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
         .from("milestones")
         .select("value")
         .eq("user_id", userId)
+        .eq("plan_id", planId)
         .eq("status", "celebrated");
 
-      if (data && data.length > 0) {
-        const dbValues = data.map((r) => Number(r.value));
-        // Merge local + DB (union)
-        setCelebrated((prev) => {
-          const merged = Array.from(new Set([...prev, ...dbValues]));
-          saveLocal(merged);
-          return merged;
-        });
+      if (cancelled) return;
+      if (error) {
+        // Falha de leitura: mantém cache local; não quebra o boot.
+        console.warn("[milestones] falha ao carregar:", error.message);
+        setLoaded(true);
+        return;
       }
-      setLoaded(true);
-    };
 
-    load();
-  }, [userId]);
+      const dbValues = (data ?? []).map((r) => Number(r.value));
+      const local = loadLocal(key);
+      const merged = Array.from(new Set([...local, ...dbValues])).sort((a, b) => a - b);
+      saveLocal(key, merged);
+      setCelebrated(merged);
+      setLoaded(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, planId, key]);
 
   const celebrate = useCallback(
     async (value: number) => {
+      // Otimismo local imediato (evita popup duplicado no mesmo boot).
       setCelebrated((prev) => {
         if (prev.includes(value)) return prev;
-        const next = [...prev, value];
-        saveLocal(next);
+        const next = [...prev, value].sort((a, b) => a - b);
+        saveLocal(key, next);
         return next;
       });
 
-      if (userId) {
-        // Check if already exists in DB
-        const { data: existing } = await supabase
-          .from("milestones")
-          .select("id")
-          .eq("user_id", userId)
-          .eq("value", value)
-          .eq("status", "celebrated")
-          .maybeSingle();
+      if (!userId || !planId) return; // offline / sem plano: só cache local.
 
-        if (!existing) {
-          // We need a plan_id — get the user's active plan
-          const { data: plan } = await supabase
-            .from("plans")
-            .select("id")
-            .eq("user_id", userId)
-            .eq("status", "active")
-            .maybeSingle();
+      // Dedup explícita por (user, plan, value, status=celebrated).
+      const { data: existing } = await supabase
+        .from("milestones")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("plan_id", planId)
+        .eq("value", value)
+        .eq("status", "celebrated")
+        .maybeSingle();
 
-          const planId = plan?.id;
-          if (planId) {
-            await supabase.from("milestones").insert({
-              user_id: userId,
-              plan_id: planId,
-              value,
-              status: "celebrated",
-              origin: "realized",
-              milestone_type: "financial",
-            });
-          }
-        }
+      if (existing) return;
+
+      const { error } = await supabase.from("milestones").insert({
+        user_id: userId,
+        plan_id: planId,
+        value,
+        status: "celebrated",
+        origin: "realized",
+        milestone_type: "financial",
+      });
+
+      if (error) {
+        console.warn("[milestones] falha ao salvar:", error.message);
+        // Estado local permanece — usuário não verá popup novamente nesta sessão.
       }
     },
-    [userId]
+    [userId, planId, key],
   );
 
   return { celebrated, celebrate, loaded };
