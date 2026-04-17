@@ -8,6 +8,7 @@ import type { PlanMode, AppData } from "@/lib/models";
 import type { PlanConfig } from "@/lib/types";
 import type { PlanRow, PlanMemberRow } from "@/hooks/usePlan";
 import { usePlanWriter } from "@/hooks/usePlanWriter";
+import { toFriendlyError } from "@/lib/errors/friendlyError";
 
 interface Deps {
   user: { id: string } | null;
@@ -70,7 +71,7 @@ export function usePlanActions(deps: Deps): PlanActions {
         partnerAge: partner?.age ?? null,
         wizardComplete: true,
       });
-      if (result.error) toast.error(`Falha ao salvar plano na nuvem: ${result.error}`);
+      if (result.error) toast.error(`Falha ao salvar plano na nuvem: ${toFriendlyError(result.error)}`);
       else await refreshCloudPlan();
     }
 
@@ -89,7 +90,7 @@ export function usePlanActions(deps: Deps): PlanActions {
         ? { name: partnerProfile.name, age: partnerProfile.age ?? null }
         : undefined,
     );
-    if (result.error) toast.error(`Falha ao trocar modo: ${result.error}`);
+    if (result.error) toast.error(`Falha ao trocar modo: ${toFriendlyError(result.error)}`);
     else await refreshCloudPlan();
   }, [setModeLocal, user, cloudPlan, appData.partner, writer, refreshCloudPlan]);
 
@@ -97,7 +98,7 @@ export function usePlanActions(deps: Deps): PlanActions {
     addPartnerLocal(name, age);
     if (!user || !cloudPlan) return;
     const result = await writer.addPartner(cloudPlan.id, { name, age: age ?? null });
-    if (result.error) toast.error(`Falha ao adicionar parceiro: ${result.error}`);
+    if (result.error) toast.error(`Falha ao adicionar parceiro: ${toFriendlyError(result.error)}`);
     else await refreshCloudPlan();
   }, [addPartnerLocal, user, cloudPlan, writer, refreshCloudPlan]);
 
@@ -105,7 +106,7 @@ export function usePlanActions(deps: Deps): PlanActions {
     removePartnerLocal();
     if (!user || !cloudPlan) return;
     const result = await writer.removePartner(cloudPlan.id);
-    if (result.error) toast.error(`Falha ao remover parceiro: ${result.error}`);
+    if (result.error) toast.error(`Falha ao remover parceiro: ${toFriendlyError(result.error)}`);
     else await refreshCloudPlan();
   }, [removePartnerLocal, user, cloudPlan, writer, refreshCloudPlan]);
 
@@ -116,7 +117,7 @@ export function usePlanActions(deps: Deps): PlanActions {
       name: profile.name ?? primaryMember.name,
       age: profile.age ?? primaryMember.age,
     });
-    if (result.error) toast.error(`Falha ao atualizar titular: ${result.error}`);
+    if (result.error) toast.error(`Falha ao atualizar titular: ${toFriendlyError(result.error)}`);
     else await refreshCloudPlan();
   }, [updatePrimaryProfileLocal, user, primaryMember, writer, refreshCloudPlan]);
 
@@ -127,7 +128,7 @@ export function usePlanActions(deps: Deps): PlanActions {
       name: profile.name ?? partnerMember.name,
       age: profile.age ?? partnerMember.age,
     });
-    if (result.error) toast.error(`Falha ao atualizar parceiro: ${result.error}`);
+    if (result.error) toast.error(`Falha ao atualizar parceiro: ${toFriendlyError(result.error)}`);
     else await refreshCloudPlan();
   }, [updatePartnerProfileLocal, user, partnerMember, writer, refreshCloudPlan]);
 
