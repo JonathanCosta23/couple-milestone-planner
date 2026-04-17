@@ -716,26 +716,26 @@ const Index = () => {
             onConfirm={exportImport.handleConfirm}
           />
         )}
-        {showMigrationDialog && (
+        {lifecycle.migrationDialog.open && (
           <DataMigrationDialog
-            open={showMigrationDialog}
-            loading={migrationLoading}
-            localSnapshot={localSnapshot}
-            cloudSnapshot={cloudSnapshot}
-            onUseCloud={handleUseCloud}
-            onUseLocal={handleUseLocal}
-            onDecideLater={handleDecideLater}
-            onClose={handleDecideLater}
+            open={lifecycle.migrationDialog.open}
+            loading={lifecycle.migrationDialog.loading}
+            localSnapshot={lifecycle.migrationDialog.localSnapshot}
+            cloudSnapshot={lifecycle.migrationDialog.cloudSnapshot}
+            onUseCloud={lifecycle.migrationDialog.useCloud}
+            onUseLocal={lifecycle.migrationDialog.useLocal}
+            onDecideLater={lifecycle.migrationDialog.decideLater}
+            onClose={lifecycle.migrationDialog.decideLater}
           />
         )}
-        {showBlobMigration && (
+        {lifecycle.blobMigration.open && (
           <BlobMigrationDialog
-            open={showBlobMigration}
-            onOpenChange={setShowBlobMigration}
-            counts={blobMigrationCounts}
-            loading={migrationLoading}
-            onMigrate={handleBlobMigrate}
-            onLater={handleBlobLater}
+            open={lifecycle.blobMigration.open}
+            onOpenChange={(open) => { if (!open) lifecycle.blobMigration.later(); }}
+            counts={lifecycle.blobMigration.counts}
+            loading={lifecycle.migrationDialog.loading}
+            onMigrate={lifecycle.blobMigration.migrate}
+            onLater={lifecycle.blobMigration.later}
           />
         )}
       </Suspense>
