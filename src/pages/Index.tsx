@@ -52,8 +52,6 @@ const QuickDeposit = lazy(() => import("@/components/plan/QuickDeposit").then(m 
 const ImportDialog = lazy(() => import("@/components/plan/ImportDialog").then(m => ({ default: m.ImportDialog })));
 const DataMigrationDialog = lazy(() => import("@/components/auth/DataMigrationDialog").then(m => ({ default: m.DataMigrationDialog })));
 const BlobMigrationDialog = lazy(() => import("@/components/auth/BlobMigrationDialog").then(m => ({ default: m.BlobMigrationDialog })));
-import { backupBeforeDestructiveOp } from "@/lib/services/dataMigrationService";
-import { migrateBlobToTables, previewBlobMigration, loadAppDataFromBlob } from "@/lib/services/blobMigrationService";
 import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
 import { RestoreBackupButton } from "@/components/plan/RestoreBackupButton";
 
