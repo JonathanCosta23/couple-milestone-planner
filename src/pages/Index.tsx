@@ -1,8 +1,8 @@
-import { useState, useMemo, useRef, useEffect, useCallback, lazy, Suspense } from "react";
+import { useState, useMemo, useCallback, lazy, Suspense } from "react";
 import { usePlanData } from "@/hooks/usePlanData";
 import { useAppData } from "@/hooks/useAppData";
 import { useAuth } from "@/hooks/useAuth";
-import { useCloudSync } from "@/hooks/useCloudSync";
+import { useDataLifecycle } from "@/hooks/useDataLifecycle";
 
 // ── Eager: caminho crítico (LCP) ──
 import { Hero } from "@/components/plan/Hero";
