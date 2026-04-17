@@ -6,7 +6,12 @@
 
 // ===== Core Identity =====
 
-export type PlanMode = "solo" | "couple";
+/**
+ * Modo canônico do plano. "individual" = um titular ativo. "casal" = dois titulares.
+ * Strings legadas "solo"/"couple" continuam aceitas pelo loader (appStorage) e
+ * são convertidas no momento da leitura para garantir retrocompatibilidade.
+ */
+export type PlanMode = "individual" | "casal";
 
 export interface Profile {
   id: string;
@@ -395,7 +400,7 @@ export function generateId(): string {
 export function createDefaultAppData(): AppData {
   return {
     schemaVersion: "7.0.0",
-    mode: "solo",
+    mode: "individual",
     primaryProfile: { id: generateId(), name: "", age: 25, avatarColor: "hsl(var(--primary))" },
     partner: undefined,
     incomes: [],
