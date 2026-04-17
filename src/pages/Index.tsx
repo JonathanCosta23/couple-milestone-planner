@@ -14,7 +14,7 @@ import { AuthPage } from "@/components/auth/AuthPage";
 import { Dashboard } from "@/components/plan/Dashboard";
 import { MilestoneAlert } from "@/components/plan/MilestoneAlert";
 import { PanelSkeleton } from "@/components/plan/PanelSkeleton";
-import { type ConflictSnapshot } from "@/components/auth/DataMigrationDialog";
+
 
 // ── Lazy: fluxos de entrada (carregados sob demanda) ──
 const Onboarding = lazy(() => import("@/components/plan/Onboarding").then(m => ({ default: m.Onboarding })));
