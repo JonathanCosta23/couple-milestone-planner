@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { PlanConfig, MonthRecord, ProjectionRow, formatBRL, formatPercent, monthKeyToLabel, MILESTONES } from "@/lib/types";
+import { PlanConfig, MonthRecord, ProjectionRow, formatBRL, formatBRLCompact, formatPercent, monthKeyToLabel, MILESTONES } from "@/lib/types";
 import { generateProjection, getReachedMilestones } from "@/lib/calculator";
 import { exportProjectionCSV, exportTrackerCSV } from "@/lib/export";
 import { Card } from "@/components/ui/card";
@@ -16,14 +16,14 @@ interface DashboardProps {
 function StatCard({ icon: Icon, label, value, sub, color }: { icon: any; label: string; value: string; sub?: string; color: string }) {
   return (
     <Card className="glass-card p-4 lg:p-5">
-      <div className="flex items-start gap-3">
-        <div className={`p-2 lg:p-2.5 rounded-lg ${color}`}>
+      <div className="flex items-start gap-2.5 lg:gap-3">
+        <div className={`p-2 lg:p-2.5 rounded-lg shrink-0 ${color}`}>
           <Icon className="w-5 h-5 lg:w-6 lg:h-6" />
         </div>
-        <div className="min-w-0">
-          <p className="text-xs sm:text-sm text-muted-foreground">{label}</p>
-          <p className="text-lg lg:text-xl font-bold">{value}</p>
-          {sub && <p className="text-xs sm:text-sm text-muted-foreground">{sub}</p>}
+        <div className="min-w-0 flex-1">
+          <p className="text-xs sm:text-sm text-muted-foreground truncate">{label}</p>
+          <p className="text-base lg:text-xl font-bold break-words leading-tight">{value}</p>
+          {sub && <p className="text-[11px] sm:text-sm text-muted-foreground break-words leading-snug mt-0.5">{sub}</p>}
         </div>
       </div>
     </Card>
@@ -73,14 +73,14 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
         <StatCard
           icon={DollarSign}
           label="Onde você está"
-          value={formatBRL(currentBalance)}
+          value={formatBRLCompact(currentBalance)}
           color="bg-primary/10 text-primary"
         />
         <StatCard
           icon={TrendingUp}
           label="Aporte mensal"
-          value={formatBRL(totalMonthly)}
-          sub={config.contributors.filter(c => c.plannedSelic > 0 || c.plannedCDB > 0).map(c => `${c.name || "Você"}: ${formatBRL(c.plannedSelic + c.plannedCDB)}`).join(" | ")}
+          value={formatBRLCompact(totalMonthly)}
+          sub={config.contributors.filter(c => c.plannedSelic > 0 || c.plannedCDB > 0).map(c => `${c.name || "Você"}: ${formatBRLCompact(c.plannedSelic + c.plannedCDB)}`).join(" · ")}
           color="bg-accent/10 text-accent"
         />
         <StatCard
@@ -93,8 +93,8 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
         <StatCard
           icon={Target}
           label="Sua meta"
-          value={formatBRL(config.targetAmount)}
-          sub={lastRow ? `Projeção final: ${formatBRL(lastRow.totalBalance)}` : undefined}
+          value={formatBRLCompact(config.targetAmount)}
+          sub={lastRow ? `Projeção: ${formatBRLCompact(lastRow.totalBalance)}` : undefined}
           color="bg-accent/10 text-accent"
         />
       </div>
