@@ -5,6 +5,7 @@ import { AppData } from "@/lib/models";
 import { PlanConfig, formatBRLCompact } from "@/lib/types";
 import type { FinancialCoreState } from "@/hooks/useFinancialCore";
 import { Building2, PieChart, Users, AlertTriangle, Plus } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface Props {
   appData: AppData;
@@ -52,16 +53,16 @@ export function ConcentrationMap({ appData, config, core, onNavigateToTab }: Pro
           <PieChart className="w-6 h-6 lg:w-7 lg:h-7 text-primary mx-auto mb-2" />
           <h3 className="font-bold lg:text-lg">Mapa de Concentração</h3>
         </Card>
-        <Card className="glass-card p-6 text-center space-y-3">
-          <PieChart className="w-10 h-10 text-muted-foreground mx-auto" />
-          <p className="text-sm font-medium">Sem ativos cadastrados</p>
-          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-            Cadastre seus investimentos para visualizar concentração por ativo, instituição e conglomerado.
-          </p>
-          <Button variant="outline" className="mx-auto" onClick={() => onNavigateToTab?.("patrimonio")}>
-            <Plus className="w-4 h-4 mr-2" /> Cadastrar investimento
-          </Button>
-        </Card>
+        <EmptyState
+          icon={PieChart}
+          title="Sem ativos cadastrados"
+          description="Cadastre seus investimentos para visualizar concentração por classe, instituição e conglomerado — e identificar riscos invisíveis."
+          action={{
+            label: "Cadastrar investimento",
+            icon: Plus,
+            onClick: () => onNavigateToTab?.("patrimonio"),
+          }}
+        />
       </div>
     );
   }
