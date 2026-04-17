@@ -825,9 +825,9 @@ const Index = () => {
                 config={data.config}
                 monthRecords={data.monthRecords}
                 startDate={data.startDate}
-                onUpdateMonth={updateMonthRecord}
-                onUpdateNotes={updateMonthNotes}
-                onToggleCompleted={toggleMonthCompleted}
+                onUpdateMonth={handleUpdateMonth}
+                onUpdateNotes={handleUpdateMonthNotes}
+                onToggleCompleted={handleToggleMonthCompleted}
                 onGenerateAutoPlan={generateAutoPlan}
               />
             )}
@@ -835,9 +835,9 @@ const Index = () => {
               <ExpensePanel
                 appData={effectiveAppData}
                 config={data.config}
-                onAddExpense={addExpense}
-                onUpdateExpense={updateExpense}
-                onDeleteExpense={deleteExpense}
+                onAddExpense={handleAddExpense}
+                onUpdateExpense={handleUpdateExpense}
+                onDeleteExpense={handleDeleteExpense}
                 onDuplicateExpense={duplicateExpense}
                 onMarkExpensePaid={markExpensePaid}
                 onConvertToRecurring={convertToRecurring}
@@ -849,18 +849,18 @@ const Index = () => {
                 config={data.config}
                 monthRecords={data.monthRecords}
                 startDate={data.startDate}
-                onAddIncome={addIncome}
-                onUpdateIncome={updateIncome}
-                onDeleteIncome={deleteIncome}
+                onAddIncome={handleAddIncome}
+                onUpdateIncome={handleUpdateIncome}
+                onDeleteIncome={handleDeleteIncome}
               />
             )}
             {historicoSub === "dividas" && (
               <DebtModule
                 appData={effectiveAppData}
                 config={data.config}
-                onAddDebt={addDebt}
-                onUpdateDebt={updateDebt}
-                onDeleteDebt={deleteDebt}
+                onAddDebt={handleAddDebt}
+                onUpdateDebt={handleUpdateDebt}
+                onDeleteDebt={handleDeleteDebt}
               />
             )}
           </div>
@@ -1037,6 +1037,15 @@ const Index = () => {
         onUseLocal={handleUseLocal}
         onDecideLater={handleDecideLater}
         onClose={handleDecideLater}
+      />
+
+      <BlobMigrationDialog
+        open={showBlobMigration}
+        onOpenChange={setShowBlobMigration}
+        counts={blobMigrationCounts}
+        loading={migrationLoading}
+        onMigrate={handleBlobMigrate}
+        onLater={handleBlobLater}
       />
     </div>
   );
