@@ -96,7 +96,8 @@ const PERFIL_SUBS = [
 
 const Index = () => {
   const {
-    data, completeWizard, updateConfig, updateMonthRecord, updateMonthNotes,
+    data, setData: setPlanRawData,
+    completeWizard, updateConfig, updateMonthRecord, updateMonthNotes,
     toggleMonthCompleted, generateAutoPlan, generateNextYear, resetPlan, exportJSON, importJSON,
     updateNotificationSettings, updateFinancialProfile, completeOnboarding,
   } = usePlanData();
@@ -113,10 +114,13 @@ const Index = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const { loadFromCloud, saveToCloud, hasLocalData, hasCloudData } = useCloudSync();
   // Fonte canônica do modo do plano + nomes dos membros (Fase 1.D).
-  // Quando há plano no Supabase, sobrescreve appData.mode/primaryProfile/partner via cloudPlan overlay.
   const { plan: cloudPlanRow, members: cloudMembers, primaryMember: cloudPrimaryMember, partnerMember: cloudPartnerMember, refresh: refreshCloudPlan } = usePlan();
   const planWriter = usePlanWriter();
   const assetWriter = useAssetWriter();
+  const incomeWriter = useIncomeWriter();
+  const expenseWriter = useExpenseWriter();
+  const debtWriter = useDebtWriter();
+  const trackingWriter = useMonthlyTrackingWriter();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { celebrated: dismissedMilestones, celebrate: celebrateMilestone } = useCelebratedMilestones(user?.id);
@@ -130,6 +134,12 @@ const Index = () => {
   const [cloudSnapshot, setCloudSnapshot] = useState<ConflictSnapshot | null>(null);
   const [syncing, setSyncing] = useState(false);
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Blob migration (D2=B): controle do modal de migração assistida.
+  const [showBlobMigration, setShowBlobMigration] = useState(false);
+  const [blobMigrationCounts, setBlobMigrationCounts] = useState({ incomes: 0, expenses: 0, debts: 0 });
+  const [blobAppDataCache, setBlobAppDataCache] = useState<AppData | null>(null);
+  const blobCheckedRef = useRef(false);
 
   // Navigation state — 4 tabs
   const [navSection, setNavSection] = useState<NavSection>("home");
