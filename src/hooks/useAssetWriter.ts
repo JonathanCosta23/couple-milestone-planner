@@ -145,9 +145,9 @@ function investmentToAssetPayload(
     user_id: ctx.userId,
     plan_id: ctx.planId,
   };
-  if (inv.profileId !== undefined || ctx.memberId !== undefined) {
-    payload.member_id = inv.profileId ?? ctx.memberId ?? null;
-  }
+  // member_id: usa apenas o memberId resolvido pelo chamador (FK para tabela members).
+  // O profileId do app NÃO é um member.id válido e não deve ser enviado direto.
+  payload.member_id = ctx.memberId ?? null;
   if (inv.type !== undefined) payload.asset_type = inv.type;
   if (inv.institution !== undefined) payload.institution = inv.institution || null;
   if (inv.conglomerate !== undefined) payload.conglomerate = inv.conglomerate || null;
