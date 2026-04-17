@@ -236,6 +236,48 @@ const Index = () => {
     }
   }, [updatePartnerProfile, user, cloudPartnerMember, planWriter, refreshCloudPlan]);
 
+  // ── Investimentos: escrita real em assets + cache local (Fase 2.B) ──
+  const resolveMemberIdForInvestment = useCallback((profileId?: string): string | null => {
+    if (!profileId) return cloudPrimaryMember?.id ?? null;
+    // profileId no app é o id do Profile local; se bater com nome do member, mapeia
+    if (profileId === appData.primaryProfile.id) return cloudPrimaryMember?.id ?? null;
+    if (appData.partner && profileId === appData.partner.profile.id) return cloudPartnerMember?.id ?? null;
+    return cloudPrimaryMember?.id ?? null;
+  }, [appData.primaryProfile.id, appData.partner, cloudPrimaryMember, cloudPartnerMember]);
+
+  const handleAddInvestment = useCallback(async (inv: Investment) => {
+    addInvestment(inv);
+    if (user && cloudPlanRow) {
+      const memberId = resolveMemberIdForInvestment(inv.profileId);
+      const result = await assetWriter.createAsset(cloudPlanRow.id, inv, memberId);
+      if (result.error) toast.error(`Falha ao salvar investimento: ${result.error}`);
+      else if (result.data) {
+        // Substitui o id local pelo id real do banco para manter sincronia em updates futuros
+        updateInvestment(inv.id, { id: result.data.id } as Partial<Investment>);
+      }
+    }
+  }, [addInvestment, updateInvestment, user, cloudPlanRow, assetWriter, resolveMemberIdForInvestment]);
+
+  const handleUpdateInvestment = useCallback(async (id: string, updates: Partial<Investment>) => {
+    updateInvestment(id, updates);
+    if (user && cloudPlanRow) {
+      const memberId = resolveMemberIdForInvestment(updates.profileId);
+      const result = await assetWriter.updateAsset(cloudPlanRow.id, id, updates, memberId);
+      if (result.error) toast.error(`Falha ao atualizar investimento: ${result.error}`);
+    }
+  }, [updateInvestment, user, cloudPlanRow, assetWriter, resolveMemberIdForInvestment]);
+
+  const handleDeleteInvestment = useCallback(async (id: string) => {
+    deleteInvestment(id);
+    if (user) {
+      const result = await assetWriter.deleteAsset(id);
+      if (result.error) {
+        // Se falhar como hard-delete (ex.: id local não existe no banco), tenta soft
+        await assetWriter.deactivateAsset(id);
+      }
+    }
+  }, [deleteInvestment, user, assetWriter]);
+
   // ── Cloud sync: load data when user logs in ──
   useEffect(() => {
     if (!user) return;
