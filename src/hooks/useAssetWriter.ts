@@ -72,6 +72,31 @@ function flagsToSecurityLevel(row: AssetRow): SecurityLevel {
 }
 
 /**
+ * Mapa bucket do app (PT) → bucket aceito pelo CHECK constraint da tabela assets (EN).
+ * Tabela aceita: reserve | protection | sovereign | growth.
+ */
+const BUCKET_TO_DB: Record<string, string> = {
+  "reserva": "reserve",
+  "protecao-bancaria": "protection",
+  "base-soberana": "sovereign",
+  "crescimento": "growth",
+};
+const BUCKET_FROM_DB: Record<string, string> = {
+  "reserve": "reserva",
+  "protection": "protecao-bancaria",
+  "sovereign": "base-soberana",
+  "growth": "crescimento",
+};
+
+/** Mapa liquidez do app → CHECK aceito (daily | scheduled | maturity | variable). */
+const LIQUIDITY_TO_DB: Record<string, string> = {
+  "diaria": "daily", "diária": "daily", "daily": "daily",
+  "programada": "scheduled", "scheduled": "scheduled",
+  "vencimento": "maturity", "maturity": "maturity",
+  "variavel": "variable", "variável": "variable", "variable": "variable",
+};
+
+/**
  * Normaliza datas vindas do app (YYYY-MM ou YYYY-MM-DD) para o formato DATE do Postgres.
  * Strings vazias viram null. YYYY-MM é completado com o dia 01.
  */
@@ -96,7 +121,7 @@ export function assetRowToInvestment(row: AssetRow): Investment {
     institution: row.institution ?? "",
     conglomerate: row.conglomerate ?? undefined,
     securityLevel: flagsToSecurityLevel(row),
-    bucket: (row.bucket as Investment["bucket"]) ?? undefined,
+    bucket: (row.bucket ? (BUCKET_FROM_DB[row.bucket] ?? row.bucket) : undefined) as Investment["bucket"],
     currentBalance: Number(row.current_amount ?? 0),
     monthlyContribution: 0, // não persistido em assets
     annualRate: 0, // legado; pode ser inferido pelas premissas do plano
@@ -133,7 +158,7 @@ function investmentToAssetPayload(
     payload.invested_amount = inv.currentBalance;
   }
   
-  if (inv.bucket !== undefined) payload.bucket = inv.bucket ?? null;
+  if (inv.bucket !== undefined) payload.bucket = inv.bucket ? (BUCKET_TO_DB[inv.bucket] ?? null) : null;
   if (inv.active !== undefined) payload.is_active = inv.active;
   if (inv.startDate !== undefined) payload.reference_date = normalizeDate(inv.startDate);
   if (inv.maturityDate !== undefined) payload.maturity_date = normalizeDate(inv.maturityDate);
