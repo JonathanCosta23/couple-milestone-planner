@@ -21,14 +21,19 @@ interface Props {
 
 function CurrencyInput({ value, onChange, id, label }: { value: number; onChange: (v: number) => void; id: string; label: string }) {
   return (
-    <div>
+    <div className="min-w-0">
       <Label htmlFor={id} className="text-xs sm:text-sm">{label}</Label>
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">R$</span>
-        <Input id={id} type="text" inputMode="numeric"
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs pointer-events-none">R$</span>
+        <Input
+          id={id}
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
           value={value ? value.toLocaleString("pt-BR") : ""}
           onChange={(e) => onChange(Number(e.target.value.replace(/\D/g, "")) || 0)}
-          className="text-right pl-10 h-9 lg:h-10 text-sm" />
+          className="text-right pl-10 h-11 lg:h-10 text-base lg:text-sm"
+        />
       </div>
     </div>
   );
@@ -143,18 +148,34 @@ export function AdvancedSimulator({ appData, config, monthRecords, startDate, co
           {mode === "advanced" && (
             <CurrencyInput id="sim-extra" label="Aporte extra/mês" value={customExtra} onChange={setCustomExtra} />
           )}
-          <div>
+          <div className="min-w-0">
             <Label htmlFor="sim-rate" className="text-xs sm:text-sm">Rendimento a.a. (%)</Label>
-            <Input id="sim-rate" type="number" step={0.5} min={0} max={30}
-              value={customRate} onChange={(e) => setCustomRate(Number(e.target.value) || 0)}
-              className="text-right h-9 lg:h-10 text-sm" />
+            <Input
+              id="sim-rate"
+              type="number"
+              inputMode="decimal"
+              step={0.5}
+              min={0}
+              max={30}
+              value={customRate}
+              onChange={(e) => setCustomRate(Number(e.target.value) || 0)}
+              className="text-right h-11 lg:h-10 text-base lg:text-sm"
+            />
           </div>
           {mode === "advanced" && (
-            <div>
+            <div className="min-w-0">
               <Label htmlFor="sim-inflation" className="text-xs sm:text-sm">Inflação a.a. (%)</Label>
-              <Input id="sim-inflation" type="number" step={0.5} min={0} max={20}
-                value={customInflation} onChange={(e) => setCustomInflation(Number(e.target.value) || 0)}
-                className="text-right h-9 lg:h-10 text-sm" />
+              <Input
+                id="sim-inflation"
+                type="number"
+                inputMode="decimal"
+                step={0.5}
+                min={0}
+                max={20}
+                value={customInflation}
+                onChange={(e) => setCustomInflation(Number(e.target.value) || 0)}
+                className="text-right h-11 lg:h-10 text-base lg:text-sm"
+              />
             </div>
           )}
         </div>
@@ -277,11 +298,11 @@ export function AdvancedSimulator({ appData, config, monthRecords, startDate, co
 
 function ResultCard({ label, value, sub, icon: Icon }: { label: string; value: string; sub: string; icon: React.ElementType }) {
   return (
-    <div className="text-center p-3 lg:p-4 rounded-lg bg-muted/30">
+    <div className="text-center p-3 lg:p-4 rounded-lg bg-muted/30 min-w-0">
       <Icon className="w-4 h-4 lg:w-5 lg:h-5 mx-auto mb-1 text-primary" />
-      <p className="text-[10px] sm:text-xs text-muted-foreground uppercase">{label}</p>
-      <p className="text-sm lg:text-base font-bold text-primary">{value}</p>
-      {sub && <p className="text-[10px] sm:text-xs text-muted-foreground">{sub}</p>}
+      <p className="text-[10px] sm:text-xs text-muted-foreground uppercase truncate">{label}</p>
+      <p className="text-sm lg:text-base font-bold text-primary break-words leading-tight">{value}</p>
+      {sub && <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{sub}</p>}
     </div>
   );
 }
