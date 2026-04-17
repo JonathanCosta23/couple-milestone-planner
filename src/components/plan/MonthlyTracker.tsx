@@ -261,30 +261,30 @@ function MonthCard({
     >
       {/* Card header */}
       <button
-        className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/10 transition-colors"
+        className="w-full flex items-center justify-between gap-2 p-4 text-left hover:bg-muted/10 transition-colors min-h-[64px]"
         onClick={onToggleExpand}
       >
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="flex flex-col items-center min-w-[44px]">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="flex flex-col items-center min-w-[40px] shrink-0">
             <span className="text-lg font-bold leading-none">{monthKey.split("-")[1]}</span>
             <span className="text-[10px] text-muted-foreground">{monthKey.split("-")[0]}</span>
           </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-sm">{monthKeyToLabel(monthKey)}</span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="font-semibold text-sm truncate">{monthKeyToLabel(monthKey)}</span>
               {isCurrent && (
-                <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-medium">ATUAL</span>
+                <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-medium shrink-0">ATUAL</span>
               )}
               {isFuture && (
-                <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">FUTURO</span>
+                <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full shrink-0">FUTURO</span>
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">
               {formatBRL(totalActual)} / {formatBRL(totalPlanned)}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0">
           <StatusBadge status={status} />
           {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
         </div>
@@ -334,6 +334,7 @@ function MonthCard({
                       <Label className="text-[11px] text-muted-foreground">Selic real</Label>
                       <Input
                         type="number"
+                        inputMode="decimal"
                         min={0}
                         step={100}
                         value={dep.actualSelic || ""}
@@ -342,7 +343,7 @@ function MonthCard({
                           const val = Number(e.target.value) || 0;
                           onUpdateDeposit(monthKey, cIdx, { ...dep, actualSelic: val });
                         }}
-                        className={`text-right text-sm h-9 ${
+                        className={`text-right text-base lg:text-sm h-11 lg:h-9 ${
                           dep.actualSelic >= c.plannedSelic && dep.actualSelic > 0 ? "border-primary/50 bg-primary/5" : ""
                         }`}
                       />
@@ -353,6 +354,7 @@ function MonthCard({
                       <Label className="text-[11px] text-muted-foreground">CDB real</Label>
                       <Input
                         type="number"
+                        inputMode="decimal"
                         min={0}
                         step={100}
                         value={dep.actualCDB || ""}
@@ -361,7 +363,7 @@ function MonthCard({
                           const val = Number(e.target.value) || 0;
                           onUpdateDeposit(monthKey, cIdx, { ...dep, actualCDB: val });
                         }}
-                        className={`text-right text-sm h-9 ${
+                        className={`text-right text-base lg:text-sm h-11 lg:h-9 ${
                           dep.actualCDB >= c.plannedCDB && dep.actualCDB > 0 ? "border-primary/50 bg-primary/5" : ""
                         }`}
                       />
@@ -373,16 +375,16 @@ function MonthCard({
           })}
 
           {/* Completed toggle + Copy */}
-          <div className="flex items-center justify-between py-2 px-1">
-            <Label htmlFor={`toggle-${monthKey}`} className="text-sm font-medium cursor-pointer flex items-center gap-2">
+          <div className="flex items-center justify-between gap-2 py-2 px-1 flex-wrap">
+            <Label htmlFor={`toggle-${monthKey}`} className="text-sm font-medium cursor-pointer flex items-center gap-2 min-h-[32px]">
               <CheckCircle2 className={`w-4 h-4 ${record?.completed ? "text-primary" : "text-muted-foreground"}`} />
               Mês concluído
             </Label>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 ml-auto">
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 text-xs"
+                className="h-9 text-xs px-2.5"
                 onClick={(e) => {
                   e.stopPropagation();
                   const lines = config.contributors
