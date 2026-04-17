@@ -39,6 +39,7 @@ import type { ConflictSnapshot } from "@/components/auth/DataMigrationDialog";
 import type { PlanData } from "@/lib/types";
 import type { AppData } from "@/lib/models";
 import type { User } from "@supabase/supabase-js";
+import type { PlanMemberRow } from "@/hooks/usePlan";
 
 type LifecycleStatus = "idle" | "hydrating" | "syncing" | "ready" | "error";
 
