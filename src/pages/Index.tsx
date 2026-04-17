@@ -40,8 +40,8 @@ import { DataMigrationDialog, type ConflictSnapshot } from "@/components/auth/Da
 import { backupBeforeDestructiveOp } from "@/lib/services/dataMigrationService";
 import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
 
-import { MILESTONES, EMOTIONAL_GOAL_LABELS, PlanConfig } from "@/lib/types";
-import type { PlanMode, Investment } from "@/lib/models";
+import { MILESTONES, EMOTIONAL_GOAL_LABELS, PlanConfig, type PlanData } from "@/lib/types";
+import type { PlanMode, Investment, AppData } from "@/lib/models";
 import { parseImportJSON, saveBackup, ImportPreview } from "@/lib/storage";
 import { loadAppData, saveAppData } from "@/lib/appStorage";
 import { loadPlanData, savePlanData } from "@/lib/storage";
