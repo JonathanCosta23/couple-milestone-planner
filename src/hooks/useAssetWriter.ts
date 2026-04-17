@@ -193,7 +193,7 @@ export function useAssetWriter() {
 
       const { data, error } = await supabase
         .from("assets")
-        .update(payload)
+        .update(payload as never)
         .eq("id", assetId)
         .eq("user_id", uid)
         .select()
