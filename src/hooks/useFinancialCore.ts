@@ -62,14 +62,14 @@ export function applyCloudPlanToAppData(
   if (!cloudPlan?.plan) return appData;
 
   const { plan, members } = cloudPlan;
-  // Mapeia "individual"/"casal" (canônico) para "solo"/"couple" (legado em AppData).
-  const legacyMode = plan.mode === "casal" ? "couple" : "solo";
+  // plan.mode já é canônico ("individual" | "casal").
+  const canonicalMode: "individual" | "casal" = plan.mode === "casal" ? "casal" : "individual";
   const primary = members.find((m) => m.is_primary) ?? members[0];
   const partner = members.find((m) => !m.is_primary && m.is_active);
 
   return {
     ...appData,
-    mode: legacyMode,
+    mode: canonicalMode,
     primaryProfile: {
       ...appData.primaryProfile,
       name: primary?.name?.trim() || appData.primaryProfile.name || "Você",
@@ -77,7 +77,7 @@ export function applyCloudPlanToAppData(
       avatarColor: primary?.avatar_color ?? appData.primaryProfile.avatarColor,
     },
     partner:
-      legacyMode === "couple" && partner
+      canonicalMode === "casal" && partner
         ? {
             profile: {
               id: partner.id,
@@ -87,7 +87,7 @@ export function applyCloudPlanToAppData(
             },
             addedAt: appData.partner?.addedAt ?? new Date().toISOString(),
           }
-        : legacyMode === "solo"
+        : canonicalMode === "individual"
         ? undefined
         : appData.partner,
   };
