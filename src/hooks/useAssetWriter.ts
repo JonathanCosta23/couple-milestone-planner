@@ -119,7 +119,8 @@ function investmentToAssetPayload(
   if (inv.maturityDate !== undefined) payload.maturity_date = inv.maturityDate || null;
   if (inv.bucket !== undefined) payload.bucket = inv.bucket ?? null;
   if (inv.active !== undefined) payload.is_active = inv.active;
-  if (inv.startDate !== undefined) payload.reference_date = inv.startDate || null;
+  if (inv.startDate !== undefined) payload.reference_date = normalizeDate(inv.startDate);
+  if (inv.maturityDate !== undefined) payload.maturity_date = normalizeDate(inv.maturityDate);
   if (inv.securityLevel !== undefined) {
     payload.has_fgc = protection.has_fgc;
     payload.has_sovereign_guarantee = protection.has_sovereign_guarantee;
