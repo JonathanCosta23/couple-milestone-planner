@@ -55,19 +55,18 @@ const BlobMigrationDialog = lazy(() => import("@/components/auth/BlobMigrationDi
 import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
 import { RestoreBackupButton } from "@/components/plan/RestoreBackupButton";
 
-import { MILESTONES, EMOTIONAL_GOAL_LABELS, PlanConfig, type PlanData } from "@/lib/types";
-import type { PlanMode, Investment, Income, Expense, Debt, AppData } from "@/lib/models";
-import { parseImportJSON, saveBackup, ImportPreview } from "@/lib/storage";
-import { loadAppData, saveAppData } from "@/lib/appStorage";
-import { loadPlanData, savePlanData } from "@/lib/storage";
+import { EMOTIONAL_GOAL_LABELS, PlanConfig } from "@/lib/types";
 import { useFinancialCore } from "@/hooks/useFinancialCore";
 import { usePlan } from "@/hooks/usePlan";
-import { usePlanWriter } from "@/hooks/usePlanWriter";
-import { useAssetWriter, assetRowToInvestment } from "@/hooks/useAssetWriter";
-import { useIncomeWriter } from "@/hooks/useIncomeWriter";
-import { useExpenseWriter } from "@/hooks/useExpenseWriter";
-import { useDebtWriter } from "@/hooks/useDebtWriter";
-import { useMonthlyTrackingWriter } from "@/hooks/useMonthlyTrackingWriter";
+import {
+  useMemberResolver,
+  useIncomeActions,
+  useExpenseActions,
+  useDebtActions,
+  useAssetActions,
+  useTrackingActions,
+  usePlanActions,
+} from "@/hooks/domain";
 
 import { useCelebratedMilestones } from "@/hooks/useCelebratedMilestones";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
