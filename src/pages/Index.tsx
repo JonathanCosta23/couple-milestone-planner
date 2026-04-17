@@ -50,7 +50,7 @@ import { usePlanWriter } from "@/hooks/usePlanWriter";
 import { useCelebratedMilestones } from "@/hooks/useCelebratedMilestones";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Download, Upload, RotateCcw, Settings, ArrowLeft, User, LogOut, Cloud, Loader2 } from "lucide-react";
+import { Download, Upload, RotateCcw, Settings, ArrowLeft, LogOut, Cloud, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 // Sub-nav definitions — shorter labels, better mobile fit
