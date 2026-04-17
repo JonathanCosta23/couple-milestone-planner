@@ -17,9 +17,10 @@ import { PlanConfig, formatBRL, getCurrentMonthKey, monthKeyToLabel } from "@/li
 import {
   Plus, Pencil, Trash2, Copy, CheckCircle, RefreshCw, Filter,
   LayoutList, LayoutGrid, Calendar, BarChart3, ArrowUpDown,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Receipt,
 } from "lucide-react";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface Props {
   appData: AppData;

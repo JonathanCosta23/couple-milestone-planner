@@ -8,6 +8,7 @@ import { AppData, Income, generateId } from "@/lib/models";
 import { PlanConfig, MonthRecord, formatBRL } from "@/lib/types";
 import { generateIncomeInsights } from "@/lib/financialEngine";
 import { Plus, Trash2, Edit2, DollarSign, TrendingUp, Lightbulb, X, Check } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface Props {
   appData: AppData;
