@@ -6,6 +6,7 @@ import { useCallback } from "react";
 import { toast } from "sonner";
 import type { Investment } from "@/lib/models";
 import { useAssetWriter } from "@/hooks/useAssetWriter";
+import { toFriendlyError } from "@/lib/errors/friendlyError";
 
 interface Deps {
   user: { id: string } | null;
