@@ -31,7 +31,7 @@ export type Database = {
           liquidity_type: string | null
           mark_to_market: boolean
           maturity_date: string | null
-          member_id: string | null
+          member_id: string
           net_estimated: number
           plan_id: string
           reference_date: string | null
@@ -55,7 +55,7 @@ export type Database = {
           liquidity_type?: string | null
           mark_to_market?: boolean
           maturity_date?: string | null
-          member_id?: string | null
+          member_id: string
           net_estimated?: number
           plan_id: string
           reference_date?: string | null
@@ -79,7 +79,7 @@ export type Database = {
           liquidity_type?: string | null
           mark_to_market?: boolean
           maturity_date?: string | null
-          member_id?: string | null
+          member_id?: string
           net_estimated?: number
           plan_id?: string
           reference_date?: string | null
@@ -92,7 +92,7 @@ export type Database = {
             foreignKeyName: "assets_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: false
-            referencedRelation: "members"
+            referencedRelation: "plan_members"
             referencedColumns: ["id"]
           },
           {
