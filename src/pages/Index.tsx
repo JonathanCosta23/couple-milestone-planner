@@ -72,9 +72,11 @@ import { useDebtWriter } from "@/hooks/useDebtWriter";
 import { useMonthlyTrackingWriter } from "@/hooks/useMonthlyTrackingWriter";
 import { useDataHydration } from "@/hooks/useDataHydration";
 import { useCelebratedMilestones } from "@/hooks/useCelebratedMilestones";
+import { useAppNavigation } from "@/hooks/useAppNavigation";
+import { useExportImport } from "@/hooks/useExportImport";
+import { AppHeader } from "@/components/plan/AppHeader";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Download, Upload, RotateCcw, Settings, ArrowLeft, LogOut, Cloud, Loader2 } from "lucide-react";
+import { Download, Upload, RotateCcw, Settings, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 // Sub-nav definitions — shorter labels, better mobile fit
@@ -136,12 +138,9 @@ const Index = () => {
   const debtWriter = useDebtWriter();
   const trackingWriter = useMonthlyTrackingWriter();
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { celebrated: dismissedMilestones, celebrate: celebrateMilestone } = useCelebratedMilestones(user?.id);
   const [showQuickDeposit, setShowQuickDeposit] = useState(false);
   const [showFinancialSetup, setShowFinancialSetup] = useState(false);
-  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
-  const [showImportDialog, setShowImportDialog] = useState(false);
   const [showMigrationDialog, setShowMigrationDialog] = useState(false);
   const [migrationLoading, setMigrationLoading] = useState(false);
   const [localSnapshot, setLocalSnapshot] = useState<ConflictSnapshot | null>(null);
@@ -155,11 +154,20 @@ const Index = () => {
   const [blobAppDataCache, setBlobAppDataCache] = useState<AppData | null>(null);
   const blobCheckedRef = useRef(false);
 
-  // Navigation state — 4 tabs
-  const [navSection, setNavSection] = useState<NavSection>("home");
-  const [planoSub, setPlanoSub] = useState("aportes");
-  const [historicoSub, setHistoricoSub] = useState("tracker");
-  const [perfilSub, setPerfilSub] = useState("aprender");
+  // Navigation: extraído para hook dedicado (useAppNavigation)
+  const {
+    navSection, planoSub, historicoSub, perfilSub,
+    setNavSection, setPlanoSub, setHistoricoSub, setPerfilSub,
+    goToSection, navigateToTab: handleNavigateToTab,
+  } = useAppNavigation();
+
+  // Export/Import JSON: extraído para hook dedicado (useExportImport)
+  const exportImport = useExportImport({
+    data,
+    exportJSON,
+    importJSON,
+  });
+  const fileInputRef = exportImport.fileInputRef;
 
   const core = useFinancialCore({
     appData,
@@ -675,53 +683,8 @@ const Index = () => {
     ? data.emotionalGoal === "outro" ? (data.emotionalGoalCustom || null) : EMOTIONAL_GOAL_LABELS[data.emotionalGoal]
     : null;
 
-  const handleNavigateToTab = (tab: string) => {
-    const planoTabs = ["aportes", "estrutura", "simulador", "projecao", "diagnostico", "jornada", "comportamento", "patrimonio", "concentracao", "governanca"];
-    const historicoTabs = ["tracker", "gastos", "renda", "dividas"];
-    const perfilTabs = ["aprender", "glossario", "armadilhas", "investir", "compartilhar", "ajuda", "dados"];
-
-    if (planoTabs.includes(tab)) { setNavSection("plano"); setPlanoSub(tab); }
-    else if (historicoTabs.includes(tab)) { setNavSection("historico"); setHistoricoSub(tab); }
-    else if (perfilTabs.includes(tab)) { setNavSection("perfil"); setPerfilSub(tab); }
-    else { setNavSection("home"); }
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleExportJSON = () => {
-    const json = exportJSON();
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "plano-do-milhao.json";
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Dados exportados com sucesso!");
-  };
-
-  const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const result = ev.target?.result as string;
-      const preview = parseImportJSON(result);
-      setImportPreview(preview);
-      setShowImportDialog(true);
-    };
-    reader.readAsText(file);
-    e.target.value = "";
-  };
-
-  const handleConfirmImport = () => {
-    if (importPreview?.valid && importPreview.data) {
-      saveBackup(data);
-      importJSON(JSON.stringify(importPreview.data));
-      toast.success("Dados importados com sucesso!");
-    }
-    setShowImportDialog(false);
-    setImportPreview(null);
-  };
+  // (handleNavigateToTab, handleExportJSON, handleImportJSON, handleConfirmImport
+  //  foram extraídos para useAppNavigation e useExportImport)
 
   // ── Login obrigatório: porta de entrada do app ──
   if (authLoading) {
@@ -894,8 +857,8 @@ const Index = () => {
                 monthRecords={data.monthRecords}
                 startDate={data.startDate}
                 profile={data.financialProfile}
-                onExportJSON={handleExportJSON}
-                onImportClick={() => fileInputRef.current?.click()}
+                onExportJSON={exportImport.handleExport}
+                onImportClick={exportImport.triggerFilePicker}
               />
             )}
             {perfilSub === "ajuda" && <HowToUse />}
@@ -913,16 +876,16 @@ const Index = () => {
                 <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={() => setShowFinancialSetup(true)}>
                   <Settings className="w-4 h-4 mr-2.5" /> Perfil financeiro
                 </Button>
-                <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={handleExportJSON}>
+                <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={exportImport.handleExport}>
                   <Download className="w-4 h-4 mr-2.5" /> Exportar dados
                 </Button>
-                <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={() => fileInputRef.current?.click()}>
+                <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={exportImport.triggerFilePicker}>
                   <Upload className="w-4 h-4 mr-2.5" /> Importar dados
                 </Button>
                 <RestoreBackupButton />
                 <NotificationSettings settings={data.notificationSettings} onUpdate={updateNotificationSettings} />
                 <Button variant="outline" className="w-full justify-start h-12 rounded-xl text-muted-foreground" onClick={handleSignOut}>
-                  <LogOut className="w-4 h-4 mr-2.5" /> Sair da conta
+                  <ArrowLeft className="w-4 h-4 mr-2.5" /> Sair da conta
                 </Button>
                 <Button variant="outline" className="w-full justify-start h-12 rounded-xl text-destructive hover:text-destructive"
                   onClick={() => { if (confirm("Tem certeza? Essa ação não pode ser desfeita.")) resetPlan(); }}>
@@ -941,68 +904,15 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20 lg:pb-4">
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border/40">
-        <div className="flex items-center justify-between h-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
-          <h1 className="text-sm font-bold text-gradient lg:text-base">Plano do Milhão</h1>
-          <div className="flex items-center gap-3">
-            {/* Cloud sync indicator */}
-            {user && syncing && (
-              <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                <span className="hidden sm:inline">Salvando...</span>
-              </div>
-            )}
-            {user && !syncing && (
-              <div className="flex items-center gap-1 text-[10px] text-emerald-500">
-                <Cloud className="w-3 h-3" />
-                <span className="hidden sm:inline">Salvo</span>
-              </div>
-            )}
-
-            {/* Desktop inline nav */}
-            {data.wizardComplete && (
-              <nav className="hidden lg:flex items-center gap-1">
-                {(["home", "plano", "historico", "perfil"] as NavSection[]).map(s => (
-                  <button
-                    key={s}
-                    onClick={() => { setNavSection(s); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                      navSection === s ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                    }`}
-                  >
-                    {s === "home" ? "Início" : s === "plano" ? "Plano" : s === "historico" ? "Histórico" : "Perfil"}
-                  </button>
-                ))}
-              </nav>
-            )}
-
-            {/* User menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
-                  {(user.user_metadata?.full_name || user.email || "U")[0].toUpperCase()}
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <div className="px-3 py-2">
-                  <p className="text-sm font-medium truncate">{user.user_metadata?.full_name || "Usuário"}</p>
-                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => { setNavSection("perfil"); setPerfilSub("dados"); }}>
-                  <Settings className="w-4 h-4 mr-2" /> Configurações
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
-                  <LogOut className="w-4 h-4 mr-2" /> Sair
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
+      <AppHeader
+        user={user}
+        syncing={syncing}
+        navSection={navSection}
+        showDesktopNav={data.wizardComplete}
+        onChangeSection={goToSection}
+        onOpenSettings={() => { setNavSection("perfil"); setPerfilSub("dados"); }}
+        onSignOut={handleSignOut}
+      />
 
       {data.wizardComplete && navSection === "home" && (
         <Hero goalLabel={goalLabel} config={data.config} contributorCount={data.config.contributors.length} />
@@ -1014,7 +924,7 @@ const Index = () => {
         </Suspense>
       </main>
 
-      <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportJSON} />
+      <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={exportImport.handleFileChange} />
 
       {data.wizardComplete && (
         <div className="lg:hidden">
@@ -1034,12 +944,12 @@ const Index = () => {
             onToggleCompleted={toggleMonthCompleted}
           />
         )}
-        {showImportDialog && (
+        {exportImport.showImportDialog && (
           <ImportDialog
-            open={showImportDialog}
-            onOpenChange={(open) => { setShowImportDialog(open); if (!open) setImportPreview(null); }}
-            preview={importPreview}
-            onConfirm={handleConfirmImport}
+            open={exportImport.showImportDialog}
+            onOpenChange={exportImport.closeDialog}
+            preview={exportImport.importPreview}
+            onConfirm={exportImport.handleConfirm}
           />
         )}
         {showMigrationDialog && (
