@@ -20,9 +20,9 @@ describe("allocationService", () => {
   it("classifica risco como 'low' em carteira distribuída (<40% por instituição)", () => {
     const appData = makeAppData({
       investments: [
-        makeInvestment({ institution: "A", conglomerate: "A", type: "cdb", currentBalance: 30_000 }),
-        makeInvestment({ institution: "B", conglomerate: "B", type: "cdb", currentBalance: 30_000 }),
-        makeInvestment({ institution: "C", conglomerate: "C", type: "cdb", currentBalance: 40_000 }),
+        makeInvestment({ institution: "A", conglomerate: "A", type: "cdb", currentBalance: 35_000 }),
+        makeInvestment({ institution: "B", conglomerate: "B", type: "cdb", currentBalance: 35_000 }),
+        makeInvestment({ institution: "C", conglomerate: "C", type: "cdb", currentBalance: 30_000 }),
       ],
     });
     const r = analyzeAllocation(appData);
