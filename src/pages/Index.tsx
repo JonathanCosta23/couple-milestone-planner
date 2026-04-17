@@ -574,12 +574,12 @@ const Index = () => {
             {perfilSub === "dados" && (
               <div className="space-y-4">
                 <PlanModeSelector
-                  appData={appData}
-                  onSetMode={setMode}
-                  onAddPartner={addPartner}
-                  onRemovePartner={removePartner}
-                  onUpdatePrimaryProfile={updatePrimaryProfile}
-                  onUpdatePartnerProfile={updatePartnerProfile}
+                  appData={effectiveAppData}
+                  onSetMode={handleSetMode}
+                  onAddPartner={handleAddPartner}
+                  onRemovePartner={handleRemovePartner}
+                  onUpdatePrimaryProfile={handleUpdatePrimaryProfile}
+                  onUpdatePartnerProfile={handleUpdatePartnerProfile}
                 />
                 <div className="space-y-2">
                 {!user && (
