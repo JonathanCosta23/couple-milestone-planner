@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { PlanConfig, MonthRecord, ProjectionRow, formatBRL, formatPercent, monthKeyToLabel, MILESTONES } from "@/lib/types";
+import { PlanConfig, MonthRecord, ProjectionRow, formatBRL, formatBRLCompact, formatPercent, monthKeyToLabel, MILESTONES } from "@/lib/types";
 import { generateProjection, getReachedMilestones } from "@/lib/calculator";
 import { exportProjectionCSV, exportTrackerCSV } from "@/lib/export";
 import { Card } from "@/components/ui/card";
