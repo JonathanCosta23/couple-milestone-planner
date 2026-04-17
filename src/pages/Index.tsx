@@ -1009,7 +1009,9 @@ const Index = () => {
       )}
 
       <main className="px-4 sm:px-6 lg:px-8 py-5 max-w-lg sm:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto">
-        {renderContent()}
+        <Suspense fallback={<PanelSkeleton />}>
+          {renderContent()}
+        </Suspense>
       </main>
 
       <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportJSON} />
@@ -1020,46 +1022,54 @@ const Index = () => {
         </div>
       )}
 
-      <QuickDeposit
-        open={showQuickDeposit}
-        onOpenChange={setShowQuickDeposit}
-        config={data.config}
-        monthRecords={data.monthRecords}
-        onUpdateMonth={updateMonthRecord}
-        onToggleCompleted={toggleMonthCompleted}
-      />
-
-      <ImportDialog
-        open={showImportDialog}
-        onOpenChange={(open) => { setShowImportDialog(open); if (!open) setImportPreview(null); }}
-        preview={importPreview}
-        onConfirm={handleConfirmImport}
-      />
+      {/* Modais lazy: chunk só carrega quando o modal abre */}
+      <Suspense fallback={null}>
+        {showQuickDeposit && (
+          <QuickDeposit
+            open={showQuickDeposit}
+            onOpenChange={setShowQuickDeposit}
+            config={data.config}
+            monthRecords={data.monthRecords}
+            onUpdateMonth={updateMonthRecord}
+            onToggleCompleted={toggleMonthCompleted}
+          />
+        )}
+        {showImportDialog && (
+          <ImportDialog
+            open={showImportDialog}
+            onOpenChange={(open) => { setShowImportDialog(open); if (!open) setImportPreview(null); }}
+            preview={importPreview}
+            onConfirm={handleConfirmImport}
+          />
+        )}
+        {showMigrationDialog && (
+          <DataMigrationDialog
+            open={showMigrationDialog}
+            loading={migrationLoading}
+            localSnapshot={localSnapshot}
+            cloudSnapshot={cloudSnapshot}
+            onUseCloud={handleUseCloud}
+            onUseLocal={handleUseLocal}
+            onDecideLater={handleDecideLater}
+            onClose={handleDecideLater}
+          />
+        )}
+        {showBlobMigration && (
+          <BlobMigrationDialog
+            open={showBlobMigration}
+            onOpenChange={setShowBlobMigration}
+            counts={blobMigrationCounts}
+            loading={migrationLoading}
+            onMigrate={handleBlobMigrate}
+            onLater={handleBlobLater}
+          />
+        )}
+      </Suspense>
 
       <MilestoneAlert
         milestone={newMilestone}
         onDismiss={() => { if (newMilestone) celebrateMilestone(newMilestone); }}
         config={data.config}
-      />
-
-      <DataMigrationDialog
-        open={showMigrationDialog}
-        loading={migrationLoading}
-        localSnapshot={localSnapshot}
-        cloudSnapshot={cloudSnapshot}
-        onUseCloud={handleUseCloud}
-        onUseLocal={handleUseLocal}
-        onDecideLater={handleDecideLater}
-        onClose={handleDecideLater}
-      />
-
-      <BlobMigrationDialog
-        open={showBlobMigration}
-        onOpenChange={setShowBlobMigration}
-        counts={blobMigrationCounts}
-        loading={migrationLoading}
-        onMigrate={handleBlobMigrate}
-        onLater={handleBlobLater}
       />
     </div>
   );
