@@ -40,13 +40,14 @@ import { DataMigrationDialog } from "@/components/auth/DataMigrationDialog";
 import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
 
 import { MILESTONES, EMOTIONAL_GOAL_LABELS, PlanConfig } from "@/lib/types";
-import type { PlanMode } from "@/lib/models";
+import type { PlanMode, Investment } from "@/lib/models";
 import { parseImportJSON, saveBackup, ImportPreview } from "@/lib/storage";
 import { loadAppData, saveAppData } from "@/lib/appStorage";
 import { loadPlanData, savePlanData } from "@/lib/storage";
 import { useFinancialCore } from "@/hooks/useFinancialCore";
 import { usePlan } from "@/hooks/usePlan";
 import { usePlanWriter } from "@/hooks/usePlanWriter";
+import { useAssetWriter, assetRowToInvestment } from "@/hooks/useAssetWriter";
 import { useCelebratedMilestones } from "@/hooks/useCelebratedMilestones";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -106,6 +107,7 @@ const Index = () => {
   // Quando há plano no Supabase, sobrescreve appData.mode/primaryProfile/partner via cloudPlan overlay.
   const { plan: cloudPlanRow, members: cloudMembers, primaryMember: cloudPrimaryMember, partnerMember: cloudPartnerMember, refresh: refreshCloudPlan } = usePlan();
   const planWriter = usePlanWriter();
+  const assetWriter = useAssetWriter();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { celebrated: dismissedMilestones, celebrate: celebrateMilestone } = useCelebratedMilestones(user?.id);
@@ -234,6 +236,48 @@ const Index = () => {
     }
   }, [updatePartnerProfile, user, cloudPartnerMember, planWriter, refreshCloudPlan]);
 
+  // ── Investimentos: escrita real em assets + cache local (Fase 2.B) ──
+  const resolveMemberIdForInvestment = useCallback((profileId?: string): string | null => {
+    if (!profileId) return cloudPrimaryMember?.id ?? null;
+    // profileId no app é o id do Profile local; se bater com nome do member, mapeia
+    if (profileId === appData.primaryProfile.id) return cloudPrimaryMember?.id ?? null;
+    if (appData.partner && profileId === appData.partner.profile.id) return cloudPartnerMember?.id ?? null;
+    return cloudPrimaryMember?.id ?? null;
+  }, [appData.primaryProfile.id, appData.partner, cloudPrimaryMember, cloudPartnerMember]);
+
+  const handleAddInvestment = useCallback(async (inv: Investment) => {
+    addInvestment(inv);
+    if (user && cloudPlanRow) {
+      const memberId = resolveMemberIdForInvestment(inv.profileId);
+      const result = await assetWriter.createAsset(cloudPlanRow.id, inv, memberId);
+      if (result.error) toast.error(`Falha ao salvar investimento: ${result.error}`);
+      else if (result.data) {
+        // Substitui o id local pelo id real do banco para manter sincronia em updates futuros
+        updateInvestment(inv.id, { id: result.data.id } as Partial<Investment>);
+      }
+    }
+  }, [addInvestment, updateInvestment, user, cloudPlanRow, assetWriter, resolveMemberIdForInvestment]);
+
+  const handleUpdateInvestment = useCallback(async (id: string, updates: Partial<Investment>) => {
+    updateInvestment(id, updates);
+    if (user && cloudPlanRow) {
+      const memberId = resolveMemberIdForInvestment(updates.profileId);
+      const result = await assetWriter.updateAsset(cloudPlanRow.id, id, updates, memberId);
+      if (result.error) toast.error(`Falha ao atualizar investimento: ${result.error}`);
+    }
+  }, [updateInvestment, user, cloudPlanRow, assetWriter, resolveMemberIdForInvestment]);
+
+  const handleDeleteInvestment = useCallback(async (id: string) => {
+    deleteInvestment(id);
+    if (user) {
+      const result = await assetWriter.deleteAsset(id);
+      if (result.error) {
+        // Se falhar como hard-delete (ex.: id local não existe no banco), tenta soft
+        await assetWriter.deactivateAsset(id);
+      }
+    }
+  }, [deleteInvestment, user, assetWriter]);
+
   // ── Cloud sync: load data when user logs in ──
   useEffect(() => {
     if (!user) return;
@@ -282,6 +326,29 @@ const Index = () => {
       if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
     };
   }, [user, data, appData, saveToCloud]);
+
+  // ── Hidratação de assets (Fase 2.B): carrega investimentos da nuvem ao logar ──
+  // Roda quando o plano é conhecido. Mescla com cache local sem duplicar.
+  useEffect(() => {
+    if (!user || !cloudPlanRow) return;
+    let cancelled = false;
+    (async () => {
+      const result = await assetWriter.listAssets(cloudPlanRow.id);
+      if (cancelled || !result.data) return;
+      const cloudInvestments = result.data.map(assetRowToInvestment);
+      setAppData((prev) => {
+        const localIds = new Set(prev.investments.map((i) => i.id));
+        const merged = [
+          ...prev.investments,
+          ...cloudInvestments.filter((c) => !localIds.has(c.id)),
+        ];
+        // Se o cache local estava vazio, adota a nuvem como fonte
+        if (prev.investments.length === 0) return { ...prev, investments: cloudInvestments };
+        return { ...prev, investments: merged };
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [user, cloudPlanRow?.id, assetWriter, setAppData]);
 
   // ── Backfill: sync wizard contributors → appData mode/partner ──
   useEffect(() => {
@@ -481,7 +548,7 @@ const Index = () => {
               <BehavioralPanel appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {planoSub === "patrimonio" && (
-              <WealthDistribution appData={effectiveAppData} config={data.config} core={core} onAddInvestment={addInvestment} onUpdateInvestment={updateInvestment} onDeleteInvestment={deleteInvestment} />
+              <WealthDistribution appData={effectiveAppData} config={data.config} core={core} onAddInvestment={handleAddInvestment} onUpdateInvestment={handleUpdateInvestment} onDeleteInvestment={handleDeleteInvestment} />
             )}
             {planoSub === "concentracao" && (
               <ConcentrationMap appData={effectiveAppData} config={data.config} core={core} onNavigateToTab={handleNavigateToTab} />
