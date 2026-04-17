@@ -327,6 +327,29 @@ const Index = () => {
     };
   }, [user, data, appData, saveToCloud]);
 
+  // ── Hidratação de assets (Fase 2.B): carrega investimentos da nuvem ao logar ──
+  // Roda quando o plano é conhecido. Mescla com cache local sem duplicar.
+  useEffect(() => {
+    if (!user || !cloudPlanRow) return;
+    let cancelled = false;
+    (async () => {
+      const result = await assetWriter.listAssets(cloudPlanRow.id);
+      if (cancelled || !result.data) return;
+      const cloudInvestments = result.data.map(assetRowToInvestment);
+      setAppData((prev) => {
+        const localIds = new Set(prev.investments.map((i) => i.id));
+        const merged = [
+          ...prev.investments,
+          ...cloudInvestments.filter((c) => !localIds.has(c.id)),
+        ];
+        // Se o cache local estava vazio, adota a nuvem como fonte
+        if (prev.investments.length === 0) return { ...prev, investments: cloudInvestments };
+        return { ...prev, investments: merged };
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [user, cloudPlanRow?.id, assetWriter, setAppData]);
+
   // ── Backfill: sync wizard contributors → appData mode/partner ──
   useEffect(() => {
     if (!data.wizardComplete) return;
