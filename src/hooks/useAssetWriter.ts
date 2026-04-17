@@ -165,7 +165,7 @@ export function useAssetWriter() {
 
       const { data, error } = await supabase
         .from("assets")
-        .insert(payload)
+        .insert(payload as never)
         .select()
         .single();
 
