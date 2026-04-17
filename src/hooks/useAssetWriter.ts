@@ -71,7 +71,23 @@ function flagsToSecurityLevel(row: AssetRow): SecurityLevel {
   return "mercado";
 }
 
-/** Converte uma linha do banco para o tipo Investment usado na UI. */
+/**
+ * Normaliza datas vindas do app (YYYY-MM ou YYYY-MM-DD) para o formato DATE do Postgres.
+ * Strings vazias viram null. YYYY-MM é completado com o dia 01.
+ */
+function normalizeDate(value?: string | null): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^\d{4}-\d{2}$/.test(trimmed)) return `${trimmed}-01`;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  // Tenta parsear formatos arbitrários como ISO
+  const d = new Date(trimmed);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 10);
+}
+
+
 export function assetRowToInvestment(row: AssetRow): Investment {
   return {
     id: row.id,
@@ -116,7 +132,7 @@ function investmentToAssetPayload(
     payload.net_estimated = inv.currentBalance;
     payload.invested_amount = inv.currentBalance;
   }
-  if (inv.maturityDate !== undefined) payload.maturity_date = inv.maturityDate || null;
+  
   if (inv.bucket !== undefined) payload.bucket = inv.bucket ?? null;
   if (inv.active !== undefined) payload.is_active = inv.active;
   if (inv.startDate !== undefined) payload.reference_date = normalizeDate(inv.startDate);
