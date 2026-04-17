@@ -12,9 +12,7 @@
  * - "Decidir depois" não é destrutivo; o blob continua intacto.
  */
 import { useState } from "react";
-import {
-  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Loader2, Database, Wallet, Receipt, AlertCircle, ShieldCheck, CheckCircle2 } from "lucide-react";
 
@@ -43,57 +41,60 @@ export function BlobMigrationDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <Database className="w-5 h-5 text-primary" />
-            Vamos organizar seus dados
-          </DialogTitle>
-          <DialogDescription className="text-sm leading-relaxed">
-            Encontramos {total} item{total !== 1 ? "s" : ""} no formato antigo.
-            Vamos migrar para a nova estrutura, mais segura, mais rápida e
-            preparada para crescer com você. Nada será apagado.
-          </DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal
+      open={open}
+      onOpenChange={onOpenChange}
+      maxWidth="max-w-md"
+      title={
+        <span className="flex items-center gap-2 text-lg">
+          <Database className="w-5 h-5 text-primary" />
+          Vamos organizar seus dados
+        </span>
+      }
+      description={
+        <>
+          Encontramos {total} item{total !== 1 ? "s" : ""} no formato antigo.
+          Vamos migrar para a nova estrutura, mais segura, mais rápida e
+          preparada para crescer com você. Nada será apagado.
+        </>
+      }
+    >
+      <div className="grid gap-2 py-2">
+        <Stat icon={<Wallet className="w-4 h-4 text-primary" />} label="Fontes de renda" value={counts.incomes} />
+        <Stat icon={<Receipt className="w-4 h-4 text-primary" />} label="Gastos" value={counts.expenses} />
+        <Stat icon={<AlertCircle className="w-4 h-4 text-primary" />} label="Dívidas" value={counts.debts} />
+      </div>
 
-        <div className="grid gap-2 py-2">
-          <Stat icon={<Wallet className="w-4 h-4 text-primary" />} label="Fontes de renda" value={counts.incomes} />
-          <Stat icon={<Receipt className="w-4 h-4 text-primary" />} label="Gastos" value={counts.expenses} />
-          <Stat icon={<AlertCircle className="w-4 h-4 text-primary" />} label="Dívidas" value={counts.debts} />
-        </div>
+      <div className="flex items-start gap-2 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+        <ShieldCheck className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+        <p>
+          Fazemos backup local automático antes de migrar. A versão antiga continua
+          disponível como fallback até você confirmar que tudo está certo.
+        </p>
+      </div>
 
-        <div className="flex items-start gap-2 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
-          <ShieldCheck className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-          <p>
-            Fazemos backup local automático antes de migrar. A versão antiga continua
-            disponível como fallback até você confirmar que tudo está certo.
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-2 pt-1">
-          <Button
-            onClick={handleMigrate}
-            disabled={loading || running || total === 0}
-            className="w-full h-11"
-          >
-            {running ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Migrando…</>
-            ) : (
-              <><CheckCircle2 className="w-4 h-4 mr-2" /> Migrar agora</>
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={onLater}
-            disabled={running}
-            className="w-full text-xs text-muted-foreground"
-          >
-            Decidir depois — manter o formato antigo nesta sessão
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+      <div className="flex flex-col gap-2 pt-3">
+        <Button
+          onClick={handleMigrate}
+          disabled={loading || running || total === 0}
+          className="w-full h-12 lg:h-11 text-base lg:text-sm"
+        >
+          {running ? (
+            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Migrando…</>
+          ) : (
+            <><CheckCircle2 className="w-4 h-4 mr-2" /> Migrar agora</>
+          )}
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={onLater}
+          disabled={running}
+          className="w-full text-xs text-muted-foreground h-10"
+        >
+          Decidir depois — manter o formato antigo nesta sessão
+        </Button>
+      </div>
+    </ResponsiveModal>
   );
 }
 
