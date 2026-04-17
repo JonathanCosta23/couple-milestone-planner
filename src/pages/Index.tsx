@@ -39,6 +39,7 @@ import { AuthPage } from "@/components/auth/AuthPage";
 import { DataMigrationDialog, type ConflictSnapshot } from "@/components/auth/DataMigrationDialog";
 import { backupBeforeDestructiveOp } from "@/lib/services/dataMigrationService";
 import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
+import { RestoreBackupButton } from "@/components/plan/RestoreBackupButton";
 
 import { MILESTONES, EMOTIONAL_GOAL_LABELS, PlanConfig, type PlanData } from "@/lib/types";
 import type { PlanMode, Investment, AppData } from "@/lib/models";
@@ -724,6 +725,7 @@ const Index = () => {
                 <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={() => fileInputRef.current?.click()}>
                   <Upload className="w-4 h-4 mr-2.5" /> Importar dados
                 </Button>
+                <RestoreBackupButton />
                 <NotificationSettings settings={data.notificationSettings} onUpdate={updateNotificationSettings} />
                 <Button variant="outline" className="w-full justify-start h-12 rounded-xl text-muted-foreground" onClick={handleSignOut}>
                   <LogOut className="w-4 h-4 mr-2.5" /> Sair da conta
