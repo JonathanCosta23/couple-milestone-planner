@@ -36,7 +36,8 @@ import { BottomNav, NavSection } from "@/components/plan/BottomNav";
 import { SubNav } from "@/components/plan/SubNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthPage } from "@/components/auth/AuthPage";
-import { DataMigrationDialog } from "@/components/auth/DataMigrationDialog";
+import { DataMigrationDialog, type ConflictSnapshot } from "@/components/auth/DataMigrationDialog";
+import { backupBeforeDestructiveOp } from "@/lib/services/dataMigrationService";
 import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
 
 import { MILESTONES, EMOTIONAL_GOAL_LABELS, PlanConfig } from "@/lib/types";
@@ -116,8 +117,9 @@ const Index = () => {
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showMigrationDialog, setShowMigrationDialog] = useState(false);
-  const [cloudHasData, setCloudHasData] = useState(false);
   const [migrationLoading, setMigrationLoading] = useState(false);
+  const [localSnapshot, setLocalSnapshot] = useState<ConflictSnapshot | null>(null);
+  const [cloudSnapshot, setCloudSnapshot] = useState<ConflictSnapshot | null>(null);
   const [syncing, setSyncing] = useState(false);
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
