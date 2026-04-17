@@ -1,43 +1,57 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback, lazy, Suspense } from "react";
 import { usePlanData } from "@/hooks/usePlanData";
 import { useAppData } from "@/hooks/useAppData";
 import { useAuth } from "@/hooks/useAuth";
 import { useCloudSync } from "@/hooks/useCloudSync";
+
+// ── Eager: caminho crítico (LCP) ──
 import { Hero } from "@/components/plan/Hero";
-import { Onboarding } from "@/components/plan/Onboarding";
-import { FinancialProfileSetup } from "@/components/plan/FinancialProfileSetup";
-import { Wizard } from "@/components/plan/Wizard";
 import { UnifiedHome } from "@/components/plan/UnifiedHome";
-import { FinancialDiagnostic } from "@/components/plan/FinancialDiagnostic";
-import { JourneyPhases } from "@/components/plan/JourneyPhases";
-import { InvestmentGuide } from "@/components/plan/InvestmentGuide";
-import { AdvancedSimulator } from "@/components/plan/AdvancedSimulator";
-import { IncomePanel } from "@/components/plan/IncomePanel";
-import { WealthDistribution } from "@/components/plan/WealthDistribution";
-import { PatrimonialArchitecture } from "@/components/plan/PatrimonialArchitecture";
-import { ProjectionRealistic } from "@/components/plan/ProjectionRealistic";
-import { ConcentrationMap } from "@/components/plan/ConcentrationMap";
-import { CoupleGovernance } from "@/components/plan/CoupleGovernance";
-import { ExpensePanel } from "@/components/plan/ExpensePanel";
-import { DebtModule } from "@/components/plan/DebtModule";
-import { Dashboard } from "@/components/plan/Dashboard";
-import { MonthlyTracker } from "@/components/plan/MonthlyTracker";
-import { MilestoneAlert } from "@/components/plan/MilestoneAlert";
-import { HowToUse } from "@/components/plan/HowToUse";
-import { NotificationSettings } from "@/components/plan/NotificationSettings";
-import { SharePlan } from "@/components/plan/SharePlan";
-import { QuickDeposit } from "@/components/plan/QuickDeposit";
-import { ImportDialog } from "@/components/plan/ImportDialog";
-import { BehavioralPanel } from "@/components/plan/BehavioralPanel";
-import { TrapDetector } from "@/components/plan/TrapDetector";
-import { FinancialGlossary } from "@/components/plan/FinancialGlossary";
-import { MiniLessons } from "@/components/plan/MiniLessons";
 import { BottomNav, NavSection } from "@/components/plan/BottomNav";
 import { SubNav } from "@/components/plan/SubNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthPage } from "@/components/auth/AuthPage";
-import { DataMigrationDialog, type ConflictSnapshot } from "@/components/auth/DataMigrationDialog";
-import { BlobMigrationDialog } from "@/components/auth/BlobMigrationDialog";
+import { Dashboard } from "@/components/plan/Dashboard";
+import { MilestoneAlert } from "@/components/plan/MilestoneAlert";
+import { PanelSkeleton } from "@/components/plan/PanelSkeleton";
+import { type ConflictSnapshot } from "@/components/auth/DataMigrationDialog";
+
+// ── Lazy: fluxos de entrada (carregados sob demanda) ──
+const Onboarding = lazy(() => import("@/components/plan/Onboarding").then(m => ({ default: m.Onboarding })));
+const Wizard = lazy(() => import("@/components/plan/Wizard").then(m => ({ default: m.Wizard })));
+const FinancialProfileSetup = lazy(() => import("@/components/plan/FinancialProfileSetup").then(m => ({ default: m.FinancialProfileSetup })));
+
+// ── Lazy: painéis "Plano" (densos, raramente todos abertos) ──
+const FinancialDiagnostic = lazy(() => import("@/components/plan/FinancialDiagnostic").then(m => ({ default: m.FinancialDiagnostic })));
+const JourneyPhases = lazy(() => import("@/components/plan/JourneyPhases").then(m => ({ default: m.JourneyPhases })));
+const AdvancedSimulator = lazy(() => import("@/components/plan/AdvancedSimulator").then(m => ({ default: m.AdvancedSimulator })));
+const WealthDistribution = lazy(() => import("@/components/plan/WealthDistribution").then(m => ({ default: m.WealthDistribution })));
+const PatrimonialArchitecture = lazy(() => import("@/components/plan/PatrimonialArchitecture").then(m => ({ default: m.PatrimonialArchitecture })));
+const ProjectionRealistic = lazy(() => import("@/components/plan/ProjectionRealistic").then(m => ({ default: m.ProjectionRealistic })));
+const ConcentrationMap = lazy(() => import("@/components/plan/ConcentrationMap").then(m => ({ default: m.ConcentrationMap })));
+const CoupleGovernance = lazy(() => import("@/components/plan/CoupleGovernance").then(m => ({ default: m.CoupleGovernance })));
+const BehavioralPanel = lazy(() => import("@/components/plan/BehavioralPanel").then(m => ({ default: m.BehavioralPanel })));
+
+// ── Lazy: painéis "Histórico" ──
+const IncomePanel = lazy(() => import("@/components/plan/IncomePanel").then(m => ({ default: m.IncomePanel })));
+const ExpensePanel = lazy(() => import("@/components/plan/ExpensePanel").then(m => ({ default: m.ExpensePanel })));
+const DebtModule = lazy(() => import("@/components/plan/DebtModule").then(m => ({ default: m.DebtModule })));
+const MonthlyTracker = lazy(() => import("@/components/plan/MonthlyTracker").then(m => ({ default: m.MonthlyTracker })));
+
+// ── Lazy: painéis "Perfil" e educação ──
+const InvestmentGuide = lazy(() => import("@/components/plan/InvestmentGuide").then(m => ({ default: m.InvestmentGuide })));
+const HowToUse = lazy(() => import("@/components/plan/HowToUse").then(m => ({ default: m.HowToUse })));
+const NotificationSettings = lazy(() => import("@/components/plan/NotificationSettings").then(m => ({ default: m.NotificationSettings })));
+const SharePlan = lazy(() => import("@/components/plan/SharePlan").then(m => ({ default: m.SharePlan })));
+const TrapDetector = lazy(() => import("@/components/plan/TrapDetector").then(m => ({ default: m.TrapDetector })));
+const FinancialGlossary = lazy(() => import("@/components/plan/FinancialGlossary").then(m => ({ default: m.FinancialGlossary })));
+const MiniLessons = lazy(() => import("@/components/plan/MiniLessons").then(m => ({ default: m.MiniLessons })));
+
+// ── Lazy: modais e dialogs (só montam quando abertos) ──
+const QuickDeposit = lazy(() => import("@/components/plan/QuickDeposit").then(m => ({ default: m.QuickDeposit })));
+const ImportDialog = lazy(() => import("@/components/plan/ImportDialog").then(m => ({ default: m.ImportDialog })));
+const DataMigrationDialog = lazy(() => import("@/components/auth/DataMigrationDialog").then(m => ({ default: m.DataMigrationDialog })));
+const BlobMigrationDialog = lazy(() => import("@/components/auth/BlobMigrationDialog").then(m => ({ default: m.BlobMigrationDialog })));
 import { backupBeforeDestructiveOp } from "@/lib/services/dataMigrationService";
 import { migrateBlobToTables, previewBlobMigration, loadAppDataFromBlob } from "@/lib/services/blobMigrationService";
 import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
@@ -995,7 +1009,9 @@ const Index = () => {
       )}
 
       <main className="px-4 sm:px-6 lg:px-8 py-5 max-w-lg sm:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto">
-        {renderContent()}
+        <Suspense fallback={<PanelSkeleton />}>
+          {renderContent()}
+        </Suspense>
       </main>
 
       <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportJSON} />
@@ -1006,46 +1022,54 @@ const Index = () => {
         </div>
       )}
 
-      <QuickDeposit
-        open={showQuickDeposit}
-        onOpenChange={setShowQuickDeposit}
-        config={data.config}
-        monthRecords={data.monthRecords}
-        onUpdateMonth={updateMonthRecord}
-        onToggleCompleted={toggleMonthCompleted}
-      />
-
-      <ImportDialog
-        open={showImportDialog}
-        onOpenChange={(open) => { setShowImportDialog(open); if (!open) setImportPreview(null); }}
-        preview={importPreview}
-        onConfirm={handleConfirmImport}
-      />
+      {/* Modais lazy: chunk só carrega quando o modal abre */}
+      <Suspense fallback={null}>
+        {showQuickDeposit && (
+          <QuickDeposit
+            open={showQuickDeposit}
+            onOpenChange={setShowQuickDeposit}
+            config={data.config}
+            monthRecords={data.monthRecords}
+            onUpdateMonth={updateMonthRecord}
+            onToggleCompleted={toggleMonthCompleted}
+          />
+        )}
+        {showImportDialog && (
+          <ImportDialog
+            open={showImportDialog}
+            onOpenChange={(open) => { setShowImportDialog(open); if (!open) setImportPreview(null); }}
+            preview={importPreview}
+            onConfirm={handleConfirmImport}
+          />
+        )}
+        {showMigrationDialog && (
+          <DataMigrationDialog
+            open={showMigrationDialog}
+            loading={migrationLoading}
+            localSnapshot={localSnapshot}
+            cloudSnapshot={cloudSnapshot}
+            onUseCloud={handleUseCloud}
+            onUseLocal={handleUseLocal}
+            onDecideLater={handleDecideLater}
+            onClose={handleDecideLater}
+          />
+        )}
+        {showBlobMigration && (
+          <BlobMigrationDialog
+            open={showBlobMigration}
+            onOpenChange={setShowBlobMigration}
+            counts={blobMigrationCounts}
+            loading={migrationLoading}
+            onMigrate={handleBlobMigrate}
+            onLater={handleBlobLater}
+          />
+        )}
+      </Suspense>
 
       <MilestoneAlert
         milestone={newMilestone}
         onDismiss={() => { if (newMilestone) celebrateMilestone(newMilestone); }}
         config={data.config}
-      />
-
-      <DataMigrationDialog
-        open={showMigrationDialog}
-        loading={migrationLoading}
-        localSnapshot={localSnapshot}
-        cloudSnapshot={cloudSnapshot}
-        onUseCloud={handleUseCloud}
-        onUseLocal={handleUseLocal}
-        onDecideLater={handleDecideLater}
-        onClose={handleDecideLater}
-      />
-
-      <BlobMigrationDialog
-        open={showBlobMigration}
-        onOpenChange={setShowBlobMigration}
-        counts={blobMigrationCounts}
-        loading={migrationLoading}
-        onMigrate={handleBlobMigrate}
-        onLater={handleBlobLater}
       />
     </div>
   );
