@@ -280,7 +280,7 @@ function MonthCard({
               )}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5 truncate">
-              {formatBRL(totalActual)} / {formatBRL(totalPlanned)}
+              {formatBRLCompact(totalActual)} de {formatBRLCompact(totalPlanned)}
             </p>
           </div>
         </div>
