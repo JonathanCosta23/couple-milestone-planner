@@ -73,14 +73,14 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
         <StatCard
           icon={DollarSign}
           label="Onde você está"
-          value={formatBRL(currentBalance)}
+          value={formatBRLCompact(currentBalance)}
           color="bg-primary/10 text-primary"
         />
         <StatCard
           icon={TrendingUp}
           label="Aporte mensal"
-          value={formatBRL(totalMonthly)}
-          sub={config.contributors.filter(c => c.plannedSelic > 0 || c.plannedCDB > 0).map(c => `${c.name || "Você"}: ${formatBRL(c.plannedSelic + c.plannedCDB)}`).join(" | ")}
+          value={formatBRLCompact(totalMonthly)}
+          sub={config.contributors.filter(c => c.plannedSelic > 0 || c.plannedCDB > 0).map(c => `${c.name || "Você"}: ${formatBRLCompact(c.plannedSelic + c.plannedCDB)}`).join(" · ")}
           color="bg-accent/10 text-accent"
         />
         <StatCard
