@@ -848,11 +848,13 @@ const Index = () => {
 
       <DataMigrationDialog
         open={showMigrationDialog}
-        hasCloudData={cloudHasData}
-        onMigrateLocal={handleMigrateLocal}
-        onKeepCloud={handleKeepCloud}
-        onClose={() => setShowMigrationDialog(false)}
         loading={migrationLoading}
+        localSnapshot={localSnapshot}
+        cloudSnapshot={cloudSnapshot}
+        onUseCloud={handleUseCloud}
+        onUseLocal={handleUseLocal}
+        onDecideLater={handleDecideLater}
+        onClose={handleDecideLater}
       />
     </div>
   );
