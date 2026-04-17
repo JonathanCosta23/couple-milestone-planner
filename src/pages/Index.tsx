@@ -144,6 +144,101 @@ const Index = () => {
   // Componentes filhos devem consumir este valor no lugar de appData diretamente.
   const effectiveAppData = core.effectiveAppData;
 
+  // ── Handlers que escrevem na nuvem (plans + plan_members) e mantêm cache local ──
+  // Mantém useCloudSync rodando em paralelo (rede de segurança até a Fase 2.D).
+  const handleWizardComplete = useCallback(async (config: PlanConfig) => {
+    completeWizard(config);
+    const primary = config.contributors[0];
+    const partner = config.contributors[1];
+
+    if (primary?.name) updatePrimaryProfile({ name: primary.name });
+    if (partner?.name) {
+      if (!appData.partner || appData.partner.removedAt) addPartner(partner.name);
+      else { updatePartnerProfile({ name: partner.name }); setMode("casal"); }
+    } else if (appData.partner && !appData.partner.removedAt) {
+      setMode("individual");
+    }
+
+    if (user) {
+      const mode: PlanMode = partner?.name ? "casal" : "individual";
+      const totalMonthly = config.contributors.reduce((s, c) => s + c.plannedSelic + c.plannedCDB, 0);
+      const result = await planWriter.createPlanFromWizard({
+        mode,
+        goalAmount: config.targetAmount,
+        initialAmount: config.initialAmount,
+        monthlyContribution: totalMonthly,
+        goalYears: config.years,
+        primaryName: primary?.name || "Você",
+        primaryAge: primary?.age ?? null,
+        partnerName: partner?.name || null,
+        partnerAge: partner?.age ?? null,
+        wizardComplete: true,
+      });
+      if (result.error) toast.error(`Falha ao salvar plano na nuvem: ${result.error}`);
+      else await refreshCloudPlan();
+    }
+
+    if (!data.financialProfile) setShowFinancialSetup(true);
+  }, [appData.partner, completeWizard, updatePrimaryProfile, addPartner, updatePartnerProfile, setMode, user, planWriter, refreshCloudPlan, data.financialProfile]);
+
+  const handleSetMode = useCallback(async (mode: PlanMode) => {
+    setMode(mode);
+    if (user && cloudPlanRow) {
+      const partnerProfile = appData.partner?.profile;
+      const result = await planWriter.setPlanMode(
+        cloudPlanRow.id,
+        mode,
+        mode === "casal" && partnerProfile?.name
+          ? { name: partnerProfile.name, age: partnerProfile.age ?? null }
+          : undefined
+      );
+      if (result.error) toast.error(`Falha ao trocar modo: ${result.error}`);
+      else await refreshCloudPlan();
+    }
+  }, [setMode, user, cloudPlanRow, appData.partner, planWriter, refreshCloudPlan]);
+
+  const handleAddPartner = useCallback(async (name: string, age?: number) => {
+    addPartner(name, age);
+    if (user && cloudPlanRow) {
+      const result = await planWriter.addPartner(cloudPlanRow.id, { name, age: age ?? null });
+      if (result.error) toast.error(`Falha ao adicionar parceiro: ${result.error}`);
+      else await refreshCloudPlan();
+    }
+  }, [addPartner, user, cloudPlanRow, planWriter, refreshCloudPlan]);
+
+  const handleRemovePartner = useCallback(async () => {
+    removePartner();
+    if (user && cloudPlanRow) {
+      const result = await planWriter.removePartner(cloudPlanRow.id);
+      if (result.error) toast.error(`Falha ao remover parceiro: ${result.error}`);
+      else await refreshCloudPlan();
+    }
+  }, [removePartner, user, cloudPlanRow, planWriter, refreshCloudPlan]);
+
+  const handleUpdatePrimaryProfile = useCallback(async (profile: { name?: string; age?: number }) => {
+    updatePrimaryProfile(profile);
+    if (user && cloudPrimaryMember) {
+      const result = await planWriter.updateMember(cloudPrimaryMember.id, {
+        name: profile.name ?? cloudPrimaryMember.name,
+        age: profile.age ?? cloudPrimaryMember.age,
+      });
+      if (result.error) toast.error(`Falha ao atualizar titular: ${result.error}`);
+      else await refreshCloudPlan();
+    }
+  }, [updatePrimaryProfile, user, cloudPrimaryMember, planWriter, refreshCloudPlan]);
+
+  const handleUpdatePartnerProfile = useCallback(async (profile: { name?: string; age?: number }) => {
+    updatePartnerProfile(profile);
+    if (user && cloudPartnerMember) {
+      const result = await planWriter.updateMember(cloudPartnerMember.id, {
+        name: profile.name ?? cloudPartnerMember.name,
+        age: profile.age ?? cloudPartnerMember.age,
+      });
+      if (result.error) toast.error(`Falha ao atualizar parceiro: ${result.error}`);
+      else await refreshCloudPlan();
+    }
+  }, [updatePartnerProfile, user, cloudPartnerMember, planWriter, refreshCloudPlan]);
+
   // ── Cloud sync: load data when user logs in ──
   useEffect(() => {
     if (!user) return;
