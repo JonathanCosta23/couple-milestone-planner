@@ -36,11 +36,12 @@ import { BottomNav, NavSection } from "@/components/plan/BottomNav";
 import { SubNav } from "@/components/plan/SubNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthPage } from "@/components/auth/AuthPage";
-import { DataMigrationDialog } from "@/components/auth/DataMigrationDialog";
+import { DataMigrationDialog, type ConflictSnapshot } from "@/components/auth/DataMigrationDialog";
+import { backupBeforeDestructiveOp } from "@/lib/services/dataMigrationService";
 import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
 
-import { MILESTONES, EMOTIONAL_GOAL_LABELS, PlanConfig } from "@/lib/types";
-import type { PlanMode, Investment } from "@/lib/models";
+import { MILESTONES, EMOTIONAL_GOAL_LABELS, PlanConfig, type PlanData } from "@/lib/types";
+import type { PlanMode, Investment, AppData } from "@/lib/models";
 import { parseImportJSON, saveBackup, ImportPreview } from "@/lib/storage";
 import { loadAppData, saveAppData } from "@/lib/appStorage";
 import { loadPlanData, savePlanData } from "@/lib/storage";
@@ -116,8 +117,9 @@ const Index = () => {
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showMigrationDialog, setShowMigrationDialog] = useState(false);
-  const [cloudHasData, setCloudHasData] = useState(false);
   const [migrationLoading, setMigrationLoading] = useState(false);
+  const [localSnapshot, setLocalSnapshot] = useState<ConflictSnapshot | null>(null);
+  const [cloudSnapshot, setCloudSnapshot] = useState<ConflictSnapshot | null>(null);
   const [syncing, setSyncing] = useState(false);
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -281,30 +283,75 @@ const Index = () => {
   useEffect(() => {
     if (!user) return;
 
+    const buildLocalSnapshot = (): ConflictSnapshot => {
+      const totalWealth =
+        (appData.investments ?? []).reduce((sum, inv) => sum + (inv.currentBalance || 0), 0) || 0;
+      const participants = [
+        appData.primaryProfile?.name,
+        appData.partner && !appData.partner.removedAt ? appData.partner.profile.name : null,
+      ].filter((n): n is string => !!n && n.trim().length > 0);
+      return {
+        updatedAt: new Date().toISOString(),
+        goalAmount: data.config?.targetAmount ?? null,
+        currentWealth: totalWealth,
+        participants,
+        mode: appData.mode === "casal" ? "casal" : "individual",
+      };
+    };
+
+    const buildCloudSnapshot = (
+      cloudPlanData: PlanData | null,
+      cloudAppData: AppData | null,
+    ): ConflictSnapshot | null => {
+      if (!cloudPlanData && !cloudAppData) return null;
+      const investments = (cloudAppData?.investments ?? []) as Array<{ currentBalance?: number }>;
+      const totalWealth = investments.reduce((sum, inv) => sum + (inv?.currentBalance || 0), 0);
+      const participants = [
+        cloudAppData?.primaryProfile?.name,
+        cloudAppData?.partner && !cloudAppData.partner.removedAt
+          ? cloudAppData.partner.profile.name
+          : null,
+      ].filter((n): n is string => !!n && n.trim().length > 0);
+      return {
+        updatedAt:
+          (cloudPlanData as unknown as { updatedAt?: string })?.updatedAt ?? null,
+        goalAmount: cloudPlanData?.config?.targetAmount ?? null,
+        currentWealth: totalWealth,
+        participants,
+        mode: cloudAppData?.mode === "casal" ? "casal" : "individual",
+      };
+    };
+
     const syncFromCloud = async () => {
       const localHasData = hasLocalData();
       const cloudData = await loadFromCloud(user.id);
-      const cloudExists = !!(cloudData?.planData && (cloudData.planData as any).wizardComplete);
+      const cloudExists = !!(
+        cloudData?.planData &&
+        (cloudData.planData as unknown as { wizardComplete?: boolean }).wizardComplete
+      );
 
       if (localHasData && cloudExists) {
-        // Both have data — ask user
-        setCloudHasData(true);
+        // Conflito: pedir confirmação explícita com resumos comparáveis.
+        setLocalSnapshot(buildLocalSnapshot());
+        setCloudSnapshot(
+          buildCloudSnapshot(cloudData?.planData ?? null, cloudData?.appData ?? null),
+        );
         setShowMigrationDialog(true);
       } else if (localHasData && !cloudExists) {
-        // Only local — migrate to cloud silently
+        // Só local — sobe pra nuvem em silêncio (não há nada a sobrescrever).
         await saveToCloud(user.id, data, appData);
         toast.success("Seus dados foram salvos na nuvem! ☁️");
       } else if (!localHasData && cloudExists && cloudData) {
-        // Only cloud — load from cloud
+        // Só nuvem — carrega da nuvem.
         if (cloudData.planData) {
           importJSON(JSON.stringify(cloudData.planData));
         }
         if (cloudData.appData) {
-          setAppData(cloudData.appData as any);
+          setAppData(cloudData.appData as AppData);
         }
         toast.success("Dados carregados da nuvem! ☁️");
       }
-      // Neither has data — do nothing
+      // Sem dados em nenhum dos dois — nada a fazer.
     };
 
     syncFromCloud();
@@ -364,28 +411,58 @@ const Index = () => {
   }, [data.wizardComplete, data.config.contributors.length]);
 
   // ── Migration handlers ──
-  const handleMigrateLocal = async () => {
+  /**
+   * Decisão: usar dados deste dispositivo e SOBRESCREVER a conta.
+   * O modal já garantiu confirmação secundária; aqui criamos backup local antes.
+   */
+  const handleUseLocal = async () => {
     if (!user) return;
     setMigrationLoading(true);
+    backupBeforeDestructiveOp();
     await saveToCloud(user.id, data, appData);
     setMigrationLoading(false);
     setShowMigrationDialog(false);
-    toast.success("Dados locais salvos na sua conta! ☁️");
+    setLocalSnapshot(null);
+    setCloudSnapshot(null);
+    toast.success("Conta atualizada com os dados deste dispositivo. Backup local criado.");
   };
 
-  const handleKeepCloud = async () => {
+  /**
+   * Decisão: usar dados da conta. Os dados locais são guardados em backup
+   * automático (não destruídos imediatamente) e o app passa a refletir a nuvem.
+   */
+  const handleUseCloud = async () => {
     if (!user) return;
     setMigrationLoading(true);
+    backupBeforeDestructiveOp();
     const cloudData = await loadFromCloud(user.id);
     if (cloudData?.planData) {
       importJSON(JSON.stringify(cloudData.planData));
     }
     if (cloudData?.appData) {
-      setAppData(cloudData.appData as any);
+      setAppData(cloudData.appData as AppData);
     }
     setMigrationLoading(false);
     setShowMigrationDialog(false);
-    toast.success("Dados da conta carregados! ☁️");
+    setLocalSnapshot(null);
+    setCloudSnapshot(null);
+    toast.success("Dados da conta carregados. Versão local guardada em backup.");
+  };
+
+  /**
+   * Decisão: adiar. Regra do produto: durante esta sessão usamos os dados
+   * da conta para evitar sobrescrita acidental, e o modal pode reaparecer depois.
+   */
+  const handleDecideLater = async () => {
+    if (!user) return;
+    const cloudData = await loadFromCloud(user.id);
+    if (cloudData?.planData) importJSON(JSON.stringify(cloudData.planData));
+    if (cloudData?.appData) setAppData(cloudData.appData as AppData);
+    setShowMigrationDialog(false);
+    toast.message("Decisão adiada", {
+      description:
+        "Por enquanto, vamos usar os dados da sua conta. Você poderá revisar esse conflito depois.",
+    });
   };
 
   const handleSignOut = async () => {
@@ -771,11 +848,13 @@ const Index = () => {
 
       <DataMigrationDialog
         open={showMigrationDialog}
-        hasCloudData={cloudHasData}
-        onMigrateLocal={handleMigrateLocal}
-        onKeepCloud={handleKeepCloud}
-        onClose={() => setShowMigrationDialog(false)}
         loading={migrationLoading}
+        localSnapshot={localSnapshot}
+        cloudSnapshot={cloudSnapshot}
+        onUseCloud={handleUseCloud}
+        onUseLocal={handleUseLocal}
+        onDecideLater={handleDecideLater}
+        onClose={handleDecideLater}
       />
     </div>
   );
