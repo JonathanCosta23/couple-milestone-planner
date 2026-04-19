@@ -172,8 +172,16 @@ const Index = () => {
   // ── Bloco 2 da Fase 4: handlers de domínio extraídos ──
   // Resolver compartilhado por income/expense/debt.
   const resolveMemberId = useMemberResolver(appData, cloudPrimaryMember, cloudPartnerMember);
-  // Investimento mantém comportamento legado (member_id resolvido pelo trigger).
-  const resolveAssetMemberId = useCallback((_profileId?: string) => null, []);
+  // Asset: o `profileId` salvo pelo InvestmentForm já é o member.id real do plano.
+  // Validamos contra a lista de membros ativos; se não bater (dado legado), cai no primary.
+  const resolveAssetMemberId = useCallback((profileId?: string) => {
+    if (!profileId) return cloudPrimaryMember?.id ?? null;
+    const valid = cloudMembers.find(m => m.id === profileId && m.is_active);
+    if (valid) return valid.id;
+    // Fallback: tentar mapear via AppData (caso ainda use o profileId antigo).
+    const viaAppData = resolveMemberId(profileId);
+    return viaAppData ?? cloudPrimaryMember?.id ?? null;
+  }, [cloudMembers, cloudPrimaryMember?.id, resolveMemberId]);
   const planId = cloudPlanRow?.id ?? null;
 
   const planActions = usePlanActions({
