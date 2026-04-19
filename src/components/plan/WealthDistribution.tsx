@@ -16,6 +16,7 @@ interface Props {
   onAddInvestment: (inv: Investment) => void;
   onUpdateInvestment: (id: string, updates: Partial<Investment>) => void;
   onDeleteInvestment: (id: string) => void;
+  planMembers?: PlanMemberRow[];
 }
 
 const TYPE_LABELS: Record<string, string> = {
