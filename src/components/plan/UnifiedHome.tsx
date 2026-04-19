@@ -39,7 +39,7 @@ function getActivationSteps(appData: AppData, monthRecords: MonthRecord[]) {
   ];
 }
 
-export function UnifiedHome({ appData, config, monthRecords, startDate, onNavigateToTab, onOpenQuickDeposit, core }: Props) {
+export function UnifiedHome({ appData, config, monthRecords, startDate, onNavigateToTab, onOpenQuickDeposit, core, topSlot }: Props) {
   const currentKey = getCurrentMonthKey();
   const [showFinancials, setShowFinancials] = useState(false);
   const [titularFilter, setTitularFilter] = useState<string>("all");
