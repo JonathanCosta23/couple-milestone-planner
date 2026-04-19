@@ -30,7 +30,7 @@ const TYPE_COLORS = [
   "bg-purple-500", "bg-pink-500", "bg-orange-500", "bg-teal-500", "bg-muted",
 ];
 
-export function WealthDistribution({ appData, config, core, onAddInvestment, onUpdateInvestment, onDeleteInvestment }: Props) {
+export function WealthDistribution({ appData, config, core, onAddInvestment, onUpdateInvestment, onDeleteInvestment, planMembers }: Props) {
   const { metrics, allocation } = core;
   const totalInvested = metrics.grossWealth;
   const netWorth = metrics.netWealth;
