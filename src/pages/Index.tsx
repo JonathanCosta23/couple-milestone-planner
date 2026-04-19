@@ -53,6 +53,7 @@ const ImportDialog = lazy(() => import("@/components/plan/ImportDialog").then(m 
 const DataMigrationDialog = lazy(() => import("@/components/auth/DataMigrationDialog").then(m => ({ default: m.DataMigrationDialog })));
 const BlobMigrationDialog = lazy(() => import("@/components/auth/BlobMigrationDialog").then(m => ({ default: m.BlobMigrationDialog })));
 import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
+import { PlanModeChip } from "@/components/plan/PlanModeChip";
 import { RestoreBackupButton } from "@/components/plan/RestoreBackupButton";
 
 import { EMOTIONAL_GOAL_LABELS, PlanConfig } from "@/lib/types";
