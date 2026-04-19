@@ -21,6 +21,8 @@ interface Props {
   onNavigateToTab: (tab: string) => void;
   onOpenQuickDeposit: () => void;
   core: FinancialCoreState;
+  /** Slot opcional renderizado no topo da Home (ex.: PlanModeChip). */
+  topSlot?: React.ReactNode;
 }
 
 function getActivationSteps(appData: AppData, monthRecords: MonthRecord[]) {
@@ -37,7 +39,7 @@ function getActivationSteps(appData: AppData, monthRecords: MonthRecord[]) {
   ];
 }
 
-export function UnifiedHome({ appData, config, monthRecords, startDate, onNavigateToTab, onOpenQuickDeposit, core }: Props) {
+export function UnifiedHome({ appData, config, monthRecords, startDate, onNavigateToTab, onOpenQuickDeposit, core, topSlot }: Props) {
   const currentKey = getCurrentMonthKey();
   const [showFinancials, setShowFinancials] = useState(false);
   const [titularFilter, setTitularFilter] = useState<string>("all");
@@ -81,6 +83,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
 
   return (
     <div className="space-y-5 lg:space-y-6 pb-4">
+      {topSlot && <div className="animate-fade-in-up">{topSlot}</div>}
       {/* ── Desktop: Two-column hero layout ── */}
       <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-5 lg:space-y-0">
         {/* ── 1. CARD HERO: Meta do mês ── */}

@@ -53,6 +53,7 @@ const ImportDialog = lazy(() => import("@/components/plan/ImportDialog").then(m 
 const DataMigrationDialog = lazy(() => import("@/components/auth/DataMigrationDialog").then(m => ({ default: m.DataMigrationDialog })));
 const BlobMigrationDialog = lazy(() => import("@/components/auth/BlobMigrationDialog").then(m => ({ default: m.BlobMigrationDialog })));
 import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
+import { PlanModeChip } from "@/components/plan/PlanModeChip";
 import { RestoreBackupButton } from "@/components/plan/RestoreBackupButton";
 
 import { EMOTIONAL_GOAL_LABELS, PlanConfig } from "@/lib/types";
@@ -133,6 +134,9 @@ const Index = () => {
     primaryMember: cloudPrimaryMember,
     partnerMember: cloudPartnerMember,
     refresh: refreshCloudPlan,
+    isCouple: cloudIsCouple,
+    primaryName: cloudPrimaryName,
+    partnerName: cloudPartnerName,
   } = usePlan();
 
   const { celebrated: dismissedMilestones, celebrate: celebrateMilestone } =
@@ -314,6 +318,19 @@ const Index = () => {
               onNavigateToTab={handleNavigateToTab}
               onOpenQuickDeposit={() => setShowQuickDeposit(true)}
               core={core}
+              topSlot={
+                <PlanModeChip
+                  appData={effectiveAppData}
+                  isCouple={cloudIsCouple}
+                  primaryName={cloudPrimaryName}
+                  partnerName={cloudPartnerName}
+                  onSetMode={planActions.setMode}
+                  onAddPartner={planActions.addPartner}
+                  onRemovePartner={planActions.removePartner}
+                  onUpdatePrimaryProfile={planActions.updatePrimaryProfile}
+                  onUpdatePartnerProfile={planActions.updatePartnerProfile}
+                />
+              }
             />
           </div>
         );
