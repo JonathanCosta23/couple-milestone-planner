@@ -200,6 +200,7 @@ export function useAssetWriter() {
     ): Promise<WriterResult<AssetRow>> => {
       const uid = user?.id;
       if (!uid) return { data: null, error: "Usuário não autenticado." };
+      if (!memberId) return { data: null, error: "Participante do plano não encontrado." };
 
       const payload = investmentToAssetPayload(investment, { userId: uid, planId, memberId });
       // Garante asset_type sempre presente (NOT NULL)
