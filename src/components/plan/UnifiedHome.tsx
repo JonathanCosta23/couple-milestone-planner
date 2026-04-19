@@ -21,6 +21,8 @@ interface Props {
   onNavigateToTab: (tab: string) => void;
   onOpenQuickDeposit: () => void;
   core: FinancialCoreState;
+  /** Slot opcional renderizado no topo da Home (ex.: PlanModeChip). */
+  topSlot?: React.ReactNode;
 }
 
 function getActivationSteps(appData: AppData, monthRecords: MonthRecord[]) {
