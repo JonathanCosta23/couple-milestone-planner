@@ -1,6 +1,7 @@
 /**
  * useAssetActions — handler de domínio para Investimentos (assets).
- * Mantém fallback de soft-delete (deactivateAsset) quando delete falha por RLS/FK.
+ * - Valida member_id antes de chamar o Supabase (evita erro de FK).
+ * - Mantém fallback de soft-delete (deactivateAsset) quando delete falha.
  */
 import { useCallback } from "react";
 import { toast } from "sonner";
@@ -11,7 +12,7 @@ import { toFriendlyError } from "@/lib/errors/friendlyError";
 interface Deps {
   user: { id: string } | null;
   planId: string | null;
-  /** Resolver dedicado para asset.profileId (mantém comportamento legado: null). */
+  /** Resolve um member.id real e ativo do plano para o profileId informado. */
   resolveMemberId: (profileId?: string) => string | null;
   addInvestmentLocal: (inv: Investment) => void;
   updateInvestmentLocal: (id: string, updates: Partial<Investment>) => void;
@@ -24,6 +25,9 @@ export interface AssetActions {
   remove: (id: string) => Promise<void>;
 }
 
+const NO_MEMBER_MSG =
+  "Não foi possível vincular esse investimento a um participante válido do plano. Atualize os participantes e tente novamente.";
+
 export function useAssetActions(deps: Deps): AssetActions {
   const { user, planId, resolveMemberId, addInvestmentLocal, updateInvestmentLocal, deleteInvestmentLocal } = deps;
   const writer = useAssetWriter();
@@ -32,6 +36,10 @@ export function useAssetActions(deps: Deps): AssetActions {
     addInvestmentLocal(inv);
     if (!user || !planId) return;
     const memberId = resolveMemberId(inv.profileId);
+    if (!memberId) {
+      toast.error(NO_MEMBER_MSG);
+      return;
+    }
     const r = await writer.createAsset(planId, inv, memberId);
     if (r.error) toast.error(`Falha ao salvar investimento: ${toFriendlyError(r.error)}`);
     else if (r.data) updateInvestmentLocal(inv.id, { id: r.data.id } as Partial<Investment>);
@@ -41,6 +49,10 @@ export function useAssetActions(deps: Deps): AssetActions {
     updateInvestmentLocal(id, updates);
     if (!user || !planId) return;
     const memberId = resolveMemberId(updates.profileId);
+    if (updates.profileId !== undefined && !memberId) {
+      toast.error(NO_MEMBER_MSG);
+      return;
+    }
     const r = await writer.updateAsset(planId, id, updates, memberId);
     if (r.error) toast.error(`Falha ao atualizar investimento: ${toFriendlyError(r.error)}`);
   }, [user, planId, writer, resolveMemberId, updateInvestmentLocal]);

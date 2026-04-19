@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { AppData, Investment } from "@/lib/models";
 import { PlanConfig, formatBRL, formatBRLCompact } from "@/lib/types";
 import type { FinancialCoreState } from "@/hooks/useFinancialCore";
+import type { PlanMemberRow } from "@/hooks/usePlan";
 import { InvestmentForm } from "./InvestmentForm";
 import { PieChart, AlertTriangle, Building2, Shield, TrendingUp, Plus, Pencil } from "lucide-react";
 
@@ -15,6 +16,7 @@ interface Props {
   onAddInvestment: (inv: Investment) => void;
   onUpdateInvestment: (id: string, updates: Partial<Investment>) => void;
   onDeleteInvestment: (id: string) => void;
+  planMembers?: PlanMemberRow[];
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -28,7 +30,7 @@ const TYPE_COLORS = [
   "bg-purple-500", "bg-pink-500", "bg-orange-500", "bg-teal-500", "bg-muted",
 ];
 
-export function WealthDistribution({ appData, config, core, onAddInvestment, onUpdateInvestment, onDeleteInvestment }: Props) {
+export function WealthDistribution({ appData, config, core, onAddInvestment, onUpdateInvestment, onDeleteInvestment, planMembers }: Props) {
   const { metrics, allocation } = core;
   const totalInvested = metrics.grossWealth;
   const netWorth = metrics.netWealth;
@@ -201,6 +203,7 @@ export function WealthDistribution({ appData, config, core, onAddInvestment, onU
         editingInvestment={editingInvestment}
         onSave={handleSave}
         onDelete={handleDelete}
+        planMembers={planMembers}
       />
     </div>
   );
