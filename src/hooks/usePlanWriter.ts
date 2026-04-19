@@ -151,7 +151,7 @@ export function usePlanWriter() {
             name: input.partnerName,
             age: input.partnerAge ?? null,
             is_primary: false,
-            role: "co-titular",
+            role: "parceiro",
             is_active: true,
           });
         }
@@ -252,7 +252,7 @@ export function usePlanWriter() {
             name: partner.name,
             age: partner.age ?? null,
             is_primary: false,
-            role: "co-titular",
+            role: "parceiro",
             is_active: true,
           });
         }
@@ -345,7 +345,7 @@ export function usePlanWriter() {
           age: partner.age ?? null,
           avatar_color: partner.avatarColor ?? null,
           is_primary: false,
-          role: "co-titular",
+          role: "parceiro",
           is_active: true,
         })
         .select()
