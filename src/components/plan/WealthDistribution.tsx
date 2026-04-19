@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { AppData, Investment } from "@/lib/models";
 import { PlanConfig, formatBRL, formatBRLCompact } from "@/lib/types";
 import type { FinancialCoreState } from "@/hooks/useFinancialCore";
+import type { PlanMemberRow } from "@/hooks/usePlan";
 import { InvestmentForm } from "./InvestmentForm";
 import { PieChart, AlertTriangle, Building2, Shield, TrendingUp, Plus, Pencil } from "lucide-react";
 
