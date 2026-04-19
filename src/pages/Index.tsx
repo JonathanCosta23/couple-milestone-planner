@@ -346,7 +346,7 @@ const Index = () => {
               <BehavioralPanel appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {planoSub === "patrimonio" && (
-              <WealthDistribution appData={effectiveAppData} config={data.config} core={core} onAddInvestment={assetActions.add} onUpdateInvestment={assetActions.update} onDeleteInvestment={assetActions.remove} />
+              <WealthDistribution appData={effectiveAppData} config={data.config} core={core} onAddInvestment={assetActions.add} onUpdateInvestment={assetActions.update} onDeleteInvestment={assetActions.remove} planMembers={cloudMembers} />
             )}
             {planoSub === "concentracao" && (
               <ConcentrationMap appData={effectiveAppData} config={data.config} core={core} onNavigateToTab={handleNavigateToTab} />
