@@ -203,6 +203,7 @@ export function WealthDistribution({ appData, config, core, onAddInvestment, onU
         editingInvestment={editingInvestment}
         onSave={handleSave}
         onDelete={handleDelete}
+        planMembers={planMembers}
       />
     </div>
   );
