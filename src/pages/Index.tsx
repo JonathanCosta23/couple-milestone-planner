@@ -133,6 +133,9 @@ const Index = () => {
     primaryMember: cloudPrimaryMember,
     partnerMember: cloudPartnerMember,
     refresh: refreshCloudPlan,
+    isCouple: cloudIsCouple,
+    primaryName: cloudPrimaryName,
+    partnerName: cloudPartnerName,
   } = usePlan();
 
   const { celebrated: dismissedMilestones, celebrate: celebrateMilestone } =
@@ -314,6 +317,19 @@ const Index = () => {
               onNavigateToTab={handleNavigateToTab}
               onOpenQuickDeposit={() => setShowQuickDeposit(true)}
               core={core}
+              topSlot={
+                <PlanModeChip
+                  appData={effectiveAppData}
+                  isCouple={cloudIsCouple}
+                  primaryName={cloudPrimaryName}
+                  partnerName={cloudPartnerName}
+                  onSetMode={planActions.setMode}
+                  onAddPartner={planActions.addPartner}
+                  onRemovePartner={planActions.removePartner}
+                  onUpdatePrimaryProfile={planActions.updatePrimaryProfile}
+                  onUpdatePartnerProfile={planActions.updatePartnerProfile}
+                />
+              }
             />
           </div>
         );
