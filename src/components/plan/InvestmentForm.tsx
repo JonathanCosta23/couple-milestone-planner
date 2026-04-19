@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import {
   getDefaultSecurity, getDefaultBucket, generateId, AppData, BUCKET_LABELS,
   SECURITY_LEVEL_LABELS,
 } from "@/lib/models";
+import type { PlanMemberRow } from "@/hooks/usePlan";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 
 const INVESTMENT_TYPE_LABELS: Record<InvestmentType, string> = {
@@ -31,50 +32,64 @@ interface Props {
   editingInvestment?: Investment;
   onSave: (investment: Investment) => void;
   onDelete?: (id: string) => void;
+  /**
+   * Membros ativos REAIS do plano (vindos da tabela plan_members).
+   * Quando presentes, são a única fonte de verdade para o seletor de titular
+   * e o `profileId` salvo é o `member.id` (FK direta para plan_members).
+   */
+  planMembers?: PlanMemberRow[];
 }
 
-export function InvestmentForm({ appData, open, onOpenChange, editingInvestment, onSave, onDelete }: Props) {
+export function InvestmentForm({ appData, open, onOpenChange, editingInvestment, onSave, onDelete, planMembers }: Props) {
   const isEditing = !!editingInvestment;
-  const isCouple = appData.mode === "casal" && appData.partner && !appData.partner.removedAt;
 
-  const profiles = [
-    { id: appData.primaryProfile.id, name: appData.primaryProfile.name || "Você" },
-    ...(isCouple && appData.partner ? [{ id: appData.partner.profile.id, name: appData.partner.profile.name || "Parceiro(a)" }] : []),
-  ];
+  // Fonte de verdade dos titulares: membros ativos do plano no banco.
+  // Fallback (raro): perfis do AppData — usado apenas quando ainda não há nuvem.
+  const memberOptions = (planMembers && planMembers.length > 0)
+    ? planMembers.filter(m => m.is_active).map(m => ({ id: m.id, name: m.name || (m.is_primary ? "Você" : "Parceiro(a)") }))
+    : [
+        { id: appData.primaryProfile.id, name: appData.primaryProfile.name || "Você" },
+        ...(appData.mode === "casal" && appData.partner && !appData.partner.removedAt
+          ? [{ id: appData.partner.profile.id, name: appData.partner.profile.name || "Parceiro(a)" }]
+          : []),
+      ];
 
-  const defaults: Investment = editingInvestment || {
+  const primaryMemberId = (planMembers?.find(m => m.is_primary && m.is_active)?.id)
+    ?? memberOptions[0]?.id
+    ?? appData.primaryProfile.id;
+
+  const isCouple = memberOptions.length > 1;
+
+  const buildDefault = (): Investment => ({
     id: generateId(),
     name: "",
     type: "tesouro-selic",
     institution: "",
     conglomerate: "",
-    titular: appData.primaryProfile.id,
+    titular: primaryMemberId,
     securityLevel: "soberano",
     bucket: "reserva",
     currentBalance: 0,
     monthlyContribution: 0,
     annualRate: 0,
     startDate: new Date().toISOString().slice(0, 7),
-    profileId: appData.primaryProfile.id,
+    profileId: primaryMemberId,
     active: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-  };
+  });
 
-  const [form, setForm] = useState<Investment>(defaults);
+  const [form, setForm] = useState<Investment>(editingInvestment ?? buildDefault());
 
-  // Reset form when dialog opens
-  const handleOpenChange = (isOpen: boolean) => {
-    if (isOpen) {
-      setForm(editingInvestment || {
-        ...defaults,
-        id: generateId(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-    }
-    onOpenChange(isOpen);
-  };
+  // Garante que ao abrir o form (novo ou editando), o titular sempre seja um member.id válido.
+  useEffect(() => {
+    if (!open) return;
+    const base = editingInvestment ?? buildDefault();
+    const validIds = new Set(memberOptions.map(m => m.id));
+    const safeId = validIds.has(base.profileId ?? "") ? base.profileId! : primaryMemberId;
+    setForm({ ...base, profileId: safeId, titular: safeId });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editingInvestment?.id, primaryMemberId, planMembers?.length]);
 
   const handleTypeChange = (type: InvestmentType) => {
     setForm(prev => ({
@@ -86,9 +101,13 @@ export function InvestmentForm({ appData, open, onOpenChange, editingInvestment,
   };
 
   const handleSave = () => {
-    if (!form.name.trim() && !form.type) return;
+    if (!form.type) return;
+    const validIds = new Set(memberOptions.map(m => m.id));
+    const safeId = validIds.has(form.profileId ?? "") ? form.profileId! : primaryMemberId;
     const investment: Investment = {
       ...form,
+      profileId: safeId,
+      titular: safeId,
       name: form.name.trim() || INVESTMENT_TYPE_LABELS[form.type],
       updatedAt: new Date().toISOString(),
     };
@@ -96,10 +115,8 @@ export function InvestmentForm({ appData, open, onOpenChange, editingInvestment,
     onOpenChange(false);
   };
 
-  const hasFgc = form.securityLevel === "fgc";
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -152,14 +169,17 @@ export function InvestmentForm({ appData, open, onOpenChange, editingInvestment,
             </div>
           </div>
 
-          {/* Titular */}
-          {isCouple && profiles.length > 1 && (
+          {/* Titular — só exibe seletor quando houver mais de um membro */}
+          {isCouple && (
             <div>
               <Label>Titular</Label>
-              <Select value={form.titular || form.profileId || profiles[0].id} onValueChange={(v) => setForm(prev => ({ ...prev, titular: v, profileId: v }))}>
+              <Select
+                value={form.profileId || primaryMemberId}
+                onValueChange={(v) => setForm(prev => ({ ...prev, titular: v, profileId: v }))}
+              >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {profiles.map(p => (
+                  {memberOptions.map(p => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                   ))}
                 </SelectContent>
