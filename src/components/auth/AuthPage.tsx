@@ -43,12 +43,18 @@ export function AuthPage({ onClose, onSuccess, mode: initialMode = "login", show
       } else if (mode === "signup") {
         const { error } = await signUp(email, password, name);
         if (error) {
-          if (error.message.includes("already registered")) {
+          const msg = error.message || "";
+          const code = (error as { code?: string }).code;
+          if (code === "weak_password" || msg.toLowerCase().includes("pwned") || msg.toLowerCase().includes("weak")) {
+            toast.error("Essa senha é muito comum ou apareceu em vazamentos. Use uma senha mais forte (misture letras, números e símbolos).", { duration: 7000 });
+          } else if (msg.includes("already registered") || msg.toLowerCase().includes("already")) {
             toast.error("Este e-mail já está cadastrado. Tente entrar.");
-          } else if (error.message.includes("password")) {
-            toast.error("Senha muito fraca. Use pelo menos 8 caracteres.");
+          } else if (msg.toLowerCase().includes("password")) {
+            toast.error("Senha inválida. Use pelo menos 8 caracteres, com letras e números.");
+          } else if (msg.toLowerCase().includes("email")) {
+            toast.error("E-mail inválido. Verifique e tente novamente.");
           } else {
-            toast.error("Erro ao criar conta. Tente novamente.");
+            toast.error(`Erro ao criar conta: ${msg || "tente novamente"}`);
           }
         } else {
           toast.success("Conta criada! Verifique seu e-mail para confirmar.", { duration: 6000 });
