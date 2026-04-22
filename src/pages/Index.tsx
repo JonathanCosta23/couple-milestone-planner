@@ -77,6 +77,8 @@ import { AppHeader } from "@/components/plan/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Download, Upload, RotateCcw, Settings, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { ErrorBoundary } from "@/components/system/ErrorBoundary";
+import { OfflineBanner } from "@/components/system/OfflineBanner";
 
 // Sub-nav definitions — shorter labels, better mobile fit
 const PLANO_SUBS = [
@@ -337,6 +339,7 @@ const Index = () => {
 
       case "plano":
         return (
+          <ErrorBoundary area="plano" title="Não foi possível carregar o Plano">
           <div className="space-y-4">
             <SubNav items={PLANO_SUBS} active={planoSub} onChange={setPlanoSub} />
             {planoSub === "aportes" && (
@@ -372,10 +375,12 @@ const Index = () => {
               <CoupleGovernance appData={effectiveAppData} config={data.config} core={core} onNavigateToTab={handleNavigateToTab} />
             )}
           </div>
+          </ErrorBoundary>
         );
 
       case "historico":
         return (
+          <ErrorBoundary area="historico" title="Não foi possível carregar o Histórico">
           <div className="space-y-4">
             <SubNav items={HISTORICO_SUBS} active={historicoSub} onChange={setHistoricoSub} />
             {historicoSub === "tracker" && (
@@ -422,10 +427,12 @@ const Index = () => {
               />
             )}
           </div>
+          </ErrorBoundary>
         );
 
       case "perfil":
         return (
+          <ErrorBoundary area="perfil" title="Não foi possível carregar o Perfil">
           <div className="space-y-4">
             <SubNav items={PERFIL_SUBS} active={perfilSub} onChange={setPerfilSub} />
             {perfilSub === "aprender" && <MiniLessons />}
@@ -476,6 +483,7 @@ const Index = () => {
               </div>
             )}
           </div>
+          </ErrorBoundary>
         );
 
       default:
@@ -485,6 +493,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20 lg:pb-4">
+      <OfflineBanner />
       <AppHeader
         user={user}
         syncing={syncing}
