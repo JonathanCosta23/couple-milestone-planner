@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import type { Expense } from "@/lib/models";
 import { useExpenseWriter } from "@/hooks/useExpenseWriter";
 import { toFriendlyError } from "@/lib/errors/friendlyError";
+import { withRetry, logger } from "@/lib/logger";
 
 interface Deps {
   user: { id: string } | null;
@@ -29,7 +30,15 @@ export function useExpenseActions(deps: Deps): ExpenseActions {
   const add = useCallback(async (expense: Expense) => {
     addExpenseLocal(expense);
     if (!user || !planId) return;
-    const r = await writer.createExpense(planId, expense, resolveMemberId(expense.responsibleProfileId));
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      toast.error("Sem conexão. Vamos tentar de novo quando a internet voltar.");
+      logger.warn("writer.expense.offline", { userId: user.id, planId, action: "add" });
+      return;
+    }
+    const r = await withRetry(
+      () => writer.createExpense(planId, expense, resolveMemberId(expense.responsibleProfileId)),
+      { event: "writer.expense.create", context: { userId: user.id, planId } },
+    );
     if (r.error) toast.error(`Falha ao salvar gasto: ${toFriendlyError(r.error)}`);
     else if (r.data) updateExpenseLocal(expense.id, { id: r.data.id } as Partial<Expense>);
   }, [user, planId, writer, resolveMemberId, addExpenseLocal, updateExpenseLocal]);
@@ -38,14 +47,20 @@ export function useExpenseActions(deps: Deps): ExpenseActions {
     updateExpenseLocal(id, updates);
     if (!user || !planId) return;
     const memberId = updates.responsibleProfileId !== undefined ? resolveMemberId(updates.responsibleProfileId) : undefined;
-    const r = await writer.updateExpense(planId, id, updates, memberId);
+    const r = await withRetry(
+      () => writer.updateExpense(planId, id, updates, memberId),
+      { event: "writer.expense.update", context: { userId: user.id, planId } },
+    );
     if (r.error) toast.error(`Falha ao atualizar gasto: ${toFriendlyError(r.error)}`);
   }, [user, planId, writer, resolveMemberId, updateExpenseLocal]);
 
   const remove = useCallback(async (id: string) => {
     deleteExpenseLocal(id);
     if (!user) return;
-    const r = await writer.deleteExpense(id);
+    const r = await withRetry(
+      () => writer.deleteExpense(id),
+      { event: "writer.expense.delete", context: { userId: user.id } },
+    );
     if (r.error) toast.error(`Falha ao remover gasto: ${toFriendlyError(r.error)}`);
   }, [user, writer, deleteExpenseLocal]);
 
