@@ -80,5 +80,88 @@ export function useExpenseActions(deps: Deps): ExpenseActions {
     if (r.error) toast.error(`Falha ao remover gasto: ${toFriendlyError(r.error)}`);
   }, [user, writer, deleteExpenseLocal]);
 
-  return { add, update, remove };
+  // ---- Operações derivadas (agora persistidas) ----
+
+  const duplicate = useCallback(async (id: string) => {
+    const source = getExpenseById?.(id);
+    if (!source) {
+      toast.error("Gasto não encontrado para duplicar.");
+      return;
+    }
+    const copy: Expense = {
+      ...source,
+      id: generateId(),
+      name: `${source.name} (cópia)`,
+      status: "pending",
+      paidDate: undefined,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    addExpenseLocal(copy);
+    if (!user || !planId) return;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      toast.error("Sem conexão. Vamos tentar de novo quando a internet voltar.");
+      logger.warn("writer.expense.offline", { userId: user.id, planId, action: "duplicate" });
+      return;
+    }
+    const r = await withRetry(
+      () => writer.createExpense(planId, copy, resolveMemberId(copy.responsibleProfileId)),
+      { event: "writer.expense.duplicate", context: { userId: user.id, planId } },
+    );
+    if (r.error) toast.error(`Falha ao duplicar gasto: ${toFriendlyError(r.error)}`);
+    else if (r.data) updateExpenseLocal(copy.id, { id: r.data.id } as Partial<Expense>);
+  }, [user, planId, writer, resolveMemberId, addExpenseLocal, updateExpenseLocal, getExpenseById]);
+
+  const markPaid = useCallback(async (id: string) => {
+    const patch: Partial<Expense> = {
+      status: "paid",
+      paidDate: new Date().toISOString().slice(0, 10),
+      updatedAt: new Date().toISOString(),
+    };
+    updateExpenseLocal(id, patch);
+    if (!user || !planId) return;
+    const r = await withRetry(
+      () => writer.updateExpense(planId, id, patch),
+      { event: "writer.expense.markPaid", context: { userId: user.id, planId } },
+    );
+    if (r.error) toast.error(`Falha ao marcar como pago: ${toFriendlyError(r.error)}`);
+  }, [user, planId, writer, updateExpenseLocal]);
+
+  const convertToRecurring = useCallback(async (id: string) => {
+    const source = getExpenseById?.(id);
+    if (!source) {
+      toast.error("Gasto não encontrado para converter.");
+      return;
+    }
+    // 1) Mantém template local (RecurringExpense ainda não tem tabela própria).
+    const recurring: RecurringExpense = {
+      id: generateId(),
+      name: source.name,
+      amount: source.amount,
+      category: source.category,
+      subcategory: source.subcategory,
+      type: source.type,
+      ownership: source.ownership,
+      responsibleProfileId: source.responsibleProfileId,
+      priority: source.priority,
+      active: true,
+      startDate: source.monthKey,
+      createdAt: new Date().toISOString(),
+    };
+    addRecurringExpenseLocal?.(recurring);
+    // 2) Persiste no banco marcando o gasto fonte como recorrente (round-trip real).
+    const patch: Partial<Expense> = {
+      recurrence: "monthly",
+      updatedAt: new Date().toISOString(),
+    };
+    updateExpenseLocal(id, patch);
+    if (!user || !planId) return;
+    const r = await withRetry(
+      () => writer.updateExpense(planId, id, patch),
+      { event: "writer.expense.convertRecurring", context: { userId: user.id, planId } },
+    );
+    if (r.error) toast.error(`Falha ao converter em recorrente: ${toFriendlyError(r.error)}`);
+  }, [user, planId, writer, updateExpenseLocal, addRecurringExpenseLocal, getExpenseById]);
+
+  return { add, update, remove, duplicate, markPaid, convertToRecurring };
 }
