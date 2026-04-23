@@ -6,7 +6,8 @@
 import { useCallback } from "react";
 import { toast } from "sonner";
 import type { Investment } from "@/lib/models";
-import { useAssetWriter } from "@/hooks/useAssetWriter";
+import { useAssetWriter, investmentToAssetPayload } from "@/hooks/useAssetWriter";
+import { useOfflineQueue } from "@/hooks/useOfflineQueue";
 import { toFriendlyError } from "@/lib/errors/friendlyError";
 import { withRetry, logger } from "@/lib/logger";
 
@@ -32,6 +33,7 @@ const NO_MEMBER_MSG =
 export function useAssetActions(deps: Deps): AssetActions {
   const { user, planId, resolveMemberId, addInvestmentLocal, updateInvestmentLocal, deleteInvestmentLocal } = deps;
   const writer = useAssetWriter();
+  const offlineQueue = useOfflineQueue();
 
   const add = useCallback(async (inv: Investment) => {
     addInvestmentLocal(inv);
@@ -42,8 +44,10 @@ export function useAssetActions(deps: Deps): AssetActions {
       return;
     }
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      toast.error("Sem conexão. Vamos tentar de novo quando a internet voltar.");
-      logger.warn("writer.asset.offline", { userId: user.id, planId, action: "add" });
+      const payload = investmentToAssetPayload(inv, { userId: user.id, planId, memberId });
+      await offlineQueue.enqueue({ entity: "asset", op: "create", entityId: inv.id, planId, payload, memberId });
+      toast.success("Sem conexão — salvaremos quando a internet voltar.");
+      logger.warn("writer.asset.offline.enqueued", { userId: user.id, planId });
       return;
     }
     const r = await withRetry(
@@ -52,7 +56,7 @@ export function useAssetActions(deps: Deps): AssetActions {
     );
     if (r.error) toast.error(`Falha ao salvar investimento: ${toFriendlyError(r.error)}`);
     else if (r.data) updateInvestmentLocal(inv.id, { id: r.data.id } as Partial<Investment>);
-  }, [user, planId, writer, resolveMemberId, addInvestmentLocal, updateInvestmentLocal]);
+  }, [user, planId, writer, resolveMemberId, addInvestmentLocal, updateInvestmentLocal, offlineQueue]);
 
   const update = useCallback(async (id: string, updates: Partial<Investment>) => {
     updateInvestmentLocal(id, updates);
@@ -62,16 +66,26 @@ export function useAssetActions(deps: Deps): AssetActions {
       toast.error(NO_MEMBER_MSG);
       return;
     }
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      const payload = investmentToAssetPayload(updates, { userId: user.id, planId, memberId });
+      await offlineQueue.enqueue({ entity: "asset", op: "update", entityId: id, planId, payload, memberId: memberId ?? null });
+      toast.success("Sem conexão — sua alteração ficou em fila.");
+      return;
+    }
     const r = await withRetry(
       () => writer.updateAsset(planId, id, updates, memberId),
       { event: "writer.asset.update", context: { userId: user.id, planId } },
     );
     if (r.error) toast.error(`Falha ao atualizar investimento: ${toFriendlyError(r.error)}`);
-  }, [user, planId, writer, resolveMemberId, updateInvestmentLocal]);
+  }, [user, planId, writer, resolveMemberId, updateInvestmentLocal, offlineQueue]);
 
   const remove = useCallback(async (id: string) => {
     deleteInvestmentLocal(id);
     if (!user) return;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      await offlineQueue.enqueue({ entity: "asset", op: "delete", entityId: id, planId, payload: {}, memberId: null });
+      return;
+    }
     const r = await withRetry(
       () => writer.deleteAsset(id),
       { event: "writer.asset.delete", context: { userId: user.id } },
@@ -80,7 +94,7 @@ export function useAssetActions(deps: Deps): AssetActions {
       logger.warn("writer.asset.delete.fallback_deactivate", { userId: user.id });
       await writer.deactivateAsset(id);
     }
-  }, [user, writer, deleteInvestmentLocal]);
+  }, [user, planId, writer, deleteInvestmentLocal, offlineQueue]);
 
   return { add, update, remove };
 }
