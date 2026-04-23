@@ -123,7 +123,7 @@ const Index = () => {
     appData, setAppData, setMode, addPartner, removePartner,
     updatePrimaryProfile, updatePartnerProfile,
     addIncome, updateIncome, deleteIncome,
-    addExpense, updateExpense, deleteExpense, duplicateExpense, markExpensePaid, convertToRecurring,
+    addExpense, updateExpense, deleteExpense, addRecurringExpense,
     addDebt, updateDebt, deleteDebt,
     addInvestment, updateInvestment, deleteInvestment,
   } = useAppData();
