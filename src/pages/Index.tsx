@@ -123,7 +123,7 @@ const Index = () => {
     appData, setAppData, setMode, addPartner, removePartner,
     updatePrimaryProfile, updatePartnerProfile,
     addIncome, updateIncome, deleteIncome,
-    addExpense, updateExpense, deleteExpense, duplicateExpense, markExpensePaid, convertToRecurring,
+    addExpense, updateExpense, deleteExpense, addRecurringExpense,
     addDebt, updateDebt, deleteDebt,
     addInvestment, updateInvestment, deleteInvestment,
   } = useAppData();
@@ -209,6 +209,8 @@ const Index = () => {
   const expenseActions = useExpenseActions({
     user, planId, resolveMemberId,
     addExpenseLocal: addExpense, updateExpenseLocal: updateExpense, deleteExpenseLocal: deleteExpense,
+    addRecurringExpenseLocal: addRecurringExpense,
+    getExpenseById: (id) => appData.expenses.find((e) => e.id === id),
   });
 
   const debtActions = useDebtActions({
@@ -401,9 +403,9 @@ const Index = () => {
                 onAddExpense={expenseActions.add}
                 onUpdateExpense={expenseActions.update}
                 onDeleteExpense={expenseActions.remove}
-                onDuplicateExpense={duplicateExpense}
-                onMarkExpensePaid={markExpensePaid}
-                onConvertToRecurring={convertToRecurring}
+                onDuplicateExpense={expenseActions.duplicate}
+                onMarkExpensePaid={expenseActions.markPaid}
+                onConvertToRecurring={expenseActions.convertToRecurring}
               />
             )}
             {historicoSub === "renda" && (
