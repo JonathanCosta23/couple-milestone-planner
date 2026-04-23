@@ -5,7 +5,8 @@
 import { useCallback } from "react";
 import { toast } from "sonner";
 import type { Income } from "@/lib/models";
-import { useIncomeWriter } from "@/hooks/useIncomeWriter";
+import { useIncomeWriter, incomeToPayload } from "@/hooks/useIncomeWriter";
+import { useOfflineQueue } from "@/hooks/useOfflineQueue";
 import { toFriendlyError } from "@/lib/errors/friendlyError";
 import { withRetry, logger } from "@/lib/logger";
 
@@ -27,43 +28,66 @@ export interface IncomeActions {
 export function useIncomeActions(deps: Deps): IncomeActions {
   const { user, planId, resolveMemberId, addIncomeLocal, updateIncomeLocal, deleteIncomeLocal } = deps;
   const writer = useIncomeWriter();
+  const offlineQueue = useOfflineQueue();
 
   const add = useCallback(async (income: Income) => {
     addIncomeLocal(income);
     if (!user || !planId) return;
+    const memberId = resolveMemberId(income.profileId);
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      toast.error("Sem conexão. Vamos tentar de novo quando a internet voltar.");
-      logger.warn("writer.income.offline", { userId: user.id, planId, action: "add" });
+      const payload = incomeToPayload(income, { userId: user.id, planId, memberId });
+      const r = await offlineQueue.enqueue({
+        entity: "income", op: "create", entityId: income.id, planId, payload, memberId,
+      });
+      if (r.enqueued) toast.success("Sem conexão — salvaremos quando a internet voltar.");
+      logger.warn("writer.income.offline.enqueued", { userId: user.id, planId });
       return;
     }
     const r = await withRetry(
-      () => writer.createIncome(planId, income, resolveMemberId(income.profileId)),
+      () => writer.createIncome(planId, income, memberId),
       { event: "writer.income.create", context: { userId: user.id, planId } },
     );
     if (r.error) toast.error(`Falha ao salvar renda: ${toFriendlyError(r.error)}`);
     else if (r.data) updateIncomeLocal(income.id, { id: r.data.id } as Partial<Income>);
-  }, [user, planId, writer, resolveMemberId, addIncomeLocal, updateIncomeLocal]);
+  }, [user, planId, writer, resolveMemberId, addIncomeLocal, updateIncomeLocal, offlineQueue]);
 
   const update = useCallback(async (id: string, updates: Partial<Income>) => {
     updateIncomeLocal(id, updates);
     if (!user || !planId) return;
     const memberId = updates.profileId !== undefined ? resolveMemberId(updates.profileId) : undefined;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      const payload = incomeToPayload(updates, { userId: user.id, planId, memberId });
+      await offlineQueue.enqueue({
+        entity: "income", op: "update", entityId: id, planId, payload, memberId: memberId ?? null,
+      });
+      toast.success("Sem conexão — sua alteração ficou em fila.");
+      return;
+    }
     const r = await withRetry(
       () => writer.updateIncome(planId, id, updates, memberId),
       { event: "writer.income.update", context: { userId: user.id, planId } },
     );
     if (r.error) toast.error(`Falha ao atualizar renda: ${toFriendlyError(r.error)}`);
-  }, [user, planId, writer, resolveMemberId, updateIncomeLocal]);
+  }, [user, planId, writer, resolveMemberId, updateIncomeLocal, offlineQueue]);
 
   const remove = useCallback(async (id: string) => {
     deleteIncomeLocal(id);
     if (!user) return;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      const r = await offlineQueue.enqueue({
+        entity: "income", op: "delete", entityId: id, planId, payload: {}, memberId: null,
+      });
+      if (r.coalesced) {
+        // create pendente foi cancelado: não precisa avisar nada além do toast padrão.
+      }
+      return;
+    }
     const r = await withRetry(
       () => writer.deleteIncome(id),
       { event: "writer.income.delete", context: { userId: user.id } },
     );
     if (r.error) toast.error(`Falha ao remover renda: ${toFriendlyError(r.error)}`);
-  }, [user, writer, deleteIncomeLocal]);
+  }, [user, planId, writer, deleteIncomeLocal, offlineQueue]);
 
   return { add, update, remove };
 }
