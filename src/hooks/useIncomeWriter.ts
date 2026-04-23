@@ -64,7 +64,7 @@ export function incomeRowToModel(row: IncomeRow): Income {
   };
 }
 
-function incomeToPayload(
+export function incomeToPayload(
   inc: Partial<Income>,
   ctx: { userId: string; planId: string; memberId?: string | null },
 ): Record<string, unknown> {

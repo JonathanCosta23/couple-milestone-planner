@@ -136,7 +136,7 @@ export function assetRowToInvestment(row: AssetRow): Investment {
 }
 
 /** Converte um Investment do app em payload para insert/update na tabela assets. */
-function investmentToAssetPayload(
+export function investmentToAssetPayload(
   inv: Partial<Investment>,
   ctx: { userId: string; planId: string; memberId?: string | null }
 ): Record<string, unknown> {

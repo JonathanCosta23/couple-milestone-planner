@@ -74,7 +74,7 @@ export function debtRowToModel(row: DebtRow): Debt {
   };
 }
 
-function debtToPayload(
+export function debtToPayload(
   debt: Partial<Debt>,
   ctx: { userId: string; planId: string; memberId?: string | null },
 ): Record<string, unknown> {

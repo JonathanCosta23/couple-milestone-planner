@@ -9,7 +9,8 @@ import { useCallback } from "react";
 import { toast } from "sonner";
 import type { Expense, RecurringExpense } from "@/lib/models";
 import { generateId } from "@/lib/models";
-import { useExpenseWriter } from "@/hooks/useExpenseWriter";
+import { useExpenseWriter, expenseToPayload } from "@/hooks/useExpenseWriter";
+import { useOfflineQueue } from "@/hooks/useOfflineQueue";
 import { toFriendlyError } from "@/lib/errors/friendlyError";
 import { withRetry, logger } from "@/lib/logger";
 
@@ -42,43 +43,57 @@ export function useExpenseActions(deps: Deps): ExpenseActions {
     addRecurringExpenseLocal, getExpenseById,
   } = deps;
   const writer = useExpenseWriter();
+  const offlineQueue = useOfflineQueue();
 
   const add = useCallback(async (expense: Expense) => {
     addExpenseLocal(expense);
     if (!user || !planId) return;
+    const memberId = resolveMemberId(expense.responsibleProfileId);
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      toast.error("Sem conexão. Vamos tentar de novo quando a internet voltar.");
-      logger.warn("writer.expense.offline", { userId: user.id, planId, action: "add" });
+      const payload = expenseToPayload(expense, { userId: user.id, planId, memberId });
+      await offlineQueue.enqueue({ entity: "expense", op: "create", entityId: expense.id, planId, payload, memberId });
+      toast.success("Sem conexão — salvaremos quando a internet voltar.");
+      logger.warn("writer.expense.offline.enqueued", { userId: user.id, planId });
       return;
     }
     const r = await withRetry(
-      () => writer.createExpense(planId, expense, resolveMemberId(expense.responsibleProfileId)),
+      () => writer.createExpense(planId, expense, memberId),
       { event: "writer.expense.create", context: { userId: user.id, planId } },
     );
     if (r.error) toast.error(`Falha ao salvar gasto: ${toFriendlyError(r.error)}`);
     else if (r.data) updateExpenseLocal(expense.id, { id: r.data.id } as Partial<Expense>);
-  }, [user, planId, writer, resolveMemberId, addExpenseLocal, updateExpenseLocal]);
+  }, [user, planId, writer, resolveMemberId, addExpenseLocal, updateExpenseLocal, offlineQueue]);
 
   const update = useCallback(async (id: string, updates: Partial<Expense>) => {
     updateExpenseLocal(id, updates);
     if (!user || !planId) return;
     const memberId = updates.responsibleProfileId !== undefined ? resolveMemberId(updates.responsibleProfileId) : undefined;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      const payload = expenseToPayload(updates, { userId: user.id, planId, memberId });
+      await offlineQueue.enqueue({ entity: "expense", op: "update", entityId: id, planId, payload, memberId: memberId ?? null });
+      toast.success("Sem conexão — sua alteração ficou em fila.");
+      return;
+    }
     const r = await withRetry(
       () => writer.updateExpense(planId, id, updates, memberId),
       { event: "writer.expense.update", context: { userId: user.id, planId } },
     );
     if (r.error) toast.error(`Falha ao atualizar gasto: ${toFriendlyError(r.error)}`);
-  }, [user, planId, writer, resolveMemberId, updateExpenseLocal]);
+  }, [user, planId, writer, resolveMemberId, updateExpenseLocal, offlineQueue]);
 
   const remove = useCallback(async (id: string) => {
     deleteExpenseLocal(id);
     if (!user) return;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      await offlineQueue.enqueue({ entity: "expense", op: "delete", entityId: id, planId, payload: {}, memberId: null });
+      return;
+    }
     const r = await withRetry(
       () => writer.deleteExpense(id),
       { event: "writer.expense.delete", context: { userId: user.id } },
     );
     if (r.error) toast.error(`Falha ao remover gasto: ${toFriendlyError(r.error)}`);
-  }, [user, writer, deleteExpenseLocal]);
+  }, [user, planId, writer, deleteExpenseLocal, offlineQueue]);
 
   // ---- Operações derivadas (agora persistidas) ----
 
