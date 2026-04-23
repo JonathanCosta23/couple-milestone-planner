@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { FullscreenSkeleton } from "@/components/plan/PanelSkeleton";
+import { OfflineQueueProvider } from "@/hooks/useOfflineQueue";
 import Index from "./pages/Index";
 
 // Lazy: rotas secundárias fora do caminho crítico
@@ -20,15 +21,17 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <Suspense fallback={<FullscreenSkeleton />}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
+        <OfflineQueueProvider>
+          <BrowserRouter>
+            <Suspense fallback={<FullscreenSkeleton />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </OfflineQueueProvider>
       </TooltipProvider>
     </QueryClientProvider>
   </ThemeProvider>

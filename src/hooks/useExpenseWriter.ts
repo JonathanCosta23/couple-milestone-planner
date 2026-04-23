@@ -61,7 +61,7 @@ export function expenseRowToModel(row: ExpenseRow): Expense {
   };
 }
 
-function expenseToPayload(
+export function expenseToPayload(
   exp: Partial<Expense>,
   ctx: { userId: string; planId: string; memberId?: string | null },
 ): Record<string, unknown> {
