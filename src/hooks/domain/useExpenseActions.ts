@@ -1,9 +1,14 @@
 /**
  * useExpenseActions — handler de domínio para Gastos.
+ *
+ * Inclui também as operações derivadas que historicamente viviam apenas em
+ * memória (`duplicate`, `markPaid`, `convertToRecurring`). Agora todas
+ * passam pelo writer real, mantendo a fonte única de verdade.
  */
 import { useCallback } from "react";
 import { toast } from "sonner";
-import type { Expense } from "@/lib/models";
+import type { Expense, RecurringExpense } from "@/lib/models";
+import { generateId } from "@/lib/models";
 import { useExpenseWriter } from "@/hooks/useExpenseWriter";
 import { toFriendlyError } from "@/lib/errors/friendlyError";
 import { withRetry, logger } from "@/lib/logger";
@@ -15,16 +20,27 @@ interface Deps {
   addExpenseLocal: (expense: Expense) => void;
   updateExpenseLocal: (id: string, updates: Partial<Expense>) => void;
   deleteExpenseLocal: (id: string) => void;
+  // Para convertToRecurring — recurring expense é template local (sem tabela própria).
+  addRecurringExpenseLocal?: (recurring: RecurringExpense) => void;
+  // Para duplicate — precisamos do estado atual para ler o gasto fonte.
+  getExpenseById?: (id: string) => Expense | undefined;
 }
 
 export interface ExpenseActions {
   add: (expense: Expense) => Promise<void>;
   update: (id: string, updates: Partial<Expense>) => Promise<void>;
   remove: (id: string) => Promise<void>;
+  duplicate: (id: string) => Promise<void>;
+  markPaid: (id: string) => Promise<void>;
+  convertToRecurring: (id: string) => Promise<void>;
 }
 
 export function useExpenseActions(deps: Deps): ExpenseActions {
-  const { user, planId, resolveMemberId, addExpenseLocal, updateExpenseLocal, deleteExpenseLocal } = deps;
+  const {
+    user, planId, resolveMemberId,
+    addExpenseLocal, updateExpenseLocal, deleteExpenseLocal,
+    addRecurringExpenseLocal, getExpenseById,
+  } = deps;
   const writer = useExpenseWriter();
 
   const add = useCallback(async (expense: Expense) => {
