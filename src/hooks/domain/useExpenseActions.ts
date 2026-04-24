@@ -114,18 +114,22 @@ export function useExpenseActions(deps: Deps): ExpenseActions {
     };
     addExpenseLocal(copy);
     if (!user || !planId) return;
+    const memberId = resolveMemberId(copy.responsibleProfileId);
+    // Sprint 1, Item 2: enfileira offline em vez de só avisar.
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      toast.error("Sem conexão. Vamos tentar de novo quando a internet voltar.");
-      logger.warn("writer.expense.offline", { userId: user.id, planId, action: "duplicate" });
+      const payload = expenseToPayload(copy, { userId: user.id, planId, memberId });
+      const r = await offlineQueue.enqueue({ entity: "expense", op: "create", entityId: copy.id, planId, payload, memberId });
+      if (r.enqueued) toast.success("Sem conexão — duplicaremos quando a internet voltar.");
+      logger.warn("writer.expense.offline.enqueued", { userId: user.id, planId, action: "duplicate" });
       return;
     }
     const r = await withRetry(
-      () => writer.createExpense(planId, copy, resolveMemberId(copy.responsibleProfileId)),
+      () => writer.createExpense(planId, copy, memberId),
       { event: "writer.expense.duplicate", context: { userId: user.id, planId } },
     );
     if (r.error) toast.error(`Falha ao duplicar gasto: ${toFriendlyError(r.error)}`);
     else if (r.data) updateExpenseLocal(copy.id, { id: r.data.id } as Partial<Expense>);
-  }, [user, planId, writer, resolveMemberId, addExpenseLocal, updateExpenseLocal, getExpenseById]);
+  }, [user, planId, writer, resolveMemberId, addExpenseLocal, updateExpenseLocal, getExpenseById, offlineQueue]);
 
   const markPaid = useCallback(async (id: string) => {
     const patch: Partial<Expense> = {
@@ -135,12 +139,20 @@ export function useExpenseActions(deps: Deps): ExpenseActions {
     };
     updateExpenseLocal(id, patch);
     if (!user || !planId) return;
+    // Sprint 1, Item 2: cobre offline.
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      const payload = expenseToPayload(patch, { userId: user.id, planId, memberId: null });
+      const r = await offlineQueue.enqueue({ entity: "expense", op: "update", entityId: id, planId, payload, memberId: null });
+      if (r.enqueued) toast.success("Sem conexão — registraremos como pago quando a internet voltar.");
+      logger.warn("writer.expense.offline.enqueued", { userId: user.id, planId, action: "markPaid" });
+      return;
+    }
     const r = await withRetry(
       () => writer.updateExpense(planId, id, patch),
       { event: "writer.expense.markPaid", context: { userId: user.id, planId } },
     );
     if (r.error) toast.error(`Falha ao marcar como pago: ${toFriendlyError(r.error)}`);
-  }, [user, planId, writer, updateExpenseLocal]);
+  }, [user, planId, writer, updateExpenseLocal, offlineQueue]);
 
   const convertToRecurring = useCallback(async (id: string) => {
     const source = getExpenseById?.(id);
@@ -171,12 +183,20 @@ export function useExpenseActions(deps: Deps): ExpenseActions {
     };
     updateExpenseLocal(id, patch);
     if (!user || !planId) return;
+    // Sprint 1, Item 2: cobre offline.
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      const payload = expenseToPayload(patch, { userId: user.id, planId, memberId: null });
+      const r = await offlineQueue.enqueue({ entity: "expense", op: "update", entityId: id, planId, payload, memberId: null });
+      if (r.enqueued) toast.success("Sem conexão — converteremos em recorrente quando a internet voltar.");
+      logger.warn("writer.expense.offline.enqueued", { userId: user.id, planId, action: "convertToRecurring" });
+      return;
+    }
     const r = await withRetry(
       () => writer.updateExpense(planId, id, patch),
       { event: "writer.expense.convertRecurring", context: { userId: user.id, planId } },
     );
     if (r.error) toast.error(`Falha ao converter em recorrente: ${toFriendlyError(r.error)}`);
-  }, [user, planId, writer, updateExpenseLocal, addRecurringExpenseLocal, getExpenseById]);
+  }, [user, planId, writer, updateExpenseLocal, addRecurringExpenseLocal, getExpenseById, offlineQueue]);
 
   return { add, update, remove, duplicate, markPaid, convertToRecurring };
 }

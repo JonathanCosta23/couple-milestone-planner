@@ -241,6 +241,18 @@ const Index = () => {
 
 
   const handleSignOut = async () => {
+    // Sprint 1, Item 1: limpa fila offline ANTES do signOut.
+    // Evita que writes pendentes do user A sejam processados pelo user B no mesmo navegador.
+    if (user?.id) {
+      try {
+        const { clearAll } = await import("@/lib/offlineQueue");
+        await clearAll(user.id);
+      } catch (err) {
+        // Não bloqueia o logout se o cleanup falhar — apenas registra.
+        const { logger } = await import("@/lib/logger");
+        logger.warn("auth.signOut.offlineQueue.clear.fail", { userId: user.id }, err);
+      }
+    }
     await signOut();
     toast.success("Até logo! 👋");
   };
