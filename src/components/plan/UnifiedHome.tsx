@@ -219,16 +219,16 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
 
       {/* ── 6. Indicadores rápidos ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-4">
-        <IndicatorCard icon="💪" label="Estrutura" value={`${healthScore}`} sub={healthLabel} valueColor={healthColor}
+        <IndicatorCard icon="💪" label="Estrutura" value={`${healthScore}`} sub={`Organização geral: ${healthLabel.toLowerCase()}`} valueColor={healthColor}
           onClick={() => onNavigateToTab("diagnostico")} />
         <IndicatorCard icon="🛡️" label="Reserva" value={`${metrics.reserveMonths.toFixed(1)}m`}
-          sub={metrics.reserveStatus === "complete" ? "Completa" : metrics.reserveStatus === "partial" ? "Em construção" : "Insuficiente"}
+          sub={metrics.reserveStatus === "complete" ? "Meses protegidos" : metrics.reserveStatus === "partial" ? "Proteção em construção" : "Falta proteção"}
           valueColor={metrics.reserveStatus === "complete" ? "text-primary" : metrics.reserveStatus === "partial" ? "text-warning" : "text-destructive"} />
         <IndicatorCard icon="📈" label="Poupança" value={metrics.totalIncome > 0 ? `${(metrics.savingsRate * 100).toFixed(0)}%` : "—"}
-          sub={metrics.savingsRate >= 0.2 ? "Excelente" : metrics.savingsRate >= 0.1 ? "Bom começo" : "Pode melhorar"}
+          sub={metrics.savingsRate >= 0.2 ? "Sobra para investir" : metrics.savingsRate >= 0.1 ? "Bom começo" : "Ajustar gastos"}
           valueColor={metrics.savingsRate >= 0.2 ? "text-primary" : metrics.savingsRate >= 0.1 ? "text-warning" : "text-destructive"} />
         <IndicatorCard icon="🏛️" label="Proteção" value={`${(metrics.protectedRatio * 100).toFixed(0)}%`}
-          sub={metrics.protectedRatio >= 0.6 ? "Sólida" : metrics.protectedRatio >= 0.3 ? "Moderada" : "Frágil"}
+          sub={metrics.protectedRatio >= 0.6 ? "Bem distribuído" : metrics.protectedRatio >= 0.3 ? "Revisar concentração" : "Risco concentrado"}
           valueColor={metrics.protectedRatio >= 0.6 ? "text-primary" : metrics.protectedRatio >= 0.3 ? "text-warning" : "text-destructive"}
           onClick={() => onNavigateToTab("estrutura")} />
       </div>
