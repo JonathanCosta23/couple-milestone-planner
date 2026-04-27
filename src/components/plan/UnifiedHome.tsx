@@ -25,17 +25,16 @@ interface Props {
   topSlot?: React.ReactNode;
 }
 
-function getActivationSteps(appData: AppData, monthRecords: MonthRecord[]) {
+function getActivationSteps(appData: AppData, config: PlanConfig, monthRecords: MonthRecord[]) {
   const hasIncome = appData.incomes.length > 0;
   const hasExpenses = appData.expenses.length > 0;
   const hasAporte = monthRecords.some(m => m.deposits.some(d => d.actualSelic > 0 || d.actualCDB > 0));
-  const hasInvestment = appData.investments.length > 0;
+  const hasMonthlyGoal = config.contributors.some(c => c.plannedSelic > 0 || c.plannedCDB > 0);
 
   return [
-    { id: "income", label: "Cadastrar sua renda", done: hasIncome, tab: "renda", emoji: "💵" },
-    { id: "expense", label: "Registrar gastos do mês", done: hasExpenses, tab: "gastos", emoji: "🛒" },
-    { id: "aporte", label: "Fazer seu primeiro aporte", done: hasAporte, tab: "", emoji: "💰" },
-    { id: "investment", label: "Cadastrar um investimento", done: hasInvestment, tab: "patrimonio", emoji: "📈" },
+    { id: "cashflow", label: "Configure sua renda e gastos", description: "Mostra quanto sobra para investir com segurança.", done: hasIncome && hasExpenses, tab: hasIncome ? "gastos" : "renda", emoji: "💵" },
+    { id: "goal", label: "Revise sua meta mensal", description: "A meta mensal é o valor planejado para aportar todo mês.", done: hasMonthlyGoal, tab: "simulador", emoji: "🎯" },
+    { id: "aporte", label: "Registre seu primeiro aporte", description: "Aporte é o dinheiro que você separou para investir.", done: hasAporte, tab: "", emoji: "💰" },
   ];
 }
 
@@ -60,7 +59,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
   const healthLabel = healthScore >= 70 ? "Saudável" : healthScore >= 40 ? "Atenção" : "Crítico";
   const healthColor = healthScore >= 70 ? "text-primary" : healthScore >= 40 ? "text-warning" : "text-destructive";
 
-  const activationSteps = useMemo(() => getActivationSteps(appData, monthRecords), [appData, monthRecords]);
+  const activationSteps = useMemo(() => getActivationSteps(appData, config, monthRecords), [appData, config, monthRecords]);
   const completedSteps = activationSteps.filter(s => s.done).length;
   const allStepsComplete = completedSteps === activationSteps.length;
 
@@ -95,6 +94,9 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
             )}
           </div>
           <p className="section-title lg:text-lg mb-1">Aporte do mês</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mb-3">
+            Este é o dinheiro que {isCouple ? "vocês reservaram" : "você reservou"} para investir neste mês.
+          </p>
           <div className="flex items-end justify-between mb-3">
             <div>
               <p className="text-2xl lg:text-3xl font-extrabold text-primary">{(currentMonth.progress * 100).toFixed(0)}%</p>
@@ -111,7 +113,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
             </div>
           </div>
           <Progress value={currentMonth.progress * 100} className="h-2.5 rounded-full mb-4" />
-          <Button className="w-full h-12 font-semibold text-sm touch-target" onClick={onOpenQuickDeposit}>
+          <Button className="w-full h-12 font-bold text-sm touch-target shadow-lg shadow-primary/20" onClick={onOpenQuickDeposit}>
             <DollarSign className="w-4 h-4 mr-2" /> Registrar aporte
           </Button>
         </Card>
@@ -125,7 +127,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
                   <Target className="w-5 h-5 lg:w-6 lg:h-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Total investido</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Patrimônio atual</p>
                   <p className="text-lg lg:text-2xl font-extrabold text-gradient">{formatBRLCompact(metrics.grossWealth)}</p>
                 </div>
               </div>
@@ -138,17 +140,37 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
           </div>
           {monthsToTarget && (
             <p className="text-[11px] sm:text-xs text-muted-foreground mt-3">
-              No ritmo atual, {isCouple ? "vocês chegam" : "você chega"} em {formatBRLCompact(config.targetAmount)} em ~{Math.ceil(monthsToTarget / 12)} anos
-              <span className="text-[10px] opacity-70"> (cenário base nominal)</span>
+              Patrimônio é tudo que já foi acumulado. A projeção estima o caminho se o ritmo atual continuar.
             </p>
           )}
         </Card>
       </div>
 
+      {/* ── 2. Next action made explicit ── */}
+      <Card className="action-card animate-fade-in-up" style={{ animationDelay: "0.08s" }}>
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+            <Zap className="w-5 h-5 text-primary" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] sm:text-xs text-primary font-bold uppercase tracking-wider mb-0.5">Faça agora</p>
+            <p className="text-sm lg:text-base font-semibold leading-snug">
+              {nextBestAction?.title || "Registre o aporte deste mês"}
+            </p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">
+              {nextBestAction?.message || "Isso mantém seu histórico atualizado e mostra se a meta mensal está no caminho certo."}
+            </p>
+          </div>
+          <Button size="sm" className="hidden sm:inline-flex shrink-0" onClick={onOpenQuickDeposit}>
+            Registrar aporte
+          </Button>
+        </div>
+      </Card>
+
       {/* ── Desktop: Two-column action cards ── */}
       <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-5 lg:space-y-0">
         {/* ── 3. Próximo melhor passo ── */}
-        {nextBestAction && (
+        {false && nextBestAction && (
           <Card className="action-card animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
             <div className="flex items-start gap-3">
               <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -197,16 +219,16 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
 
       {/* ── 6. Indicadores rápidos ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-4">
-        <IndicatorCard icon="💪" label="Estrutura" value={`${healthScore}`} sub={healthLabel} valueColor={healthColor}
+        <IndicatorCard icon="💪" label="Estrutura" value={`${healthScore}`} sub={`Organização geral: ${healthLabel.toLowerCase()}`} valueColor={healthColor}
           onClick={() => onNavigateToTab("diagnostico")} />
         <IndicatorCard icon="🛡️" label="Reserva" value={`${metrics.reserveMonths.toFixed(1)}m`}
-          sub={metrics.reserveStatus === "complete" ? "Completa" : metrics.reserveStatus === "partial" ? "Em construção" : "Insuficiente"}
+          sub={metrics.reserveStatus === "complete" ? "Meses protegidos" : metrics.reserveStatus === "partial" ? "Proteção em construção" : "Falta proteção"}
           valueColor={metrics.reserveStatus === "complete" ? "text-primary" : metrics.reserveStatus === "partial" ? "text-warning" : "text-destructive"} />
         <IndicatorCard icon="📈" label="Poupança" value={metrics.totalIncome > 0 ? `${(metrics.savingsRate * 100).toFixed(0)}%` : "—"}
-          sub={metrics.savingsRate >= 0.2 ? "Excelente" : metrics.savingsRate >= 0.1 ? "Bom começo" : "Pode melhorar"}
+          sub={metrics.savingsRate >= 0.2 ? "Sobra para investir" : metrics.savingsRate >= 0.1 ? "Bom começo" : "Ajustar gastos"}
           valueColor={metrics.savingsRate >= 0.2 ? "text-primary" : metrics.savingsRate >= 0.1 ? "text-warning" : "text-destructive"} />
         <IndicatorCard icon="🏛️" label="Proteção" value={`${(metrics.protectedRatio * 100).toFixed(0)}%`}
-          sub={metrics.protectedRatio >= 0.6 ? "Sólida" : metrics.protectedRatio >= 0.3 ? "Moderada" : "Frágil"}
+          sub={metrics.protectedRatio >= 0.6 ? "Bem distribuído" : metrics.protectedRatio >= 0.3 ? "Revisar concentração" : "Risco concentrado"}
           valueColor={metrics.protectedRatio >= 0.6 ? "text-primary" : metrics.protectedRatio >= 0.3 ? "text-warning" : "text-destructive"}
           onClick={() => onNavigateToTab("estrutura")} />
       </div>
@@ -306,7 +328,10 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
       {!allStepsComplete && (
         <Card className="glass-card p-4 lg:p-5 animate-fade-in-up">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold">Primeiros passos</p>
+            <div>
+              <p className="text-sm font-semibold">Comece por aqui</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Três ações simples para deixar o plano útil no dia a dia.</p>
+            </div>
             <span className="text-xs text-muted-foreground">{completedSteps}/{activationSteps.length}</span>
           </div>
           <Progress value={(completedSteps / activationSteps.length) * 100} className="h-1.5 mb-3" />
@@ -328,8 +353,11 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
                 ) : (
                   <span className="text-lg shrink-0">{step.emoji}</span>
                 )}
-                <span className={`text-sm ${step.done ? "line-through text-muted-foreground" : "font-medium"}`}>
-                  {step.label}
+                <span className="min-w-0 flex-1">
+                  <span className={`block text-sm ${step.done ? "line-through text-muted-foreground" : "font-medium"}`}>
+                    {step.label}
+                  </span>
+                  <span className="block text-xs text-muted-foreground leading-relaxed mt-0.5">{step.description}</span>
                 </span>
                 {!step.done && <ArrowRight className="w-3.5 h-3.5 text-muted-foreground ml-auto shrink-0" />}
               </button>
@@ -407,6 +435,10 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
       <ContextualEducation appData={appData} config={config} monthRecords={monthRecords} startDate={startDate} context="home" maxSuggestions={1} />
 
       {/* ── Atalhos ── */}
+      <div className="pt-1">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Explorar quando quiser</p>
+        <p className="text-xs text-muted-foreground mb-3">Áreas avançadas para entender riscos, concentração e cenários sem atrapalhar a ação principal.</p>
+      </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Button variant="outline" size="sm" className="h-11 text-xs lg:text-sm justify-between rounded-xl px-4 touch-target"
           onClick={() => onNavigateToTab("simulador")}>
