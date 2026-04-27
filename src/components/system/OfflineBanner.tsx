@@ -8,16 +8,16 @@
  *  - online + sincronizando    → "Sincronizando N alterações…"
  *  - online + fila zerada      → não renderiza nada.
  */
-import { WifiOff, RefreshCw, Clock } from "lucide-react";
+import { WifiOff, RefreshCw, Clock, AlertTriangle } from "lucide-react";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useOfflineQueue } from "@/hooks/useOfflineQueue";
 
 export function OfflineBanner() {
   const online = useOnlineStatus();
-  const { count, syncing } = useOfflineQueue();
+  const { count, syncing, stuckCount } = useOfflineQueue();
 
   // Online + fila vazia + nada sincronizando → nada para mostrar.
-  if (online && count === 0 && !syncing) return null;
+  if (online && count === 0 && stuckCount === 0 && !syncing) return null;
 
   const isSyncing = online && (syncing || count > 0);
   const tone = isSyncing
@@ -45,6 +45,12 @@ export function OfflineBanner() {
           <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-destructive/20">
             <Clock className="w-3 h-3" aria-hidden />
             {count} {count === 1 ? "alteração em espera" : "alterações em espera"}
+          </span>
+        )}
+        {stuckCount > 0 && (
+          <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-destructive/20">
+            <AlertTriangle className="w-3 h-3" aria-hidden />
+            {stuckCount} {stuckCount === 1 ? "pendência travada" : "pendências travadas"}
           </span>
         )}
         {!isSyncing && count === 0 && (
