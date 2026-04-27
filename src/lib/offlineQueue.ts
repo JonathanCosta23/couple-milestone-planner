@@ -189,7 +189,7 @@ async function findByEntityId(
     const all = await reqToPromise(
       idx.getAll(IDBKeyRange.only([userId, entity, entityId])),
     );
-    return all as QueuedWrite[];
+    return (all as QueuedWrite[]).filter((w) => (w.status ?? "pending") === "pending");
   } catch {
     return [];
   }
