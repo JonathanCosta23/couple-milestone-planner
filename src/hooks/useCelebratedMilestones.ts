@@ -15,6 +15,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 const LOCAL_KEY_PREFIX = "plano-celebrated-milestones";
 
@@ -75,7 +76,7 @@ export function useCelebratedMilestones(userId: string | undefined, planId?: str
       if (cancelled) return;
       if (error) {
         // Falha de leitura: mantém cache local; não quebra o boot.
-        console.warn("[milestones] falha ao carregar:", error.message);
+        logger.warn("milestones.load.fail", { userId, planId }, error.message);
         setLoaded(true);
         return;
       }
@@ -127,7 +128,7 @@ export function useCelebratedMilestones(userId: string | undefined, planId?: str
       });
 
       if (error) {
-        console.warn("[milestones] falha ao salvar:", error.message);
+        logger.warn("milestones.save.fail", { userId, planId, value }, error.message);
         // Estado local permanece — usuário não verá popup novamente nesta sessão.
       }
     },
