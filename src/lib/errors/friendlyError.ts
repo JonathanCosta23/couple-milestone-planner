@@ -7,8 +7,10 @@
  *   const friendly = toFriendlyError(error);
  *   toast.error(`Falha ao salvar: ${friendly}`);
  *
- * O erro cru é logado apenas no console para diagnóstico.
+ * O erro cru é logado apenas no logger central para diagnóstico.
  */
+
+import { logger } from "@/lib/logger";
 
 type MaybeError =
   | string
@@ -48,10 +50,7 @@ export function toFriendlyError(err: MaybeError): string {
       ? { message: err, code: undefined as string | undefined }
       : { message: err.message ?? "", code: err.code };
 
-  // Log cru apenas no console (diagnóstico).
-  if (typeof console !== "undefined") {
-    console.warn("[supabase] erro:", err);
-  }
+  logger.warn("supabase.friendly_error.raw", {}, err);
 
   if (raw.code && CODE_MAP[raw.code]) return CODE_MAP[raw.code];
 
