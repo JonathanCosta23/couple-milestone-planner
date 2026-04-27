@@ -25,17 +25,16 @@ interface Props {
   topSlot?: React.ReactNode;
 }
 
-function getActivationSteps(appData: AppData, monthRecords: MonthRecord[]) {
+function getActivationSteps(appData: AppData, config: PlanConfig, monthRecords: MonthRecord[]) {
   const hasIncome = appData.incomes.length > 0;
   const hasExpenses = appData.expenses.length > 0;
   const hasAporte = monthRecords.some(m => m.deposits.some(d => d.actualSelic > 0 || d.actualCDB > 0));
-  const hasInvestment = appData.investments.length > 0;
+  const hasMonthlyGoal = config.contributors.some(c => c.plannedSelic > 0 || c.plannedCDB > 0);
 
   return [
-    { id: "income", label: "Cadastrar sua renda", done: hasIncome, tab: "renda", emoji: "💵" },
-    { id: "expense", label: "Registrar gastos do mês", done: hasExpenses, tab: "gastos", emoji: "🛒" },
-    { id: "aporte", label: "Fazer seu primeiro aporte", done: hasAporte, tab: "", emoji: "💰" },
-    { id: "investment", label: "Cadastrar um investimento", done: hasInvestment, tab: "patrimonio", emoji: "📈" },
+    { id: "cashflow", label: "Configure sua renda e gastos", description: "Mostra quanto sobra para investir com segurança.", done: hasIncome && hasExpenses, tab: hasIncome ? "gastos" : "renda", emoji: "💵" },
+    { id: "goal", label: "Revise sua meta mensal", description: "A meta mensal é o valor planejado para aportar todo mês.", done: hasMonthlyGoal, tab: "simulador", emoji: "🎯" },
+    { id: "aporte", label: "Registre seu primeiro aporte", description: "Aporte é o dinheiro que você separou para investir.", done: hasAporte, tab: "", emoji: "💰" },
   ];
 }
 
@@ -60,7 +59,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
   const healthLabel = healthScore >= 70 ? "Saudável" : healthScore >= 40 ? "Atenção" : "Crítico";
   const healthColor = healthScore >= 70 ? "text-primary" : healthScore >= 40 ? "text-warning" : "text-destructive";
 
-  const activationSteps = useMemo(() => getActivationSteps(appData, monthRecords), [appData, monthRecords]);
+  const activationSteps = useMemo(() => getActivationSteps(appData, config, monthRecords), [appData, config, monthRecords]);
   const completedSteps = activationSteps.filter(s => s.done).length;
   const allStepsComplete = completedSteps === activationSteps.length;
 
