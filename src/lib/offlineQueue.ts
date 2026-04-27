@@ -24,8 +24,10 @@
 import { logger } from "./logger";
 
 const DB_NAME = "plano-milhao-offline";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE = "writes";
+export const MAX_WRITE_ATTEMPTS = 5;
+export const WRITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export type WriteOp = "create" | "update" | "delete";
 export type WriteEntity =
@@ -57,6 +59,12 @@ export interface QueuedWrite {
   attempts: number;
   /** Última mensagem de erro (best effort). */
   lastError?: string;
+  /** Estado interno: dead-letter não é mais retentado automaticamente. */
+  status?: "pending" | "dead";
+  /** Expiração controlada para evitar writes presos para sempre. */
+  expiresAt?: string;
+  /** Quando foi enviado para dead-letter. */
+  deadLetteredAt?: string;
 }
 
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -75,6 +83,12 @@ function openDb(): Promise<IDBDatabase> {
         store.createIndex("by_user", "userId", { unique: false });
         store.createIndex("by_user_entity", ["userId", "entity"], { unique: false });
         store.createIndex("by_entity_id", ["userId", "entity", "entityId"], { unique: false });
+        store.createIndex("by_user_status", ["userId", "status"], { unique: false });
+      } else {
+        const store = req.transaction?.objectStore(STORE);
+        if (store && !store.indexNames.contains("by_user_status")) {
+          store.createIndex("by_user_status", ["userId", "status"], { unique: false });
+        }
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -108,13 +122,57 @@ export async function listWrites(userId: string): Promise<QueuedWrite[]> {
     const store = await tx("readonly");
     const idx = store.index("by_user");
     const all = await reqToPromise(idx.getAll(IDBKeyRange.only(userId)));
-    return (all as QueuedWrite[]).sort((a, b) =>
+    return (all as QueuedWrite[]).filter((w) => (w.status ?? "pending") === "pending").sort((a, b) =>
       a.enqueuedAt.localeCompare(b.enqueuedAt),
     );
   } catch (err) {
     logger.warn("offlineQueue.list.fail", { userId }, err);
     return [];
   }
+}
+
+export async function listDeadLetters(userId: string): Promise<QueuedWrite[]> {
+  try {
+    const store = await tx("readonly");
+    const idx = store.index("by_user_status");
+    const all = await reqToPromise(idx.getAll(IDBKeyRange.only([userId, "dead"])));
+    return (all as QueuedWrite[]).sort((a, b) =>
+      (b.deadLetteredAt ?? b.enqueuedAt).localeCompare(a.deadLetteredAt ?? a.enqueuedAt),
+    );
+  } catch (err) {
+    logger.warn("offlineQueue.deadLetters.list.fail", { userId }, err);
+    return [];
+  }
+}
+
+export async function deadLetterWrite(id: string, reason: string): Promise<void> {
+  try {
+    const store = await tx("readwrite");
+    const existing = (await reqToPromise(store.get(id))) as QueuedWrite | undefined;
+    if (!existing) return;
+    await reqToPromise(store.put({
+      ...existing,
+      status: "dead",
+      lastError: reason,
+      deadLetteredAt: new Date().toISOString(),
+    }));
+  } catch (err) {
+    logger.warn("offlineQueue.deadLetter.fail", { id }, err);
+  }
+}
+
+export async function quarantineExpiredWrites(userId: string): Promise<number> {
+  const now = Date.now();
+  const writes = await listWrites(userId);
+  let moved = 0;
+  for (const w of writes) {
+    const expiresAt = w.expiresAt ? Date.parse(w.expiresAt) : Date.parse(w.enqueuedAt) + WRITE_TTL_MS;
+    if (Number.isFinite(expiresAt) && expiresAt < now) {
+      await deadLetterWrite(w.id, "Tempo limite de sincronização excedido.");
+      moved++;
+    }
+  }
+  return moved;
 }
 
 /**
@@ -131,7 +189,7 @@ async function findByEntityId(
     const all = await reqToPromise(
       idx.getAll(IDBKeyRange.only([userId, entity, entityId])),
     );
-    return all as QueuedWrite[];
+    return (all as QueuedWrite[]).filter((w) => (w.status ?? "pending") === "pending");
   } catch {
     return [];
   }
@@ -195,6 +253,8 @@ export async function enqueueWrite(
       ...input,
       id: genId(),
       enqueuedAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + WRITE_TTL_MS).toISOString(),
+      status: "pending",
       attempts: 0,
     };
     const store = await tx("readwrite");
@@ -266,6 +326,15 @@ export async function clearAll(userId: string): Promise<void> {
 export async function countWrites(userId: string): Promise<number> {
   try {
     const writes = await listWrites(userId);
+    return writes.length;
+  } catch {
+    return 0;
+  }
+}
+
+export async function countDeadLetters(userId: string): Promise<number> {
+  try {
+    const writes = await listDeadLetters(userId);
     return writes.length;
   } catch {
     return 0;

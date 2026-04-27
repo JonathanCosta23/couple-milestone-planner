@@ -38,10 +38,14 @@ import { toFriendlyError } from "@/lib/errors/friendlyError";
 import {
   enqueueWrite,
   listWrites,
+  deadLetterWrite,
+  quarantineExpiredWrites,
   removeWrite,
   rebindEntityId,
   updateWriteAttempt,
   countWrites,
+  countDeadLetters,
+  MAX_WRITE_ATTEMPTS,
   type QueuedWrite,
   type WriteEntity,
   type WriteOp,
@@ -87,6 +91,8 @@ interface OfflineQueueAPI {
   count: number;
   /** True enquanto está executando o flush. */
   syncing: boolean;
+  /** Writes que excederam tentativas/TTL e precisam de ação manual. */
+  stuckCount: number;
   /** Empurra um write para a fila. Use quando offline ou quando writer real falhou por rede. */
   enqueue: (input: {
     entity: WriteEntity;
@@ -121,6 +127,76 @@ function summarizeRow(entity: WriteEntity, row: Record<string, unknown>): string
   return summarizePayload(entity, row);
 }
 
+async function dispatchMonthlyTrackingWrite(
+  write: QueuedWrite,
+  askUserForConflict: (write: QueuedWrite, cloudRow: Record<string, unknown>) => Promise<"mine" | "cloud" | "postpone">,
+): Promise<"done" | "conflict_postponed"> {
+  const monthKey = String(write.payload.month_key ?? "");
+  if (!write.planId || !monthKey) throw new Error("Registro mensal incompleto.");
+
+  const { data: current } = await supabase
+    .from("monthly_tracking")
+    .select("*")
+    .eq("plan_id", write.planId)
+    .eq("user_id", write.userId)
+    .eq("month_key", monthKey)
+    .maybeSingle();
+
+  if (current) {
+    const cloudUpdatedAt = (current as { updated_at?: string }).updated_at;
+    if (cloudUpdatedAt && cloudUpdatedAt > write.enqueuedAt) {
+      const decision = await askUserForConflict(write, current as Record<string, unknown>);
+      if (decision === "postpone") return "conflict_postponed";
+      if (decision === "cloud") {
+        await removeWrite(write.id);
+        return "done";
+      }
+    }
+  }
+
+  const memberInputs = (write.payload.member_inputs ?? []) as Array<Record<string, unknown>>;
+  const trackingPayload = { ...write.payload } as Record<string, unknown>;
+  delete trackingPayload.member_inputs;
+  delete trackingPayload.id;
+
+  let trackingId = (current as { id?: string } | null)?.id ?? null;
+  if (trackingId) {
+    const { data, error } = await supabase
+      .from("monthly_tracking")
+      .update(trackingPayload as never)
+      .eq("id", trackingId)
+      .eq("user_id", write.userId)
+      .select("id")
+      .single();
+    if (error || !data) throw new Error(error?.message ?? "Falha ao atualizar mês.");
+  } else {
+    const { data, error } = await supabase
+      .from("monthly_tracking")
+      .insert(trackingPayload as never)
+      .select("id")
+      .single();
+    if (error || !data) throw new Error(error?.message ?? "Falha ao criar mês.");
+    trackingId = (data as { id: string }).id;
+  }
+
+  await supabase
+    .from("monthly_member_tracking")
+    .delete()
+    .eq("monthly_tracking_id", trackingId)
+    .eq("user_id", write.userId);
+
+  const rows = memberInputs
+    .filter((m) => m.plan_member_id)
+    .map((m) => ({ ...m, user_id: write.userId, monthly_tracking_id: trackingId }));
+  if (rows.length > 0) {
+    const { error } = await supabase.from("monthly_member_tracking").insert(rows as never);
+    if (error) throw new Error(error.message);
+  }
+
+  await removeWrite(write.id);
+  return "done";
+}
+
 interface ProviderProps {
   children: ReactNode;
 }
@@ -130,6 +206,7 @@ export function OfflineQueueProvider({ children }: ProviderProps) {
   const userId = user?.id ?? null;
 
   const [count, setCount] = useState(0);
+  const [stuckCount, setStuckCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [conflict, setConflict] = useState<PendingConflict | null>(null);
   const flushingRef = useRef(false);
@@ -138,9 +215,16 @@ export function OfflineQueueProvider({ children }: ProviderProps) {
   const refreshCount = useCallback(async () => {
     if (!userId) {
       setCount(0);
+      setStuckCount(0);
       return;
     }
-    setCount(await countWrites(userId));
+    const expired = await quarantineExpiredWrites(userId);
+    if (expired > 0) {
+      logger.warn("offlineQueue.ttl.dead_letter", { userId, count: expired });
+    }
+    const [pending, dead] = await Promise.all([countWrites(userId), countDeadLetters(userId)]);
+    setCount(pending);
+    setStuckCount(dead);
   }, [userId]);
 
   useEffect(() => {
@@ -167,6 +251,14 @@ export function OfflineQueueProvider({ children }: ProviderProps) {
       }
 
       try {
+        if (write.attempts >= MAX_WRITE_ATTEMPTS) {
+          await deadLetterWrite(write.id, "Limite de tentativas de sincronização excedido.");
+          toast.error(`Uma ${ENTITY_LABEL[write.entity]} precisa de revisão em Dados.`);
+          return "done";
+        }
+        if (write.entity === "monthly_tracking") {
+          return await dispatchMonthlyTrackingWrite(write, askUserForConflict);
+        }
         if (write.op === "create") {
           const payload = { ...write.payload, user_id: write.userId };
           if (write.planId) (payload as Record<string, unknown>).plan_id = write.planId;
@@ -328,8 +420,8 @@ export function OfflineQueueProvider({ children }: ProviderProps) {
   );
 
   const value = useMemo<OfflineQueueAPI>(
-    () => ({ count, syncing, enqueue, flush }),
-    [count, syncing, enqueue, flush],
+    () => ({ count, syncing, stuckCount, enqueue, flush }),
+    [count, syncing, stuckCount, enqueue, flush],
   );
 
   // --- Conflict UI binding ---
@@ -373,6 +465,7 @@ export function useOfflineQueue(): OfflineQueueAPI {
     return {
       count: 0,
       syncing: false,
+      stuckCount: 0,
       enqueue: async () => ({ enqueued: false, coalesced: false }),
       flush: async () => {},
     };
