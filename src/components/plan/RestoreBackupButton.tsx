@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { saveAppData } from "@/lib/appStorage";
 import { savePlanData, saveBackup } from "@/lib/storage";
+import { logger } from "@/lib/logger";
 import type { AppData } from "@/lib/models";
 import type { PlanData } from "@/lib/types";
 
@@ -87,7 +88,7 @@ export function RestoreBackupButton() {
       setOpen(false);
       setTimeout(() => window.location.reload(), 800);
     } catch (err) {
-      console.error("[RestoreBackup] erro:", err);
+      logger.error("backup.restore.fail", {}, err);
       toast.error("Não foi possível restaurar o backup.");
     }
   };
