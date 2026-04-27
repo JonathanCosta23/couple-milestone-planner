@@ -38,10 +38,14 @@ import { toFriendlyError } from "@/lib/errors/friendlyError";
 import {
   enqueueWrite,
   listWrites,
+  deadLetterWrite,
+  quarantineExpiredWrites,
   removeWrite,
   rebindEntityId,
   updateWriteAttempt,
   countWrites,
+  countDeadLetters,
+  MAX_WRITE_ATTEMPTS,
   type QueuedWrite,
   type WriteEntity,
   type WriteOp,
@@ -87,6 +91,8 @@ interface OfflineQueueAPI {
   count: number;
   /** True enquanto está executando o flush. */
   syncing: boolean;
+  /** Writes que excederam tentativas/TTL e precisam de ação manual. */
+  stuckCount: number;
   /** Empurra um write para a fila. Use quando offline ou quando writer real falhou por rede. */
   enqueue: (input: {
     entity: WriteEntity;
@@ -130,6 +136,7 @@ export function OfflineQueueProvider({ children }: ProviderProps) {
   const userId = user?.id ?? null;
 
   const [count, setCount] = useState(0);
+  const [stuckCount, setStuckCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [conflict, setConflict] = useState<PendingConflict | null>(null);
   const flushingRef = useRef(false);
@@ -138,9 +145,16 @@ export function OfflineQueueProvider({ children }: ProviderProps) {
   const refreshCount = useCallback(async () => {
     if (!userId) {
       setCount(0);
+      setStuckCount(0);
       return;
     }
-    setCount(await countWrites(userId));
+    const expired = await quarantineExpiredWrites(userId);
+    if (expired > 0) {
+      logger.warn("offlineQueue.ttl.dead_letter", { userId, count: expired });
+    }
+    const [pending, dead] = await Promise.all([countWrites(userId), countDeadLetters(userId)]);
+    setCount(pending);
+    setStuckCount(dead);
   }, [userId]);
 
   useEffect(() => {
@@ -167,6 +181,11 @@ export function OfflineQueueProvider({ children }: ProviderProps) {
       }
 
       try {
+        if (write.attempts >= MAX_WRITE_ATTEMPTS) {
+          await deadLetterWrite(write.id, "Limite de tentativas de sincronização excedido.");
+          toast.error(`Uma ${ENTITY_LABEL[write.entity]} precisa de revisão em Dados.`);
+          return "done";
+        }
         if (write.op === "create") {
           const payload = { ...write.payload, user_id: write.userId };
           if (write.planId) (payload as Record<string, unknown>).plan_id = write.planId;
@@ -328,8 +347,8 @@ export function OfflineQueueProvider({ children }: ProviderProps) {
   );
 
   const value = useMemo<OfflineQueueAPI>(
-    () => ({ count, syncing, enqueue, flush }),
-    [count, syncing, enqueue, flush],
+    () => ({ count, syncing, stuckCount, enqueue, flush }),
+    [count, syncing, stuckCount, enqueue, flush],
   );
 
   // --- Conflict UI binding ---
@@ -373,6 +392,7 @@ export function useOfflineQueue(): OfflineQueueAPI {
     return {
       count: 0,
       syncing: false,
+      stuckCount: 0,
       enqueue: async () => ({ enqueued: false, coalesced: false }),
       flush: async () => {},
     };
