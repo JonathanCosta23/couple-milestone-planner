@@ -21,6 +21,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toFriendlyError } from "@/lib/errors/friendlyError";
+import { logger } from "@/lib/logger";
 
 export type LessonStatus = "not_started" | "opened" | "completed";
 
@@ -59,7 +60,7 @@ export function useEducationProgress(userId: string | undefined) {
 
       if (cancelled) return;
       if (error) {
-        console.warn("[education] hidratação falhou:", error.message);
+        logger.warn("education.hydration.fail", { userId }, error.message);
         setState({ byLesson: {}, loaded: true });
         return;
       }
@@ -99,7 +100,7 @@ export function useEducationProgress(userId: string | undefined) {
         .select("id")
         .single();
       if (error) {
-        console.warn("[education] insert falhou:", toFriendlyError(error));
+        logger.warn("education.insert.fail", { userId, lessonId }, toFriendlyError(error));
         return null;
       }
       return created.id;
@@ -148,7 +149,7 @@ export function useEducationProgress(userId: string | undefined) {
         .from("education_progress")
         .update(patch)
         .eq("id", id);
-      if (error) console.warn("[education] update opened falhou:", error.message);
+      if (error) logger.warn("education.opened.update.fail", { userId, lessonId }, error.message);
     },
     [userId, ensureRow],
   );
@@ -177,7 +178,7 @@ export function useEducationProgress(userId: string | undefined) {
           completed_at: new Date().toISOString(),
         })
         .eq("id", id);
-      if (error) console.warn("[education] update completed falhou:", error.message);
+      if (error) logger.warn("education.completed.update.fail", { userId, lessonId }, error.message);
     },
     [userId, ensureRow],
   );
