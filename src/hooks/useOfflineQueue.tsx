@@ -127,6 +127,76 @@ function summarizeRow(entity: WriteEntity, row: Record<string, unknown>): string
   return summarizePayload(entity, row);
 }
 
+async function dispatchMonthlyTrackingWrite(
+  write: QueuedWrite,
+  askUserForConflict: (write: QueuedWrite, cloudRow: Record<string, unknown>) => Promise<"mine" | "cloud" | "postpone">,
+): Promise<"done" | "conflict_postponed"> {
+  const monthKey = String(write.payload.month_key ?? "");
+  if (!write.planId || !monthKey) throw new Error("Registro mensal incompleto.");
+
+  const { data: current } = await supabase
+    .from("monthly_tracking")
+    .select("*")
+    .eq("plan_id", write.planId)
+    .eq("user_id", write.userId)
+    .eq("month_key", monthKey)
+    .maybeSingle();
+
+  if (current) {
+    const cloudUpdatedAt = (current as { updated_at?: string }).updated_at;
+    if (cloudUpdatedAt && cloudUpdatedAt > write.enqueuedAt) {
+      const decision = await askUserForConflict(write, current as Record<string, unknown>);
+      if (decision === "postpone") return "conflict_postponed";
+      if (decision === "cloud") {
+        await removeWrite(write.id);
+        return "done";
+      }
+    }
+  }
+
+  const memberInputs = (write.payload.member_inputs ?? []) as Array<Record<string, unknown>>;
+  const trackingPayload = { ...write.payload } as Record<string, unknown>;
+  delete trackingPayload.member_inputs;
+  delete trackingPayload.id;
+
+  let trackingId = (current as { id?: string } | null)?.id ?? null;
+  if (trackingId) {
+    const { data, error } = await supabase
+      .from("monthly_tracking")
+      .update(trackingPayload as never)
+      .eq("id", trackingId)
+      .eq("user_id", write.userId)
+      .select("id")
+      .single();
+    if (error || !data) throw new Error(error?.message ?? "Falha ao atualizar mês.");
+  } else {
+    const { data, error } = await supabase
+      .from("monthly_tracking")
+      .insert(trackingPayload as never)
+      .select("id")
+      .single();
+    if (error || !data) throw new Error(error?.message ?? "Falha ao criar mês.");
+    trackingId = (data as { id: string }).id;
+  }
+
+  await supabase
+    .from("monthly_member_tracking")
+    .delete()
+    .eq("monthly_tracking_id", trackingId)
+    .eq("user_id", write.userId);
+
+  const rows = memberInputs
+    .filter((m) => m.plan_member_id)
+    .map((m) => ({ ...m, user_id: write.userId, monthly_tracking_id: trackingId }));
+  if (rows.length > 0) {
+    const { error } = await supabase.from("monthly_member_tracking").insert(rows as never);
+    if (error) throw new Error(error.message);
+  }
+
+  await removeWrite(write.id);
+  return "done";
+}
+
 interface ProviderProps {
   children: ReactNode;
 }
