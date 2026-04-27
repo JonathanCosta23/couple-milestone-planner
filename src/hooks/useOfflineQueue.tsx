@@ -256,6 +256,9 @@ export function OfflineQueueProvider({ children }: ProviderProps) {
           toast.error(`Uma ${ENTITY_LABEL[write.entity]} precisa de revisão em Dados.`);
           return "done";
         }
+        if (write.entity === "monthly_tracking") {
+          return await dispatchMonthlyTrackingWrite(write, askUserForConflict);
+        }
         if (write.op === "create") {
           const payload = { ...write.payload, user_id: write.userId };
           if (write.planId) (payload as Record<string, unknown>).plan_id = write.planId;
