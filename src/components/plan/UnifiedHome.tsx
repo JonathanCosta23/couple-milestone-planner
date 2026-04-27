@@ -94,6 +94,9 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
             )}
           </div>
           <p className="section-title lg:text-lg mb-1">Aporte do mês</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mb-3">
+            Este é o dinheiro que {isCouple ? "vocês reservaram" : "você reservou"} para investir neste mês.
+          </p>
           <div className="flex items-end justify-between mb-3">
             <div>
               <p className="text-2xl lg:text-3xl font-extrabold text-primary">{(currentMonth.progress * 100).toFixed(0)}%</p>
@@ -110,7 +113,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
             </div>
           </div>
           <Progress value={currentMonth.progress * 100} className="h-2.5 rounded-full mb-4" />
-          <Button className="w-full h-12 font-semibold text-sm touch-target" onClick={onOpenQuickDeposit}>
+          <Button className="w-full h-12 font-bold text-sm touch-target shadow-lg shadow-primary/20" onClick={onOpenQuickDeposit}>
             <DollarSign className="w-4 h-4 mr-2" /> Registrar aporte
           </Button>
         </Card>
@@ -124,7 +127,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
                   <Target className="w-5 h-5 lg:w-6 lg:h-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Total investido</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Patrimônio atual</p>
                   <p className="text-lg lg:text-2xl font-extrabold text-gradient">{formatBRLCompact(metrics.grossWealth)}</p>
                 </div>
               </div>
@@ -137,17 +140,37 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
           </div>
           {monthsToTarget && (
             <p className="text-[11px] sm:text-xs text-muted-foreground mt-3">
-              No ritmo atual, {isCouple ? "vocês chegam" : "você chega"} em {formatBRLCompact(config.targetAmount)} em ~{Math.ceil(monthsToTarget / 12)} anos
-              <span className="text-[10px] opacity-70"> (cenário base nominal)</span>
+              Patrimônio é tudo que já foi acumulado. A projeção estima o caminho se o ritmo atual continuar.
             </p>
           )}
         </Card>
       </div>
 
+      {/* ── 2. Next action made explicit ── */}
+      <Card className="action-card animate-fade-in-up" style={{ animationDelay: "0.08s" }}>
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+            <Zap className="w-5 h-5 text-primary" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] sm:text-xs text-primary font-bold uppercase tracking-wider mb-0.5">Faça agora</p>
+            <p className="text-sm lg:text-base font-semibold leading-snug">
+              {nextBestAction?.title || "Registre o aporte deste mês"}
+            </p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">
+              {nextBestAction?.message || "Isso mantém seu histórico atualizado e mostra se a meta mensal está no caminho certo."}
+            </p>
+          </div>
+          <Button size="sm" className="hidden sm:inline-flex shrink-0" onClick={onOpenQuickDeposit}>
+            Registrar aporte
+          </Button>
+        </div>
+      </Card>
+
       {/* ── Desktop: Two-column action cards ── */}
       <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-5 lg:space-y-0">
         {/* ── 3. Próximo melhor passo ── */}
-        {nextBestAction && (
+        {false && nextBestAction && (
           <Card className="action-card animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
             <div className="flex items-start gap-3">
               <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
