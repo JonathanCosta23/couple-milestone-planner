@@ -22,6 +22,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Insight } from "@/lib/services/insightsService";
+import { logger } from "@/lib/logger";
 
 const DEBOUNCE_MS = 5000;
 
@@ -70,7 +71,7 @@ export function useInsightsLog(
 
       if (cancelled) return;
       if (error) {
-        console.warn("[insights] hidratação falhou:", error.message);
+        logger.warn("insights.hydration.fail", { userId, planId }, error.message);
         setLoaded(true);
         return;
       }
@@ -122,7 +123,7 @@ export function useInsightsLog(
         .in("insight_type", types);
 
       if (fetchErr) {
-        console.warn("[insights] sync fetch falhou:", fetchErr.message);
+        logger.warn("insights.sync.fetch.fail", { userId, planId }, fetchErr.message);
         return;
       }
 
@@ -186,7 +187,7 @@ export function useInsightsLog(
           .from("insights_log")
           .insert(inserts)
           .select("*");
-        if (error) console.warn("[insights] insert falhou:", error.message);
+        if (error) logger.warn("insights.insert.fail", { userId, planId }, error.message);
         else if (inserted) {
           setHistory((prev) => [
             ...inserted.map((r) => ({
@@ -210,7 +211,7 @@ export function useInsightsLog(
           .from("insights_log")
           .update(u.patch)
           .eq("id", u.id);
-        if (error) console.warn("[insights] update falhou:", error.message);
+        if (error) logger.warn("insights.update.fail", { userId, planId, insightId: u.id }, error.message);
       }
     }, DEBOUNCE_MS);
 
@@ -229,7 +230,7 @@ export function useInsightsLog(
         .from("insights_log")
         .update({ is_read: true })
         .eq("id", id);
-      if (error) console.warn("[insights] markRead falhou:", error.message);
+      if (error) logger.warn("insights.markRead.fail", { userId, insightId: id }, error.message);
     },
     [userId],
   );
