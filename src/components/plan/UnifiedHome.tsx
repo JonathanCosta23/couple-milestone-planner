@@ -328,7 +328,10 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
       {!allStepsComplete && (
         <Card className="glass-card p-4 lg:p-5 animate-fade-in-up">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold">Primeiros passos</p>
+            <div>
+              <p className="text-sm font-semibold">Comece por aqui</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Três ações simples para deixar o plano útil no dia a dia.</p>
+            </div>
             <span className="text-xs text-muted-foreground">{completedSteps}/{activationSteps.length}</span>
           </div>
           <Progress value={(completedSteps / activationSteps.length) * 100} className="h-1.5 mb-3" />
@@ -350,8 +353,11 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
                 ) : (
                   <span className="text-lg shrink-0">{step.emoji}</span>
                 )}
-                <span className={`text-sm ${step.done ? "line-through text-muted-foreground" : "font-medium"}`}>
-                  {step.label}
+                <span className="min-w-0 flex-1">
+                  <span className={`block text-sm ${step.done ? "line-through text-muted-foreground" : "font-medium"}`}>
+                    {step.label}
+                  </span>
+                  <span className="block text-xs text-muted-foreground leading-relaxed mt-0.5">{step.description}</span>
                 </span>
                 {!step.done && <ArrowRight className="w-3.5 h-3.5 text-muted-foreground ml-auto shrink-0" />}
               </button>
@@ -429,6 +435,10 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
       <ContextualEducation appData={appData} config={config} monthRecords={monthRecords} startDate={startDate} context="home" maxSuggestions={1} />
 
       {/* ── Atalhos ── */}
+      <div className="pt-1">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Explorar quando quiser</p>
+        <p className="text-xs text-muted-foreground mb-3">Áreas avançadas para entender riscos, concentração e cenários sem atrapalhar a ação principal.</p>
+      </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Button variant="outline" size="sm" className="h-11 text-xs lg:text-sm justify-between rounded-xl px-4 touch-target"
           onClick={() => onNavigateToTab("simulador")}>
