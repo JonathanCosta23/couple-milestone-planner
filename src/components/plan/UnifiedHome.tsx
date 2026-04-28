@@ -177,10 +177,12 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
           <div className="min-w-0 flex-1">
             <p className="text-[10px] sm:text-xs text-primary font-bold uppercase tracking-wider mb-0.5">Faça agora</p>
             <p className="text-sm lg:text-base font-semibold leading-snug">
-              {nextBestAction?.title || "Registre o aporte deste mês"}
+              {remainingAmount > 0 ? "Registre o aporte deste mês" : nextBestAction?.title || "Revise seu próximo passo"}
             </p>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">
-              {nextBestAction?.message || "Isso mantém seu histórico atualizado e mostra se a meta mensal está no caminho certo."}
+              {remainingAmount > 0
+                ? "Isso atualiza o realizado, mostra quanto falta e mantém sua evolução mensal em dia."
+                : nextBestAction?.message || "Com o mês em dia, você pode revisar gastos ou explorar simulações sem pressa."}
             </p>
           </div>
           <Button size="sm" className="hidden sm:inline-flex shrink-0" onClick={onOpenQuickDeposit}>
@@ -244,13 +246,13 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
         <IndicatorCard icon="💪" label="Estrutura" value={`${healthScore}`} sub={`Organização geral: ${healthLabel.toLowerCase()}`} valueColor={healthColor}
           onClick={() => onNavigateToTab("diagnostico")} />
         <IndicatorCard icon="🛡️" label="Reserva" value={`${metrics.reserveMonths.toFixed(1)}m`}
-          sub={metrics.reserveStatus === "complete" ? "Meses protegidos" : metrics.reserveStatus === "partial" ? "Proteção em construção" : "Falta proteção"}
+          sub={metrics.reserveStatus === "complete" ? "Dinheiro para imprevistos" : metrics.reserveStatus === "partial" ? "Proteção em construção" : "Comece pelos imprevistos"}
           valueColor={metrics.reserveStatus === "complete" ? "text-primary" : metrics.reserveStatus === "partial" ? "text-warning" : "text-destructive"} />
         <IndicatorCard icon="📈" label="Poupança" value={metrics.totalIncome > 0 ? `${(metrics.savingsRate * 100).toFixed(0)}%` : "—"}
           sub={metrics.savingsRate >= 0.2 ? "Sobra para investir" : metrics.savingsRate >= 0.1 ? "Bom começo" : "Ajustar gastos"}
           valueColor={metrics.savingsRate >= 0.2 ? "text-primary" : metrics.savingsRate >= 0.1 ? "text-warning" : "text-destructive"} />
-        <IndicatorCard icon="🏛️" label="Proteção" value={`${(metrics.protectedRatio * 100).toFixed(0)}%`}
-          sub={metrics.protectedRatio >= 0.6 ? "Bem distribuído" : metrics.protectedRatio >= 0.3 ? "Revisar concentração" : "Risco concentrado"}
+        <IndicatorCard icon="🏛️" label="Concentração" value={`${(metrics.protectedRatio * 100).toFixed(0)}%`}
+          sub={metrics.protectedRatio >= 0.6 ? "Risco bem dividido" : metrics.protectedRatio >= 0.3 ? "Revisar distribuição" : "Muito concentrado"}
           valueColor={metrics.protectedRatio >= 0.6 ? "text-primary" : metrics.protectedRatio >= 0.3 ? "text-warning" : "text-destructive"}
           onClick={() => onNavigateToTab("estrutura")} />
       </div>
