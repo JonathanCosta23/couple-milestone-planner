@@ -519,7 +519,8 @@ function EmptyHomeState({ onNavigateToTab, onOpenQuickDeposit, activationSteps }
   onNavigateToTab: (tab: string) => void; onOpenQuickDeposit: () => void;
   activationSteps: ReturnType<typeof getActivationSteps>;
 }) {
-  const completedSteps = activationSteps.filter(s => s.done).length;
+  const essentialSteps = activationSteps.filter(s => s.layer === "essencial");
+  const completedSteps = essentialSteps.filter(s => s.done).length;
 
   return (
     <div className="space-y-5 lg:space-y-6 pb-4">
@@ -531,8 +532,8 @@ function EmptyHomeState({ onNavigateToTab, onOpenQuickDeposit, activationSteps }
             Complete os passos abaixo para desbloquear seu primeiro diagnóstico financeiro.
           </p>
         </div>
-        <Progress value={(completedSteps / activationSteps.length) * 100} className="h-2 max-w-xs mx-auto" />
-        <p className="text-xs text-muted-foreground">{completedSteps} de {activationSteps.length} passos completos</p>
+        <Progress value={(completedSteps / essentialSteps.length) * 100} className="h-2 max-w-xs mx-auto" />
+        <p className="text-xs text-muted-foreground">{completedSteps} de {essentialSteps.length} passos essenciais completos</p>
       </Card>
 
       <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
