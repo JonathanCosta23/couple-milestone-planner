@@ -354,17 +354,17 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
           <div className="flex items-center justify-between mb-3">
             <div>
               <p className="text-sm font-semibold">Comece por aqui</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Três ações simples para deixar o plano útil no dia a dia.</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Faça o essencial primeiro. O resto pode ficar para depois.</p>
             </div>
-            <span className="text-xs text-muted-foreground">{completedSteps}/{activationSteps.length}</span>
+            <span className="text-xs text-muted-foreground">{completedSteps}/{essentialSteps.length}</span>
           </div>
-          <Progress value={(completedSteps / activationSteps.length) * 100} className="h-1.5 mb-3" />
+          <Progress value={(completedSteps / essentialSteps.length) * 100} className="h-1.5 mb-3" />
           <div className="space-y-2">
             {activationSteps.map(step => (
               <button
                 key={step.id}
                 className={`w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-all touch-target ${
-                  step.done ? "opacity-60" : "hover:bg-muted/30 cursor-pointer"
+                  step.done ? "opacity-60" : step.layer === "avançado" ? "hover:bg-muted/20 cursor-pointer opacity-80" : "hover:bg-muted/30 cursor-pointer"
                 }`}
                 onClick={() => {
                   if (!step.done && step.tab) onNavigateToTab(step.tab);
@@ -383,6 +383,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
                   </span>
                   <span className="block text-xs text-muted-foreground leading-relaxed mt-0.5">{step.description}</span>
                 </span>
+                {step.layer === "avançado" && <span className="text-[10px] text-muted-foreground border border-border rounded-full px-2 py-0.5 shrink-0">depois</span>}
                 {!step.done && <ArrowRight className="w-3.5 h-3.5 text-muted-foreground ml-auto shrink-0" />}
               </button>
             ))}
@@ -460,8 +461,8 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
 
       {/* ── Atalhos ── */}
       <div className="pt-1">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Explorar quando quiser</p>
-        <p className="text-xs text-muted-foreground mb-3">Áreas avançadas para entender riscos, concentração e cenários sem atrapalhar a ação principal.</p>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Explorar depois</p>
+        <p className="text-xs text-muted-foreground mb-3">Projeção é uma estimativa do futuro. Concentração mostra se o patrimônio está pesado demais em um lugar. Governança ajuda planos de casal.</p>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Button variant="outline" size="sm" className="h-11 text-xs lg:text-sm justify-between rounded-xl px-4 touch-target"
