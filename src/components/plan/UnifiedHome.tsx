@@ -30,11 +30,14 @@ function getActivationSteps(appData: AppData, config: PlanConfig, monthRecords: 
   const hasExpenses = appData.expenses.length > 0;
   const hasAporte = monthRecords.some(m => m.deposits.some(d => d.actualSelic > 0 || d.actualCDB > 0));
   const hasMonthlyGoal = config.contributors.some(c => c.plannedSelic > 0 || c.plannedCDB > 0);
+  const hasTrackedMonth = monthRecords.some(m => m.completed || m.deposits.some(d => d.actualSelic > 0 || d.actualCDB > 0));
 
   return [
-    { id: "cashflow", label: "Configure sua renda e gastos", description: "Mostra quanto sobra para investir com segurança.", done: hasIncome && hasExpenses, tab: hasIncome ? "gastos" : "renda", emoji: "💵" },
-    { id: "goal", label: "Revise sua meta mensal", description: "A meta mensal é o valor planejado para aportar todo mês.", done: hasMonthlyGoal, tab: "simulador", emoji: "🎯" },
-    { id: "aporte", label: "Registre seu primeiro aporte", description: "Aporte é o dinheiro que você separou para investir.", done: hasAporte, tab: "", emoji: "💰" },
+    { id: "cashflow", label: "Configure renda e gastos", description: "Para saber quanto sobra sem chute.", done: hasIncome && hasExpenses, tab: hasIncome ? "gastos" : "renda", emoji: "💵", layer: "essencial" },
+    { id: "goal", label: "Revise a meta mensal", description: "O valor planejado para investir no mês.", done: hasMonthlyGoal, tab: "simulador", emoji: "🎯", layer: "essencial" },
+    { id: "aporte", label: "Registre o primeiro aporte", description: "Aporte é o dinheiro separado para investir.", done: hasAporte, tab: "", emoji: "💰", layer: "essencial" },
+    { id: "tracking", label: "Acompanhe o mês", description: "Compare planejado e realizado sem planilha.", done: hasTrackedMonth, tab: "historico", emoji: "📅", layer: "essencial" },
+    { id: "advanced", label: "Explore depois", description: "Simulações, projeções e riscos ficam para a próxima camada.", done: false, tab: "simulador", emoji: "🧭", layer: "avançado" },
   ];
 }
 
@@ -60,8 +63,20 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
   const healthColor = healthScore >= 70 ? "text-primary" : healthScore >= 40 ? "text-warning" : "text-destructive";
 
   const activationSteps = useMemo(() => getActivationSteps(appData, config, monthRecords), [appData, config, monthRecords]);
-  const completedSteps = activationSteps.filter(s => s.done).length;
-  const allStepsComplete = completedSteps === activationSteps.length;
+  const essentialSteps = activationSteps.filter(s => s.layer === "essencial");
+  const completedSteps = essentialSteps.filter(s => s.done).length;
+  const allStepsComplete = completedSteps === essentialSteps.length;
+  const plannedAmount = currentMonth.planned;
+  const realizedAmount = currentMonth.total;
+  const remainingAmount = Math.max(0, plannedAmount - realizedAmount);
+  const monthProgress = plannedAmount > 0 ? currentMonth.progress : 0;
+  const monthStatus = plannedAmount === 0
+    ? { label: "Meta mensal pendente", tone: "text-warning", message: "Defina uma meta simples para acompanhar o mês." }
+    : remainingAmount <= 0
+      ? { label: "Mês no alvo", tone: "text-primary", message: "Você já bateu o planejado. Se quiser, marque o mês como concluído no aporte." }
+      : realizedAmount > 0
+        ? { label: "Em andamento", tone: "text-warning", message: "Continue registrando os aportes até fechar o mês." }
+        : { label: "Aguardando aporte", tone: "text-muted-foreground", message: "Registre o primeiro aporte para atualizar seu tracking mensal." };
 
   // Invisible risk from insights
   const riskInsight = insights.biggestRisk;
@@ -85,34 +100,41 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
       {topSlot && <div className="animate-fade-in-up">{topSlot}</div>}
       {/* ── Desktop: Two-column hero layout ── */}
       <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-5 lg:space-y-0">
-        {/* ── 1. CARD HERO: Meta do mês ── */}
+        {/* ── 1. CARD HERO: Rotina do mês ── */}
         <Card className="glass-card-hero p-5 lg:p-6 animate-fade-in-up">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-xs sm:text-sm text-muted-foreground">{monthKeyToFullLabel(currentKey)}</p>
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <p className="text-xs sm:text-sm text-muted-foreground">{monthKeyToFullLabel(currentKey)}</p>
+              <p className="section-title lg:text-lg mt-0.5">Rotina do mês</p>
+            </div>
             {metrics.streak > 0 && (
-              <span className="text-xs font-medium text-primary">🔥 {metrics.streak} {metrics.streak === 1 ? "mês seguido" : "meses seguidos"}</span>
+              <span className="text-xs font-medium text-primary shrink-0">🔥 {metrics.streak} {metrics.streak === 1 ? "mês seguido" : "meses seguidos"}</span>
             )}
           </div>
-          <p className="section-title lg:text-lg mb-1">Aporte do mês</p>
-          <p className="text-xs sm:text-sm text-muted-foreground mb-3">
-            Este é o dinheiro que {isCouple ? "vocês reservaram" : "você reservou"} para investir neste mês.
+          <p className="text-xs sm:text-sm text-muted-foreground mb-4">
+            Aporte é o dinheiro que {isCouple ? "vocês separaram" : "você separou"} para investir. Aqui fica o tracking mensal: planejado vs. realizado.
           </p>
-          <div className="flex items-end justify-between mb-3">
+          <div className="flex items-end justify-between gap-3 mb-3">
             <div>
-              <p className="text-2xl lg:text-3xl font-extrabold text-primary">{(currentMonth.progress * 100).toFixed(0)}%</p>
+              <p className="text-2xl lg:text-3xl font-extrabold text-primary">{(monthProgress * 100).toFixed(0)}%</p>
               <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                {formatBRL(currentMonth.total)} de {formatBRL(currentMonth.planned)}
+                {formatBRL(realizedAmount)} realizado
               </p>
             </div>
             <div className="text-right">
-              {currentMonth.planned - currentMonth.total > 0 && (
-                <p className="text-xs sm:text-sm text-muted-foreground">
-                  Faltam <span className="font-semibold text-foreground">{formatBRL(currentMonth.planned - currentMonth.total)}</span>
-                </p>
-              )}
+              <p className={`text-xs sm:text-sm font-semibold ${monthStatus.tone}`}>{monthStatus.label}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                Faltam <span className="font-semibold text-foreground">{formatBRL(remainingAmount)}</span>
+              </p>
             </div>
           </div>
-          <Progress value={currentMonth.progress * 100} className="h-2.5 rounded-full mb-4" />
+          <Progress value={monthProgress * 100} className="h-2.5 rounded-full mb-3" />
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <MiniMetric label="Planejado" value={formatBRLCompact(plannedAmount)} />
+            <MiniMetric label="Realizado" value={formatBRLCompact(realizedAmount)} />
+            <MiniMetric label="Falta" value={formatBRLCompact(remainingAmount)} />
+          </div>
+          <p className="text-xs text-muted-foreground mb-4 leading-relaxed">{monthStatus.message}</p>
           <Button className="w-full h-12 font-bold text-sm touch-target shadow-lg shadow-primary/20" onClick={onOpenQuickDeposit}>
             <DollarSign className="w-4 h-4 mr-2" /> Registrar aporte
           </Button>
