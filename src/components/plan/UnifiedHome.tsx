@@ -30,11 +30,14 @@ function getActivationSteps(appData: AppData, config: PlanConfig, monthRecords: 
   const hasExpenses = appData.expenses.length > 0;
   const hasAporte = monthRecords.some(m => m.deposits.some(d => d.actualSelic > 0 || d.actualCDB > 0));
   const hasMonthlyGoal = config.contributors.some(c => c.plannedSelic > 0 || c.plannedCDB > 0);
+  const hasTrackedMonth = monthRecords.some(m => m.completed || m.deposits.some(d => d.actualSelic > 0 || d.actualCDB > 0));
 
   return [
-    { id: "cashflow", label: "Configure sua renda e gastos", description: "Mostra quanto sobra para investir com segurança.", done: hasIncome && hasExpenses, tab: hasIncome ? "gastos" : "renda", emoji: "💵" },
-    { id: "goal", label: "Revise sua meta mensal", description: "A meta mensal é o valor planejado para aportar todo mês.", done: hasMonthlyGoal, tab: "simulador", emoji: "🎯" },
-    { id: "aporte", label: "Registre seu primeiro aporte", description: "Aporte é o dinheiro que você separou para investir.", done: hasAporte, tab: "", emoji: "💰" },
+    { id: "cashflow", label: "Configure renda e gastos", description: "Para saber quanto sobra sem chute.", done: hasIncome && hasExpenses, tab: hasIncome ? "gastos" : "renda", emoji: "💵", layer: "essencial" },
+    { id: "goal", label: "Revise a meta mensal", description: "O valor planejado para investir no mês.", done: hasMonthlyGoal, tab: "simulador", emoji: "🎯", layer: "essencial" },
+    { id: "aporte", label: "Registre o primeiro aporte", description: "Aporte é o dinheiro separado para investir.", done: hasAporte, tab: "", emoji: "💰", layer: "essencial" },
+    { id: "tracking", label: "Acompanhe o mês", description: "Compare planejado e realizado sem planilha.", done: hasTrackedMonth, tab: "historico", emoji: "📅", layer: "essencial" },
+    { id: "advanced", label: "Explore depois", description: "Simulações, projeções e riscos ficam para a próxima camada.", done: false, tab: "simulador", emoji: "🧭", layer: "avançado" },
   ];
 }
 
@@ -60,8 +63,20 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
   const healthColor = healthScore >= 70 ? "text-primary" : healthScore >= 40 ? "text-warning" : "text-destructive";
 
   const activationSteps = useMemo(() => getActivationSteps(appData, config, monthRecords), [appData, config, monthRecords]);
-  const completedSteps = activationSteps.filter(s => s.done).length;
-  const allStepsComplete = completedSteps === activationSteps.length;
+  const essentialSteps = activationSteps.filter(s => s.layer === "essencial");
+  const completedSteps = essentialSteps.filter(s => s.done).length;
+  const allStepsComplete = completedSteps === essentialSteps.length;
+  const plannedAmount = currentMonth.planned;
+  const realizedAmount = currentMonth.total;
+  const remainingAmount = Math.max(0, plannedAmount - realizedAmount);
+  const monthProgress = plannedAmount > 0 ? currentMonth.progress : 0;
+  const monthStatus = plannedAmount === 0
+    ? { label: "Meta mensal pendente", tone: "text-warning", message: "Defina uma meta simples para acompanhar o mês." }
+    : remainingAmount <= 0
+      ? { label: "Mês no alvo", tone: "text-primary", message: "Você já bateu o planejado. Se quiser, marque o mês como concluído no aporte." }
+      : realizedAmount > 0
+        ? { label: "Em andamento", tone: "text-warning", message: "Continue registrando os aportes até fechar o mês." }
+        : { label: "Aguardando aporte", tone: "text-muted-foreground", message: "Registre o primeiro aporte para atualizar seu tracking mensal." };
 
   // Invisible risk from insights
   const riskInsight = insights.biggestRisk;
@@ -85,34 +100,41 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
       {topSlot && <div className="animate-fade-in-up">{topSlot}</div>}
       {/* ── Desktop: Two-column hero layout ── */}
       <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-5 lg:space-y-0">
-        {/* ── 1. CARD HERO: Meta do mês ── */}
+        {/* ── 1. CARD HERO: Rotina do mês ── */}
         <Card className="glass-card-hero p-5 lg:p-6 animate-fade-in-up">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-xs sm:text-sm text-muted-foreground">{monthKeyToFullLabel(currentKey)}</p>
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <p className="text-xs sm:text-sm text-muted-foreground">{monthKeyToFullLabel(currentKey)}</p>
+              <p className="section-title lg:text-lg mt-0.5">Rotina do mês</p>
+            </div>
             {metrics.streak > 0 && (
-              <span className="text-xs font-medium text-primary">🔥 {metrics.streak} {metrics.streak === 1 ? "mês seguido" : "meses seguidos"}</span>
+              <span className="text-xs font-medium text-primary shrink-0">🔥 {metrics.streak} {metrics.streak === 1 ? "mês seguido" : "meses seguidos"}</span>
             )}
           </div>
-          <p className="section-title lg:text-lg mb-1">Aporte do mês</p>
-          <p className="text-xs sm:text-sm text-muted-foreground mb-3">
-            Este é o dinheiro que {isCouple ? "vocês reservaram" : "você reservou"} para investir neste mês.
+          <p className="text-xs sm:text-sm text-muted-foreground mb-4">
+            Aporte é o dinheiro que {isCouple ? "vocês separaram" : "você separou"} para investir. Aqui fica o tracking mensal: planejado vs. realizado.
           </p>
-          <div className="flex items-end justify-between mb-3">
+          <div className="flex items-end justify-between gap-3 mb-3">
             <div>
-              <p className="text-2xl lg:text-3xl font-extrabold text-primary">{(currentMonth.progress * 100).toFixed(0)}%</p>
+              <p className="text-2xl lg:text-3xl font-extrabold text-primary">{(monthProgress * 100).toFixed(0)}%</p>
               <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                {formatBRL(currentMonth.total)} de {formatBRL(currentMonth.planned)}
+                {formatBRL(realizedAmount)} realizado
               </p>
             </div>
             <div className="text-right">
-              {currentMonth.planned - currentMonth.total > 0 && (
-                <p className="text-xs sm:text-sm text-muted-foreground">
-                  Faltam <span className="font-semibold text-foreground">{formatBRL(currentMonth.planned - currentMonth.total)}</span>
-                </p>
-              )}
+              <p className={`text-xs sm:text-sm font-semibold ${monthStatus.tone}`}>{monthStatus.label}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                Faltam <span className="font-semibold text-foreground">{formatBRL(remainingAmount)}</span>
+              </p>
             </div>
           </div>
-          <Progress value={currentMonth.progress * 100} className="h-2.5 rounded-full mb-4" />
+          <Progress value={monthProgress * 100} className="h-2.5 rounded-full mb-3" />
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <MiniMetric label="Planejado" value={formatBRLCompact(plannedAmount)} />
+            <MiniMetric label="Realizado" value={formatBRLCompact(realizedAmount)} />
+            <MiniMetric label="Falta" value={formatBRLCompact(remainingAmount)} />
+          </div>
+          <p className="text-xs text-muted-foreground mb-4 leading-relaxed">{monthStatus.message}</p>
           <Button className="w-full h-12 font-bold text-sm touch-target shadow-lg shadow-primary/20" onClick={onOpenQuickDeposit}>
             <DollarSign className="w-4 h-4 mr-2" /> Registrar aporte
           </Button>
@@ -155,10 +177,12 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
           <div className="min-w-0 flex-1">
             <p className="text-[10px] sm:text-xs text-primary font-bold uppercase tracking-wider mb-0.5">Faça agora</p>
             <p className="text-sm lg:text-base font-semibold leading-snug">
-              {nextBestAction?.title || "Registre o aporte deste mês"}
+              {remainingAmount > 0 ? "Registre o aporte deste mês" : nextBestAction?.title || "Revise seu próximo passo"}
             </p>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">
-              {nextBestAction?.message || "Isso mantém seu histórico atualizado e mostra se a meta mensal está no caminho certo."}
+              {remainingAmount > 0
+                ? "Isso atualiza o realizado, mostra quanto falta e mantém sua evolução mensal em dia."
+                : nextBestAction?.message || "Com o mês em dia, você pode revisar gastos ou explorar simulações sem pressa."}
             </p>
           </div>
           <Button size="sm" className="hidden sm:inline-flex shrink-0" onClick={onOpenQuickDeposit}>
@@ -222,13 +246,13 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
         <IndicatorCard icon="💪" label="Estrutura" value={`${healthScore}`} sub={`Organização geral: ${healthLabel.toLowerCase()}`} valueColor={healthColor}
           onClick={() => onNavigateToTab("diagnostico")} />
         <IndicatorCard icon="🛡️" label="Reserva" value={`${metrics.reserveMonths.toFixed(1)}m`}
-          sub={metrics.reserveStatus === "complete" ? "Meses protegidos" : metrics.reserveStatus === "partial" ? "Proteção em construção" : "Falta proteção"}
+          sub={metrics.reserveStatus === "complete" ? "Dinheiro para imprevistos" : metrics.reserveStatus === "partial" ? "Proteção em construção" : "Comece pelos imprevistos"}
           valueColor={metrics.reserveStatus === "complete" ? "text-primary" : metrics.reserveStatus === "partial" ? "text-warning" : "text-destructive"} />
         <IndicatorCard icon="📈" label="Poupança" value={metrics.totalIncome > 0 ? `${(metrics.savingsRate * 100).toFixed(0)}%` : "—"}
           sub={metrics.savingsRate >= 0.2 ? "Sobra para investir" : metrics.savingsRate >= 0.1 ? "Bom começo" : "Ajustar gastos"}
           valueColor={metrics.savingsRate >= 0.2 ? "text-primary" : metrics.savingsRate >= 0.1 ? "text-warning" : "text-destructive"} />
-        <IndicatorCard icon="🏛️" label="Proteção" value={`${(metrics.protectedRatio * 100).toFixed(0)}%`}
-          sub={metrics.protectedRatio >= 0.6 ? "Bem distribuído" : metrics.protectedRatio >= 0.3 ? "Revisar concentração" : "Risco concentrado"}
+        <IndicatorCard icon="🏛️" label="Concentração" value={`${(metrics.protectedRatio * 100).toFixed(0)}%`}
+          sub={metrics.protectedRatio >= 0.6 ? "Risco bem dividido" : metrics.protectedRatio >= 0.3 ? "Revisar distribuição" : "Muito concentrado"}
           valueColor={metrics.protectedRatio >= 0.6 ? "text-primary" : metrics.protectedRatio >= 0.3 ? "text-warning" : "text-destructive"}
           onClick={() => onNavigateToTab("estrutura")} />
       </div>
@@ -330,17 +354,17 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
           <div className="flex items-center justify-between mb-3">
             <div>
               <p className="text-sm font-semibold">Comece por aqui</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Três ações simples para deixar o plano útil no dia a dia.</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Faça o essencial primeiro. O resto pode ficar para depois.</p>
             </div>
-            <span className="text-xs text-muted-foreground">{completedSteps}/{activationSteps.length}</span>
+            <span className="text-xs text-muted-foreground">{completedSteps}/{essentialSteps.length}</span>
           </div>
-          <Progress value={(completedSteps / activationSteps.length) * 100} className="h-1.5 mb-3" />
+          <Progress value={(completedSteps / essentialSteps.length) * 100} className="h-1.5 mb-3" />
           <div className="space-y-2">
             {activationSteps.map(step => (
               <button
                 key={step.id}
                 className={`w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-all touch-target ${
-                  step.done ? "opacity-60" : "hover:bg-muted/30 cursor-pointer"
+                  step.done ? "opacity-60" : step.layer === "avançado" ? "hover:bg-muted/20 cursor-pointer opacity-80" : "hover:bg-muted/30 cursor-pointer"
                 }`}
                 onClick={() => {
                   if (!step.done && step.tab) onNavigateToTab(step.tab);
@@ -359,6 +383,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
                   </span>
                   <span className="block text-xs text-muted-foreground leading-relaxed mt-0.5">{step.description}</span>
                 </span>
+                {step.layer === "avançado" && <span className="text-[10px] text-muted-foreground border border-border rounded-full px-2 py-0.5 shrink-0">depois</span>}
                 {!step.done && <ArrowRight className="w-3.5 h-3.5 text-muted-foreground ml-auto shrink-0" />}
               </button>
             ))}
@@ -436,8 +461,8 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
 
       {/* ── Atalhos ── */}
       <div className="pt-1">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Explorar quando quiser</p>
-        <p className="text-xs text-muted-foreground mb-3">Áreas avançadas para entender riscos, concentração e cenários sem atrapalhar a ação principal.</p>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Explorar depois</p>
+        <p className="text-xs text-muted-foreground mb-3">Projeção é uma estimativa do futuro. Concentração mostra se o patrimônio está pesado demais em um lugar. Governança ajuda planos de casal.</p>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Button variant="outline" size="sm" className="h-11 text-xs lg:text-sm justify-between rounded-xl px-4 touch-target"
@@ -481,11 +506,21 @@ function IndicatorCard({ icon, label, value, sub, valueColor, onClick }: {
   );
 }
 
+function MiniMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-muted/30 px-2 py-2 text-center min-w-0">
+      <p className="text-xs font-bold truncate">{value}</p>
+      <p className="text-[10px] text-muted-foreground mt-0.5">{label}</p>
+    </div>
+  );
+}
+
 function EmptyHomeState({ onNavigateToTab, onOpenQuickDeposit, activationSteps }: {
   onNavigateToTab: (tab: string) => void; onOpenQuickDeposit: () => void;
   activationSteps: ReturnType<typeof getActivationSteps>;
 }) {
-  const completedSteps = activationSteps.filter(s => s.done).length;
+  const essentialSteps = activationSteps.filter(s => s.layer === "essencial");
+  const completedSteps = essentialSteps.filter(s => s.done).length;
 
   return (
     <div className="space-y-5 lg:space-y-6 pb-4">
@@ -497,8 +532,8 @@ function EmptyHomeState({ onNavigateToTab, onOpenQuickDeposit, activationSteps }
             Complete os passos abaixo para desbloquear seu primeiro diagnóstico financeiro.
           </p>
         </div>
-        <Progress value={(completedSteps / activationSteps.length) * 100} className="h-2 max-w-xs mx-auto" />
-        <p className="text-xs text-muted-foreground">{completedSteps} de {activationSteps.length} passos completos</p>
+        <Progress value={(completedSteps / essentialSteps.length) * 100} className="h-2 max-w-xs mx-auto" />
+        <p className="text-xs text-muted-foreground">{completedSteps} de {essentialSteps.length} passos essenciais completos</p>
       </Card>
 
       <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
