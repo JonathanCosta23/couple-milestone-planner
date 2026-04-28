@@ -505,6 +505,15 @@ function IndicatorCard({ icon, label, value, sub, valueColor, onClick }: {
   );
 }
 
+function MiniMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-muted/30 px-2 py-2 text-center min-w-0">
+      <p className="text-xs font-bold truncate">{value}</p>
+      <p className="text-[10px] text-muted-foreground mt-0.5">{label}</p>
+    </div>
+  );
+}
+
 function EmptyHomeState({ onNavigateToTab, onOpenQuickDeposit, activationSteps }: {
   onNavigateToTab: (tab: string) => void; onOpenQuickDeposit: () => void;
   activationSteps: ReturnType<typeof getActivationSteps>;
