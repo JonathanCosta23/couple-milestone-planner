@@ -115,7 +115,7 @@ const PERFIL_SUBS = [
 const Index = () => {
   const {
     data, completeWizard, updateConfig, updateMonthRecord, updateMonthNotes,
-    toggleMonthCompleted, generateAutoPlan, generateNextYear, resetPlan,
+    toggleMonthCompleted, generateAutoPlan, generateNextYear,
     setData: setPlanRawData, exportJSON,
     importJSON, updateNotificationSettings, updateFinancialProfile, completeOnboarding,
   } = usePlanData();
