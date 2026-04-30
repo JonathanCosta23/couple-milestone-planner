@@ -55,6 +55,7 @@ const BlobMigrationDialog = lazy(() => import("@/components/auth/BlobMigrationDi
 import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
 import { PlanModeChip } from "@/components/plan/PlanModeChip";
 import { RestoreBackupButton } from "@/components/plan/RestoreBackupButton";
+import { ResetPlanDialog } from "@/components/plan/ResetPlanDialog";
 
 import { EMOTIONAL_GOAL_LABELS, PlanConfig } from "@/lib/types";
 import { useFinancialCore } from "@/hooks/useFinancialCore";
@@ -145,6 +146,7 @@ const Index = () => {
     useCelebratedMilestones(user?.id, cloudPlanRow?.id ?? null);
   const [showQuickDeposit, setShowQuickDeposit] = useState(false);
   const [showFinancialSetup, setShowFinancialSetup] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
 
   // ── Bloco 1 da Fase 4: ciclo de vida unificado ──
   const lifecycle = useDataLifecycle({
