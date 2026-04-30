@@ -587,6 +587,12 @@ const Index = () => {
         onDismiss={() => { if (newMilestone) celebrateMilestone(newMilestone); }}
         config={data.config}
       />
+
+      <ResetPlanDialog
+        open={showResetDialog}
+        onOpenChange={setShowResetDialog}
+        userId={user?.id}
+      />
     </div>
   );
 };
