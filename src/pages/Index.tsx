@@ -492,7 +492,7 @@ const Index = () => {
                   <ArrowLeft className="w-4 h-4 mr-2.5" /> Sair da conta
                 </Button>
                 <Button variant="outline" className="w-full justify-start h-12 rounded-xl text-destructive hover:text-destructive"
-                  onClick={() => { if (confirm("Tem certeza? Essa ação não pode ser desfeita.")) resetPlan(); }}>
+                  onClick={() => setShowResetDialog(true)}>
                   <RotateCcw className="w-4 h-4 mr-2.5" /> Resetar plano
                 </Button>
                 </div>
