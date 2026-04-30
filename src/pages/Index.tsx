@@ -55,6 +55,7 @@ const BlobMigrationDialog = lazy(() => import("@/components/auth/BlobMigrationDi
 import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
 import { PlanModeChip } from "@/components/plan/PlanModeChip";
 import { RestoreBackupButton } from "@/components/plan/RestoreBackupButton";
+import { ResetPlanDialog } from "@/components/plan/ResetPlanDialog";
 
 import { EMOTIONAL_GOAL_LABELS, PlanConfig } from "@/lib/types";
 import { useFinancialCore } from "@/hooks/useFinancialCore";
@@ -114,7 +115,7 @@ const PERFIL_SUBS = [
 const Index = () => {
   const {
     data, completeWizard, updateConfig, updateMonthRecord, updateMonthNotes,
-    toggleMonthCompleted, generateAutoPlan, generateNextYear, resetPlan,
+    toggleMonthCompleted, generateAutoPlan, generateNextYear,
     setData: setPlanRawData, exportJSON,
     importJSON, updateNotificationSettings, updateFinancialProfile, completeOnboarding,
   } = usePlanData();
@@ -145,6 +146,7 @@ const Index = () => {
     useCelebratedMilestones(user?.id, cloudPlanRow?.id ?? null);
   const [showQuickDeposit, setShowQuickDeposit] = useState(false);
   const [showFinancialSetup, setShowFinancialSetup] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
 
   // ── Bloco 1 da Fase 4: ciclo de vida unificado ──
   const lifecycle = useDataLifecycle({
@@ -490,7 +492,7 @@ const Index = () => {
                   <ArrowLeft className="w-4 h-4 mr-2.5" /> Sair da conta
                 </Button>
                 <Button variant="outline" className="w-full justify-start h-12 rounded-xl text-destructive hover:text-destructive"
-                  onClick={() => { if (confirm("Tem certeza? Essa ação não pode ser desfeita.")) resetPlan(); }}>
+                  onClick={() => setShowResetDialog(true)}>
                   <RotateCcw className="w-4 h-4 mr-2.5" /> Resetar plano
                 </Button>
                 </div>
@@ -584,6 +586,12 @@ const Index = () => {
         milestone={newMilestone}
         onDismiss={() => { if (newMilestone) celebrateMilestone(newMilestone); }}
         config={data.config}
+      />
+
+      <ResetPlanDialog
+        open={showResetDialog}
+        onOpenChange={setShowResetDialog}
+        userId={user?.id}
       />
     </div>
   );
