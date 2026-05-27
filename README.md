@@ -118,6 +118,15 @@ Fluxos cobertos hoje (não removíveis sem substituição):
 - **Premissas financeiras** (`src/lib/__tests__/financialAssumptions.test.ts`, `financialEngine.test.ts`): defaults centralizados, override por plano, override explícito de UI, projeção nominal/líquido/real coerente.
 - **Serviços derivados** (`src/lib/services/__tests__/`): `projectionService` (nominal ≥ líquido ≥ real, renda passiva pela regra dos 4%), `milestoneService` (celebra só marcos realizados, sem repetição), `allocationService` (concentração + cobertura FGC/soberano), `auditService` (audit_log + product_events em paralelo, fail-soft).
 
+## Checklist de regressão manual
+
+Roteiro oficial de QA manual antes de release está em
+[`docs/qa-checklist.md`](docs/qa-checklist.md). Cobre primeiro acesso, aceite
+de termos (ConsentGate), criação e troca de modo individual/casal, QuickDeposit
+via RPC `upsert_month_with_members`, refresh pós-aporte, reset destrutivo com
+auditoria crítica, modo offline, replay com proteção de `member_id`,
+dead-letter de payload inválido e migração do blob legado.
+
 ## Mais informações
 
 Este projeto é gerenciado pela [Lovable](https://lovable.dev). Edits feitos no Lovable são commitados automaticamente. Para deploy: abrir o projeto e usar Share → Publish. Domínio customizado em Project → Settings → Domains.

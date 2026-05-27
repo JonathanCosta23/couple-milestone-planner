@@ -8,7 +8,7 @@ import { calculateHealthScore, calculateDiagnostic } from "@/lib/financialEngine
 import { calculateStreak, getCurrentMonthDeposited } from "@/lib/calculator";
 import {
   Activity, DollarSign, Wallet, CreditCard, AlertTriangle,
-  TrendingUp, Shield, Target, CalendarClock, ArrowRight,
+  TrendingUp, Shield, Target, CalendarClock, ArrowRight, Flame,
 } from "lucide-react";
 
 interface Props {
@@ -152,7 +152,7 @@ export function HomeDashboard({ appData, config, monthRecords, startDate, onNavi
       <Card className="glass-card p-4">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <span className="text-lg">🔥</span>
+            <Flame className="w-4 h-4 text-warning" aria-hidden />
             <div>
               <p className="text-sm font-semibold">Aportes do mês</p>
               <p className="text-[10px] text-muted-foreground">{streak} {streak === 1 ? "mês consecutivo" : "meses consecutivos"}</p>
