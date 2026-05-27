@@ -349,7 +349,7 @@ function ExpenseFormDialog({ open, onOpenChange, expense, monthKey, profiles, co
     onOpenChange(o);
   };
 
-  const update = (key: keyof Expense, value: any) => setForm(prev => ({ ...prev, [key]: value }));
+  const update = <K extends keyof Expense>(key: K, value: Expense[K]) => setForm(prev => ({ ...prev, [key]: value }));
 
   const handleSubmit = () => {
     if (!form.name.trim()) { toast.error("Informe o nome do gasto."); return; }
