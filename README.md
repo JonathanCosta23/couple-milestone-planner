@@ -67,6 +67,26 @@ Camada derivada única em `src/hooks/useFinancialCore.ts` calcula reserva, taxa 
 
 "Resetar plano" exige confirmação explícita (`AlertDialog` + digitar `RESETAR`) e usa `resetService` + RPC `reset_user_plan_data` para limpar Supabase, offline queue (`offlineQueue` + dead-letter) e todas as chaves de `localStorage` (atuais, legadas e backups). Autenticação é preservada.
 
+## Testes
+
+Vitest + Testing Library cobrem os fluxos críticos de dados. Rodar tudo:
+
+```sh
+npx vitest run        # CI / one-shot
+npx vitest            # modo watch durante desenvolvimento
+npx vitest run path/to/file.test.ts  # arquivo específico
+```
+
+Fluxos cobertos hoje (não removíveis sem substituição):
+
+- **Writers e `member_id`** (`src/hooks/__tests__/writerPayload.memberId.test.ts`): updates parciais de asset/income/expense/debt não apagam `member_id` existente.
+- **RPCs transacionais** (`src/hooks/__tests__/transactionalRpcs.test.ts`, `planWriterModeSwitch.test.ts`): `upsert_plan_with_members` e `upsert_month_with_members` são chamadas com o payload correto; alternar individual ↔ casal preserva titular e desativa parceiro via RPC (não apaga histórico).
+- **Reset destrutivo** (`src/lib/services/__tests__/resetService.test.ts`): RPC `reset_user_plan_data`, fila offline e todas as chaves de `localStorage` do produto (incluindo milestones celebrados) são limpas; chaves de outros sistemas são preservadas; idempotente em re-execução; falha de RPC não bloqueia limpeza local.
+- **Migração blob → tabelas** (`src/lib/services/__tests__/blobMigrationService.test.ts`): blob legado só migra quando as tabelas normalizadas estão vazias para o plano (dados normalizados vencem); erros são propagados por categoria sem abortar as demais.
+- **Ciclo de vida de dados** (`src/hooks/__tests__/useDataLifecycle.test.tsx`): boot sem usuário não toca a nuvem; auto-save não dispara antes da hidratação (anti race).
+- **Premissas financeiras** (`src/lib/__tests__/financialAssumptions.test.ts`, `financialEngine.test.ts`): defaults centralizados, override por plano, override explícito de UI, projeção nominal/líquido/real coerente.
+- **Serviços derivados** (`src/lib/services/__tests__/`): `projectionService` (nominal ≥ líquido ≥ real, renda passiva pela regra dos 4%), `milestoneService` (celebra só marcos realizados, sem repetição), `allocationService` (concentração + cobertura FGC/soberano), `auditService` (audit_log + product_events em paralelo, fail-soft).
+
 ## Mais informações
 
 Este projeto é gerenciado pela [Lovable](https://lovable.dev). Edits feitos no Lovable são commitados automaticamente. Para deploy: abrir o projeto e usar Share → Publish. Domínio customizado em Project → Settings → Domains.
