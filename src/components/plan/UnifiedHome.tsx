@@ -11,6 +11,7 @@ import type { FinancialCoreState } from "@/hooks/useFinancialCore";
 import {
   DollarSign, Target, TrendingUp, Zap, AlertTriangle, Lightbulb, ArrowRight,
   Wallet, Shield, ChevronDown, ChevronUp, Eye, CheckCircle, Calendar, Settings2, Flame,
+  Activity, Landmark, Compass, type LucideIcon,
 } from "lucide-react";
 
 interface Props {
@@ -33,11 +34,11 @@ function getActivationSteps(appData: AppData, config: PlanConfig, monthRecords: 
   const hasTrackedMonth = monthRecords.some(m => m.completed || m.deposits.some(d => d.actualSelic > 0 || d.actualCDB > 0));
 
   return [
-    { id: "cashflow", label: "Configure renda e gastos", description: "Para saber quanto sobra sem chute.", done: hasIncome && hasExpenses, tab: hasIncome ? "gastos" : "renda", emoji: "💵", layer: "essencial" },
-    { id: "goal", label: "Revise a meta mensal", description: "O valor planejado para investir no mês.", done: hasMonthlyGoal, tab: "simulador", emoji: "🎯", layer: "essencial" },
-    { id: "aporte", label: "Registre o primeiro aporte", description: "Aporte é o dinheiro separado para investir.", done: hasAporte, tab: "", emoji: "💰", layer: "essencial" },
-    { id: "tracking", label: "Acompanhe o mês", description: "Compare planejado e realizado sem planilha.", done: hasTrackedMonth, tab: "historico", emoji: "📅", layer: "essencial" },
-    { id: "advanced", label: "Explore depois", description: "Simulações, projeções e riscos ficam para a próxima camada.", done: false, tab: "simulador", emoji: "🧭", layer: "avançado" },
+    { id: "cashflow", label: "Configure renda e gastos", description: "Para saber quanto sobra sem chute.", done: hasIncome && hasExpenses, tab: hasIncome ? "gastos" : "renda", Icon: Wallet, layer: "essencial" as const },
+    { id: "goal", label: "Revise a meta mensal", description: "O valor planejado para investir no mês.", done: hasMonthlyGoal, tab: "simulador", Icon: Target, layer: "essencial" as const },
+    { id: "aporte", label: "Registre o primeiro aporte", description: "Aporte é o dinheiro separado para investir.", done: hasAporte, tab: "", Icon: DollarSign, layer: "essencial" as const },
+    { id: "tracking", label: "Acompanhe o mês", description: "Compare planejado e realizado sem planilha.", done: hasTrackedMonth, tab: "historico", Icon: Calendar, layer: "essencial" as const },
+    { id: "advanced", label: "Explore depois", description: "Simulações, projeções e riscos ficam para a próxima camada.", done: false, tab: "simulador", Icon: Compass, layer: "avançado" as const },
   ];
 }
 
