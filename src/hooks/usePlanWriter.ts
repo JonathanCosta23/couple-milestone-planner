@@ -14,6 +14,7 @@
 import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { trackWriterChange } from "@/lib/services/auditService";
 import type { CanonicalPlanMode } from "@/lib/services/dataMigrationService";
 import type { PlanRow, PlanMemberRow } from "@/hooks/usePlan";
 
