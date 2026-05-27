@@ -21,6 +21,7 @@ import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { Investment, SecurityLevel } from "@/lib/models";
+import { trackWriterChange } from "@/lib/services/auditService";
 
 export interface AssetRow {
   id: string;
@@ -214,6 +215,16 @@ export function useAssetWriter() {
         .single();
 
       if (error || !data) return { data: null, error: error?.message ?? "Falha ao criar investimento." };
+      void trackWriterChange({
+        userId: uid,
+        planId,
+        entity: "asset",
+        entityId: (data as AssetRow).id,
+        action: "create",
+        newValue: data as unknown as Record<string, unknown>,
+        event: "asset_created",
+        eventProperties: { asset_type: (data as AssetRow).asset_type },
+      });
       return { data: data as AssetRow, error: null };
     },
     [user]
@@ -244,6 +255,15 @@ export function useAssetWriter() {
         .single();
 
       if (error || !data) return { data: null, error: error?.message ?? "Falha ao atualizar investimento." };
+      void trackWriterChange({
+        userId: uid,
+        planId,
+        entity: "asset",
+        entityId: assetId,
+        action: "update",
+        newValue: data as unknown as Record<string, unknown>,
+        event: "asset_updated",
+      });
       return { data: data as AssetRow, error: null };
     },
     [user]
@@ -262,6 +282,14 @@ export function useAssetWriter() {
         .eq("user_id", uid);
 
       if (error) return { data: null, error: error.message };
+      void trackWriterChange({
+        userId: uid,
+        entity: "asset",
+        entityId: assetId,
+        action: "delete",
+        event: "asset_deleted",
+        eventProperties: { soft: true },
+      });
       return { data: true, error: null };
     },
     [user]
@@ -280,6 +308,14 @@ export function useAssetWriter() {
         .eq("user_id", uid);
 
       if (error) return { data: null, error: error.message };
+      void trackWriterChange({
+        userId: uid,
+        entity: "asset",
+        entityId: assetId,
+        action: "delete",
+        event: "asset_deleted",
+        eventProperties: { soft: false },
+      });
       return { data: true, error: null };
     },
     [user]
