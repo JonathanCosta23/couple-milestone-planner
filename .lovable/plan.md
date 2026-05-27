@@ -1,6 +1,6 @@
 # Plano do Milhão — Refatoração Estrutural
 
-Status: **Fase 2.A — Lote 1 concluído** · Atualizado: 2026-04-17
+Status: **Fase 2.D em curso · Login obrigatório ativo · Writers em produção** · Atualizado: 2026-05-27
 
 ## Princípios da refatoração
 
@@ -24,14 +24,14 @@ Status: **Fase 2.A — Lote 1 concluído** · Atualizado: 2026-04-17
 
 Dividida em 4 lotes para reduzir risco:
 
-- **2.A — Fundação de escrita**
-  - **Lote 1 ✅**: renomear `PlanMode` para `individual`/`casal` em todo o código com loader retrocompatível em `appStorage`. Remover `incomeJonathan`/`incomeIsabella` do tipo público; conversão automática via `LegacyFinancialProfile` interno em `appStorage`.
-  - **Lote 2 ⏳**: criar `usePlanWriter` (CRUD direto em `plans` + `plan_members`).
-  - **Lote 3 ⏳**: Wizard e PlanModeSelector escrevendo no banco normalizado.
-  - **Lote 4 ⏳**: login obrigatório.
-- **2.B — assets**: CRUD real de patrimônio.
-- **2.C — income, expenses, debts**: 3 hooks de CRUD.
-- **2.D — monthly_tracking + monthly_member_tracking**: tracker mensal no banco.
+- **2.A — Fundação de escrita ✅**
+  - Lote 1 ✅: `PlanMode` canônico `individual`/`casal` com loader retrocompatível em `appStorage`. `incomeJonathan`/`incomeIsabella` removidos do tipo público (convertidos via `LegacyFinancialProfile`).
+  - Lote 2 ✅: `usePlanWriter` faz CRUD direto em `plans` + `plan_members`.
+  - Lote 3 ✅: Wizard e PlanModeSelector escrevem no banco normalizado.
+  - Lote 4 ✅: login obrigatório (`AuthPage` como porta de entrada, modo anônimo desativado).
+- **2.B — assets ✅**: `useAssetWriter` espelhando `usePlanWriter` (CRUD em `assets`, hidratação cloud-first com cache local).
+- **2.C — income, expenses, debts ✅**: `useIncomeWriter`, `useExpenseWriter`, `useDebtWriter` ativos. `useCloudSync` segue em paralelo como rede de segurança até Fase 2.D fechar.
+- **2.D — monthly_tracking + monthly_member_tracking ⏳**: `useMonthlyTrackingWriter` em produção para registros mensais; falta consolidar o split por participante em `monthly_member_tracking` e remover a dependência do blob `user_financial_data`.
 
 ### Fase 3 — Coerência financeira
 - Régua única entre Estrutura, Saúde, Jornada e Hábitos via `journeyService`.
@@ -46,6 +46,8 @@ Dividida em 4 lotes para reduzir risco:
 - Radar sem falsos "parece seguro".
 - Glossário e Investir revisados.
 - QA: consistência reserva entre telas, Simular=Projeção, Patrimônio=Concentração=Governança.
+- Reset destrutivo via RPC `reset_user_plan_data` + `resetService` limpando cloud, offline queue e localStorage.
+- Sprint 0 de higiene técnica (lint zero erros, código morto removido, docs atualizadas) concluída.
 
 ## Conversão `solo`/`couple` → `individual`/`casal`
 
