@@ -293,7 +293,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
                 {step.done ? (
                   <CheckCircle className="w-4 h-4 text-primary shrink-0" />
                 ) : (
-                  <span className="text-lg shrink-0">{step.emoji}</span>
+                  <step.Icon className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden />
                 )}
                 <span className="min-w-0 flex-1">
                   <span className={`block text-sm ${step.done ? "line-through text-muted-foreground" : "font-medium"}`}>
@@ -677,7 +677,7 @@ function EmptyHomeState({ onNavigateToTab, onOpenQuickDeposit, activationSteps }
               {step.done ? (
                 <CheckCircle className="w-6 h-6 text-primary shrink-0" />
               ) : (
-                <span className="text-2xl shrink-0">{step.emoji}</span>
+                <step.Icon className="w-5 h-5 text-muted-foreground shrink-0" aria-hidden />
               )}
               <div className="min-w-0 flex-1">
                 <p className={`text-sm lg:text-base font-semibold ${step.done ? "line-through" : ""}`}>{step.label}</p>
