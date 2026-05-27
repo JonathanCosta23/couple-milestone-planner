@@ -10,7 +10,7 @@ import { ContextualEducation } from "./ContextualEducation";
 import type { FinancialCoreState } from "@/hooks/useFinancialCore";
 import {
   DollarSign, Target, TrendingUp, Zap, AlertTriangle, Lightbulb, ArrowRight,
-  Wallet, Shield, ChevronDown, ChevronUp, Eye, CheckCircle,
+  Wallet, Shield, ChevronDown, ChevronUp, Eye, CheckCircle, Calendar, Settings2, Flame,
 } from "lucide-react";
 
 interface Props {
