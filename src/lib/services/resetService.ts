@@ -84,6 +84,11 @@ export interface ResetResult {
     offlineQueue: boolean;
     localStorageKeys: string[];
   };
+  /** Resultado da auditoria crítica do reset (não bloqueia o fluxo). */
+  audit: {
+    ok: boolean;
+    error?: string;
+  };
 }
 
 /**
@@ -94,6 +99,7 @@ export async function resetUserPlan(userId: string): Promise<ResetResult> {
   const result: ResetResult = {
     ok: true,
     cleared: { rpc: false, offlineQueue: false, localStorageKeys: [] },
+    audit: { ok: true },
   };
 
   // 1. RPC server-side (transacional dentro do banco).
@@ -105,12 +111,17 @@ export async function resetUserPlan(userId: string): Promise<ResetResult> {
       logger.error("reset.rpc.fail", { userId }, error.message);
     } else {
       result.cleared.rpc = true;
-      void logProductEvent({
+      // Auditoria crítica: aguarda retorno e propaga falha para a UI.
+      const auditRes = await logProductEvent({
         userId,
         event: "plan_reset",
         properties: { source: "user_action" },
         critical: true,
       });
+      if (!auditRes.ok) {
+        result.audit = { ok: false, error: auditRes.error };
+        logger.error("reset.audit.fail", { userId }, auditRes.error);
+      }
     }
   } catch (err) {
     result.ok = false;

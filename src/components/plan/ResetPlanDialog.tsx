@@ -43,9 +43,16 @@ export function ResetPlanDialog({ open, onOpenChange, userId, onResetComplete }:
         return;
       }
       onResetComplete?.();
-      toast.success("Plano resetado com sucesso", {
-        description: "Recarregando a aplicação…",
-      });
+      if (!result.audit.ok) {
+        toast.warning("Plano resetado, mas a auditoria falhou", {
+          description:
+            "Seus dados foram apagados. Não conseguimos registrar o evento de auditoria desta ação.",
+        });
+      } else {
+        toast.success("Plano resetado com sucesso", {
+          description: "Recarregando a aplicação…",
+        });
+      }
       // Recarrega para garantir reidratação 100% limpa de todos os hooks/estado.
       setTimeout(() => {
         window.location.reload();

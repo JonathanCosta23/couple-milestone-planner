@@ -57,6 +57,7 @@ import { PlanModeChip } from "@/components/plan/PlanModeChip";
 import { RestoreBackupButton } from "@/components/plan/RestoreBackupButton";
 import { ResetPlanDialog } from "@/components/plan/ResetPlanDialog";
 import { LegalFooter } from "@/components/plan/LegalDialogs";
+import { ConsentGate } from "@/components/auth/ConsentGate";
 
 import { EMOTIONAL_GOAL_LABELS, PlanConfig } from "@/lib/types";
 import { useFinancialCore } from "@/hooks/useFinancialCore";
@@ -290,12 +291,17 @@ const Index = () => {
 
   // ── Onboarding ──
   if (!data.onboardingComplete) {
-    return <Onboarding onComplete={completeOnboarding} />;
+    return (
+      <ConsentGate userId={user.id} onSignOut={handleSignOut}>
+        <Onboarding onComplete={completeOnboarding} />
+      </ConsentGate>
+    );
   }
 
   // ── Financial Profile Setup ──
   if (showFinancialSetup) {
     return (
+      <ConsentGate userId={user.id} onSignOut={handleSignOut}>
       <div className="min-h-screen bg-background">
         <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border/50">
           <div className="flex items-center justify-between h-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
@@ -320,6 +326,7 @@ const Index = () => {
           />
         </main>
       </div>
+      </ConsentGate>
     );
   }
 
@@ -512,6 +519,7 @@ const Index = () => {
   };
 
   return (
+    <ConsentGate userId={user.id} onSignOut={handleSignOut}>
     <div className="min-h-screen bg-background pb-20 lg:pb-4">
       <OfflineBanner />
       <AppHeader
@@ -601,6 +609,7 @@ const Index = () => {
 
       <LegalFooter onRequestReset={() => setShowResetDialog(true)} />
     </div>
+    </ConsentGate>
   );
 };
 
