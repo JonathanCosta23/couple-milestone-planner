@@ -7,6 +7,8 @@ import { PlanConfig, MonthRecord, formatBRL, formatBRLCompact, getCurrentMonthKe
 import { getCurrentMonthDeposited } from "@/lib/calculator";
 import { generateNudges } from "@/lib/behavioralEngine";
 import { ContextualEducation } from "./ContextualEducation";
+import { MonthlyExecutiveSummary } from "./MonthlyExecutiveSummary";
+import { MilestoneProgress } from "./MilestoneProgress";
 import type { FinancialCoreState } from "@/hooks/useFinancialCore";
 import {
   DollarSign, Target, TrendingUp, Zap, AlertTriangle, Lightbulb, ArrowRight,
@@ -123,6 +125,25 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
         onSecondaryAction={() => onNavigateToTab("historico")}
         onTertiaryAction={() => onNavigateToTab("simulador")}
         onOpenPatrimonio={() => onNavigateToTab("patrimonio")}
+      />
+
+      {/* ── Resumo Mensal Executivo + Próxima Melhor Ação ── */}
+      <MonthlyExecutiveSummary
+        config={config}
+        monthRecords={monthRecords}
+        nextActionContext={{
+          nextMilestoneValue: null,
+          nextMilestoneMonths: projection.monthsToTargetNominal,
+        }}
+        onOpenQuickDeposit={onOpenQuickDeposit}
+        onNavigateToTab={onNavigateToTab}
+      />
+
+      {/* ── Marcos patrimoniais (orientado a progresso) ── */}
+      <MilestoneProgress
+        currentWealth={metrics.grossWealth}
+        monthsToNext={projection.monthsToTargetNominal}
+        streakMonths={metrics.streak}
       />
 
       {/* ── Desktop: Two-column action cards ── */}
