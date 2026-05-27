@@ -32,6 +32,7 @@ Dividida em 4 lotes para reduzir risco:
 - **2.B — assets ✅**: `useAssetWriter` espelhando `usePlanWriter` (CRUD em `assets`, hidratação cloud-first com cache local).
 - **2.C — income, expenses, debts ✅**: `useIncomeWriter`, `useExpenseWriter`, `useDebtWriter` ativos. `useCloudSync` segue em paralelo como rede de segurança até Fase 2.D fechar.
 - **2.D — monthly_tracking + monthly_member_tracking ⏳**: `useMonthlyTrackingWriter` em produção para registros mensais; falta consolidar o split por participante em `monthly_member_tracking` e remover a dependência do blob `user_financial_data`.
+- **2.E — desligar autosave do blob ✅**: `useDataLifecycle` não grava mais `user_financial_data` continuamente. Blob vira legado controlado, escrito apenas em migração explícita e zerado pelo `resetService`. Flag `plano-do-milhao-migration-done:<uid>` evita reimportar o mesmo blob; Supabase normalizado vence sobre cache local no login.
 
 ### Fase 3 — Coerência financeira
 - Régua única entre Estrutura, Saúde, Jornada e Hábitos via `journeyService`.
