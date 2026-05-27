@@ -5,6 +5,10 @@
 
 import type { PlanConfig, MonthRecord } from "@/lib/types";
 import { generateProjection } from "@/lib/calculator";
+import {
+  DEFAULT_ASSUMPTIONS,
+  type FinancialAssumptions,
+} from "@/lib/financialAssumptions";
 
 export interface ProjectionResult {
   nominal: ProjectionPoint[];
@@ -17,6 +21,8 @@ export interface ProjectionResult {
   finalNet: number;
   finalReal: number;
   estimatedPassiveIncome: number; // monthly from 4% rule on net
+  /** Premissas efetivamente aplicadas — auditáveis pela UI. */
+  assumptionsUsed: FinancialAssumptions;
 }
 
 export interface ProjectionPoint {
@@ -27,12 +33,26 @@ export interface ProjectionPoint {
   interest: number;
 }
 
-export interface ProjectionAssumptions {
-  selicRate: number;
-  cdbPct: number;
-  inflationRate: number;
-  irRate: number;
-  iofRate: number;
+/**
+ * Compat: hooks antigos passavam `{ inflationRate, irRate }`. Mantido para
+ * não quebrar chamadores externos; novos consumidores devem passar
+ * `FinancialAssumptions` completo.
+ */
+export type ProjectionAssumptionsInput = Partial<FinancialAssumptions> & {
+  inflationRate?: number;
+  irRate?: number;
+};
+
+function normalizeAssumptions(input?: ProjectionAssumptionsInput): FinancialAssumptions {
+  if (!input) return DEFAULT_ASSUMPTIONS;
+  return {
+    expectedReturnRate: input.expectedReturnRate ?? DEFAULT_ASSUMPTIONS.expectedReturnRate,
+    cdbPctOfCdi: input.cdbPctOfCdi ?? DEFAULT_ASSUMPTIONS.cdbPctOfCdi,
+    inflationRate: input.inflationRate ?? DEFAULT_ASSUMPTIONS.inflationRate,
+    taxRate: input.taxRate ?? input.irRate ?? DEFAULT_ASSUMPTIONS.taxRate,
+    iofRate: input.iofRate ?? DEFAULT_ASSUMPTIONS.iofRate,
+    withdrawalRate: input.withdrawalRate ?? DEFAULT_ASSUMPTIONS.withdrawalRate,
+  };
 }
 
 export function calculateProjection(
@@ -40,11 +60,12 @@ export function calculateProjection(
   mode: "planned" | "actual",
   monthRecords: MonthRecord[],
   startDate: string,
-  assumptions?: Partial<ProjectionAssumptions>
+  assumptions?: ProjectionAssumptionsInput
 ): ProjectionResult {
-  const inflation = assumptions?.inflationRate ?? 0.045;
-  const irRate = assumptions?.irRate ?? 0.15;
-  
+  const used = normalizeAssumptions(assumptions);
+  const inflation = used.inflationRate;
+  const irRate = used.taxRate;
+
   const rawProjection = generateProjection(config, mode, monthRecords, startDate);
   
   const nominal: ProjectionPoint[] = rawProjection.map(r => ({
@@ -89,8 +110,8 @@ export function calculateProjection(
   const lastNet = net[net.length - 1]?.balance ?? 0;
   const lastReal = real[real.length - 1]?.balance ?? 0;
 
-  // Estimated passive income: 4% rule on net wealth, monthly
-  const estimatedPassiveIncome = lastNet * 0.04 / 12;
+  // Renda passiva estimada: regra de retirada anual sobre patrimônio líquido.
+  const estimatedPassiveIncome = (lastNet * used.withdrawalRate) / 12;
 
   return {
     nominal,
@@ -103,6 +124,7 @@ export function calculateProjection(
     finalNet: lastNet,
     finalReal: lastReal,
     estimatedPassiveIncome,
+    assumptionsUsed: used,
   };
 }
 
