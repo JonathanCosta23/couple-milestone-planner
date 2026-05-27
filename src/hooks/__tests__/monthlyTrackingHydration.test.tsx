@@ -126,6 +126,8 @@ describe("useDataHydration — monthly_tracking + monthly_member_tracking", () =
     );
 
     await waitFor(() => expect(setPlanData).toHaveBeenCalled());
+    // eslint-disable-next-line no-console
+    console.log("DBG calls trk:", listMonthlyTracking.mock.calls.length, "mem:", listMemberTracking.mock.calls.length, "setPlanData:", setPlanData.mock.calls.length);
     const mutator = setPlanData.mock.calls[0][0] as (p: { monthRecords: unknown[] }) => { monthRecords: { deposits: { actualSelic: number }[] }[] };
     const next = mutator({ monthRecords: [] });
     expect(next.monthRecords[0].deposits).toHaveLength(1);
