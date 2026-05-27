@@ -5,23 +5,23 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-/** Pequeno builder de chain Supabase para os queries deste serviço. */
-function chain(steps: { count?: number; insertResult?: { error: unknown; data: unknown[] } }) {
-  const api: Record<string, unknown> = {};
-  api.select = vi.fn((_cols: unknown, opts?: { count?: string; head?: boolean }) => {
-    if (opts?.count === "exact" && opts.head) {
-      const eq1 = vi.fn(() => ({
-        eq: vi.fn(() => Promise.resolve({ count: steps.count ?? 0, error: null })),
-      }));
-      return { eq: eq1 };
-    }
-    // Pós-insert .select("id") devolve direto.
-    return Promise.resolve(steps.insertResult ?? { data: [], error: null });
-  });
-  api.insert = vi.fn(() => ({
-    select: vi.fn(() => Promise.resolve(steps.insertResult ?? { data: [], error: null })),
-  }));
-  return api;
+/** Chain só para o count (.select(...,{count,head}).eq().eq()). */
+function countChain(count: number) {
+  return {
+    select: vi.fn(() => ({
+      eq: vi.fn(() => ({
+        eq: vi.fn(() => Promise.resolve({ count, error: null })),
+      })),
+    })),
+  };
+}
+/** Chain para o insert (.insert(rows).select("id")). */
+function insertChain(result: { data: unknown[] | null; error: unknown | null }) {
+  return {
+    insert: vi.fn(() => ({
+      select: vi.fn(() => Promise.resolve(result)),
+    })),
+  };
 }
 
 const fromMock = vi.fn();
@@ -60,24 +60,25 @@ describe("blobMigrationService", () => {
   });
 
   it("NÃO migra quando tabelas normalizadas já têm dados (dados normalizados vencem)", async () => {
-    // count = 1 para income/expenses/debts → nada a migrar.
     fromMock
-      .mockImplementationOnce(() => chain({ count: 1 })) // income
-      .mockImplementationOnce(() => chain({ count: 1 })) // expenses
-      .mockImplementationOnce(() => chain({ count: 1 })); // debts
+      .mockImplementationOnce(() => countChain(1)) // income
+      .mockImplementationOnce(() => countChain(1)) // expenses
+      .mockImplementationOnce(() => countChain(1)); // debts
 
     const res = await migrateBlobToTables("user-1", "plan-1", baseAppData, members);
 
     expect(res).toEqual({ incomes: 0, expenses: 0, debts: 0, errors: [] });
-    // Apenas as 3 verificações de count — nenhum insert.
     expect(fromMock).toHaveBeenCalledTimes(3);
   });
 
   it("migra blob para tabelas vazias e propaga erros por categoria", async () => {
     fromMock
-      .mockImplementationOnce(() => chain({ count: 0, insertResult: { data: [{ id: "i-new" }], error: null } }))
-      .mockImplementationOnce(() => chain({ count: 0, insertResult: { data: [], error: { message: "violou rls" } } }))
-      .mockImplementationOnce(() => chain({ count: 0, insertResult: { data: [{ id: "d-new" }], error: null } }));
+      .mockImplementationOnce(() => countChain(0))                                       // income count
+      .mockImplementationOnce(() => insertChain({ data: [{ id: "i-new" }], error: null })) // income insert
+      .mockImplementationOnce(() => countChain(0))                                       // expenses count
+      .mockImplementationOnce(() => insertChain({ data: null, error: { message: "violou rls" } })) // expenses insert
+      .mockImplementationOnce(() => countChain(0))                                       // debts count
+      .mockImplementationOnce(() => insertChain({ data: [{ id: "d-new" }], error: null })); // debts insert
 
     const res = await migrateBlobToTables("user-1", "plan-1", baseAppData, members);
 
