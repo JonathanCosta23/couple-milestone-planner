@@ -6,6 +6,16 @@ Marque ✅ / ❌ no PR ou na issue de release.
 
 > Comandos oficiais de CI: `npm ci && npm run lint && npm test && npm run build`.
 
+## 0. Cockpit mensal premium
+- [ ] Card "Resumo do mês" mostra mês corrente, planejado, realizado, faltam e % de execução.
+- [ ] Em modo casal, aparece progresso por participante usando nomes reais.
+- [ ] Status muda corretamente entre `Sem meta`, `Aguardando aporte`, `Em andamento` e `Mês no alvo`.
+- [ ] Score de Disciplina (0..100) aparece com tooltip explicando o cálculo e **não** promete retorno financeiro.
+- [ ] Score sobe ao registrar aporte do mês corrente e cair se o histórico estiver vazio.
+- [ ] "Próxima Melhor Ação" muda conforme o contexto: pendência do mês → registrar aporte; mês fechado → revisar próximo mês; patrimônio antigo → atualizar patrimônio; premissas faltando → revisar projeção.
+- [ ] Card "Marcos patrimoniais" mostra marco atual, próximo marco, % da jornada e ritmo, sem emojis.
+- [ ] Após registrar um aporte via QuickDeposit e refresh, valores do resumo persistem (RPC + normalizado).
+
 ## 1. Primeiro acesso
 - [ ] Abrir o app deslogado redireciona para `AuthPage`.
 - [ ] Cadastro novo por e-mail funciona (recebe confirmação se exigida).
