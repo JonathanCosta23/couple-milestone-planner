@@ -257,7 +257,7 @@ function DebtFormDialog({ open, onOpenChange, debt, profiles, coupleMode, onSave
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label className="text-xs">Tipo</Label>
-              <Select value={form.type} onValueChange={v => update("type", v)}>
+              <Select value={form.type} onValueChange={v => update("type", v as DebtType)}>
                 <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.keys(DEBT_TYPE_LABELS) as DebtType[]).map(t => (
