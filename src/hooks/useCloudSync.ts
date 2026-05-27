@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import type { AppData } from "@/lib/models";
 import type { PlanData } from "@/lib/types";
+import type { Json } from "@/integrations/supabase/types";
 
 interface CloudData {
   planData: PlanData | null;
@@ -42,8 +43,8 @@ export function useCloudSync() {
         await supabase
           .from("user_financial_data")
           .update({
-            plan_data: planData as any,
-            app_data: appData as any,
+            plan_data: planData as unknown as Json,
+            app_data: appData as unknown as Json,
             schema_version: "7.0.0",
           })
           .eq("user_id", userId);
@@ -52,8 +53,8 @@ export function useCloudSync() {
           .from("user_financial_data")
           .insert({
             user_id: userId,
-            plan_data: planData as any,
-            app_data: appData as any,
+            plan_data: planData as unknown as Json,
+            app_data: appData as unknown as Json,
             schema_version: "7.0.0",
           });
       }
@@ -85,9 +86,13 @@ export function useCloudSync() {
   const hasCloudData = useCallback(async (userId: string): Promise<boolean> => {
     const cloud = await loadFromCloud(userId);
     if (!cloud) return false;
-    const pd = cloud.planData as any;
-    const ad = cloud.appData as any;
-    return !!(pd?.wizardComplete || ad?.incomes?.length > 0 || ad?.expenses?.length > 0);
+    const pd = cloud.planData;
+    const ad = cloud.appData;
+    return !!(
+      pd?.wizardComplete ||
+      (ad?.incomes?.length ?? 0) > 0 ||
+      (ad?.expenses?.length ?? 0) > 0
+    );
   }, [loadFromCloud]);
 
   return {

@@ -1,73 +1,64 @@
-# Welcome to your Lovable project
+# Plano do Milhão
 
-## Project info
+Aplicativo de planejamento financeiro pessoal e patrimonial para brasileiros — individual ou casal — focado em construir patrimônio de forma responsável, segura e compreensível. O produto combina planejamento, educação financeira, comportamento, acompanhamento mensal, arquitetura patrimonial e alertas de risco. Não é simulador de juros compostos nem recomendação personalizada de investimento.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Princípios
 
-## How can I edit this code?
+1. Fonte única de verdade: Supabase normalizado (plans, plan_members, assets, incomes, expenses, debts, monthly_tracking, monthly_member_tracking, milestones, insights_log).
+2. Login obrigatório como porta de entrada. Suporte a e-mail + Google.
+3. Modo do plano canônico: `individual` ou `casal`, persistido em `plans.mode`.
+4. Nomes dinâmicos vindos de `plan_members.name`. Nada hardcoded.
+5. Linguagem clara, humana, sem prometer retorno. Disclaimers obrigatórios.
+6. Milestones disparam apenas por patrimônio realizado (`milestones.origin = 'realized'`).
 
-There are several ways of editing your application.
+## Stack
 
-**Use Lovable**
+- Vite 5 + React 18 + TypeScript 5
+- Tailwind CSS v3 + shadcn-ui + Radix
+- React Router, TanStack Query, React Hook Form + Zod
+- Recharts para projeções
+- Supabase (auth, Postgres, edge functions) provisionado via Lovable Cloud
+- Vitest + Testing Library para testes
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Scripts
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+npm install          # instala dependências
+npm run dev          # dev server com HMR (porta 8080)
+npm run build        # build de produção
+npm run preview      # serve o build localmente
+npm run lint         # ESLint (zero erros é critério de aceite)
+npx vitest run       # roda a suíte de testes
 ```
 
-**Edit a file directly in GitHub**
+## Arquitetura de dados
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Fonte de verdade desejada: **tabelas Supabase normalizadas**. CRUD acontece via writers dedicados em `src/hooks/`:
 
-**Use GitHub Codespaces**
+- `usePlanWriter` → `plans` + `plan_members`
+- `useAssetWriter` → `assets`
+- `useIncomeWriter` → `incomes`
+- `useExpenseWriter` → `expenses`
+- `useDebtWriter` → `debts`
+- `useMonthlyTrackingWriter` → `monthly_tracking` (+ `monthly_member_tracking` em curso)
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Camada derivada única em `src/hooks/useFinancialCore.ts` calcula reserva, taxa de poupança, score de saúde, fase da jornada, projeções nominal/líquido/real e próximo melhor passo. Todas as telas leem dessa camada.
 
-## What technologies are used for this project?
+**localStorage e blob `user_financial_data`** existem apenas como **compatibilidade de migração** e cache offline. Não são fonte de verdade; `useCloudSync` os mantém em paralelo até a Fase 2.D consolidar os writers normalizados. `dataMigrationService` e `blobMigrationService` migram dados antigos para o schema normalizado no primeiro login.
 
-This project is built with:
+## Fluxo básico do usuário
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+1. Login ou cadastro (e-mail, Google).
+2. Migração silenciosa de dados locais legados, se houver.
+3. Wizard de perfil financeiro (modo, participantes, objetivo, aportes).
+4. Home como central de decisão: rotina do mês, CTA "Registrar aporte", gargalo principal e próximo passo.
+5. Plano (Aportes, Estrutura, Simular, Projeção, Saúde, Jornada, Hábitos, Patrimônio, Concentração, Governança).
+6. Histórico (Meses, Gastos, Renda, Dívidas) e Perfil (Aprender, Glossário, Radar, Investir, Exportar, Dados).
 
-## How can I deploy this project?
+## Operações destrutivas
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+"Resetar plano" exige confirmação explícita (`AlertDialog` + digitar `RESETAR`) e usa `resetService` + RPC `reset_user_plan_data` para limpar Supabase, offline queue (`offlineQueue` + dead-letter) e todas as chaves de `localStorage` (atuais, legadas e backups). Autenticação é preservada.
 
-## Can I connect a custom domain to my Lovable project?
+## Mais informações
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Este projeto é gerenciado pela [Lovable](https://lovable.dev). Edits feitos no Lovable são commitados automaticamente. Para deploy: abrir o projeto e usar Share → Publish. Domínio customizado em Project → Settings → Domains.

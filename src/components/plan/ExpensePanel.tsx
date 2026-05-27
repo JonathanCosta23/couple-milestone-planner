@@ -349,7 +349,7 @@ function ExpenseFormDialog({ open, onOpenChange, expense, monthKey, profiles, co
     onOpenChange(o);
   };
 
-  const update = (key: keyof Expense, value: any) => setForm(prev => ({ ...prev, [key]: value }));
+  const update = <K extends keyof Expense>(key: K, value: Expense[K]) => setForm(prev => ({ ...prev, [key]: value }));
 
   const handleSubmit = () => {
     if (!form.name.trim()) { toast.error("Informe o nome do gasto."); return; }
@@ -384,14 +384,14 @@ function ExpenseFormDialog({ open, onOpenChange, expense, monthKey, profiles, co
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label className="text-xs">Categoria</Label>
-              <Select value={form.category} onValueChange={v => update("category", v)}>
+              <Select value={form.category} onValueChange={v => update("category", v as ExpenseCategory)}>
                 <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>{CATEGORIES.map(c => <SelectItem key={c} value={c} className="text-xs">{EXPENSE_CATEGORY_ICONS[c]} {EXPENSE_CATEGORY_LABELS[c]}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div>
               <Label className="text-xs">Tipo</Label>
-              <Select value={form.type} onValueChange={v => update("type", v)}>
+              <Select value={form.type} onValueChange={v => update("type", v as ExpenseType)}>
                 <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="fixed" className="text-xs">Fixo</SelectItem>
@@ -403,7 +403,7 @@ function ExpenseFormDialog({ open, onOpenChange, expense, monthKey, profiles, co
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label className="text-xs">Status</Label>
-              <Select value={form.status} onValueChange={v => update("status", v)}>
+              <Select value={form.status} onValueChange={v => update("status", v as ExpenseStatus)}>
                 <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pending" className="text-xs">Pendente</SelectItem>
@@ -414,7 +414,7 @@ function ExpenseFormDialog({ open, onOpenChange, expense, monthKey, profiles, co
             </div>
             <div>
               <Label className="text-xs">Prioridade</Label>
-              <Select value={form.priority} onValueChange={v => update("priority", v)}>
+              <Select value={form.priority} onValueChange={v => update("priority", v as ExpensePriority)}>
                 <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="essential" className="text-xs">Essencial</SelectItem>
@@ -435,7 +435,7 @@ function ExpenseFormDialog({ open, onOpenChange, expense, monthKey, profiles, co
               </div>
               <div>
                 <Label className="text-xs">Pertence a</Label>
-                <Select value={form.ownership} onValueChange={v => update("ownership", v)}>
+                <Select value={form.ownership} onValueChange={v => update("ownership", v as ExpenseOwnership)}>
                   <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="individual" className="text-xs">Individual</SelectItem>

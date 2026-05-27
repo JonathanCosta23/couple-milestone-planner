@@ -4,7 +4,7 @@
  * Migration from legacy is automatic and non-destructive.
  */
 
-import { AppData, createDefaultAppData, generateId, PlanMode } from "./models";
+import { AppData, createDefaultAppData, generateId, PlanMode, Goal } from "./models";
 import { LegacyFinancialProfile, PlanData } from "./types";
 import { loadPlanData } from "./storage";
 
@@ -134,7 +134,7 @@ export function migrateFromLegacy(planData: PlanData): AppData {
         : planData.emotionalGoal,
       targetAmount: planData.config.targetAmount,
       currentAmount: planData.config.initialAmount,
-      category: (goalCategoryMap[planData.emotionalGoal] || "other") as any,
+      category: (goalCategoryMap[planData.emotionalGoal] || "other") as Goal["category"],
       status: "active",
       priority: 1,
       createdAt: new Date().toISOString(),

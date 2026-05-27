@@ -227,7 +227,7 @@ export function simulateScenario(
     }));
   }
 
-  let pauseMonths = modifier === "pause6" ? 6 : modifier === "pause12" ? 12 : 0;
+  const pauseMonths = modifier === "pause6" ? 6 : modifier === "pause12" ? 12 : 0;
 
   const totalMonths = config.years * 12;
   const monthKeys = generateMonthKeys(startDate, totalMonths);

@@ -237,7 +237,7 @@ function DebtFormDialog({ open, onOpenChange, debt, profiles, coupleMode, onSave
     onOpenChange(o);
   };
 
-  const update = (key: keyof Debt, value: any) => setForm(prev => ({ ...prev, [key]: value }));
+  const update = <K extends keyof Debt>(key: K, value: Debt[K]) => setForm(prev => ({ ...prev, [key]: value }));
 
   const handleSubmit = () => {
     if (!form.name.trim()) { toast.error("Informe o nome da dívida."); return; }
@@ -257,7 +257,7 @@ function DebtFormDialog({ open, onOpenChange, debt, profiles, coupleMode, onSave
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label className="text-xs">Tipo</Label>
-              <Select value={form.type} onValueChange={v => update("type", v)}>
+              <Select value={form.type} onValueChange={v => update("type", v as DebtType)}>
                 <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.keys(DEBT_TYPE_LABELS) as DebtType[]).map(t => (

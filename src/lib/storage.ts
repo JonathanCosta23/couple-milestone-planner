@@ -23,7 +23,7 @@ export function normalizePlanData(parsed: Partial<PlanData>): PlanData {
   const parsedContributors = parsed.config?.contributors;
   let contributors = defaults.config.contributors.map(c => ({ ...c }));
   if (Array.isArray(parsedContributors) && parsedContributors.length > 0) {
-    contributors = parsedContributors.map((c: any) => ({
+    contributors = parsedContributors.map((c: Partial<typeof defaults.config.contributors[number]>) => ({
       name: c?.name || "",
       plannedSelic: c?.plannedSelic || 0,
       plannedCDB: c?.plannedCDB || 0,
@@ -147,7 +147,7 @@ export interface ImportPreview {
 
 /** Parse and validate an import JSON string, returning a preview */
 export function parseImportJSON(json: string): ImportPreview {
-  let parsed: any;
+  let parsed: unknown;
   try {
     parsed = JSON.parse(json);
   } catch {
@@ -158,15 +158,16 @@ export function parseImportJSON(json: string): ImportPreview {
     return { valid: false, errorMessage: "Formato de arquivo não reconhecido.", version: "—", filledMonths: 0, exportedAt: null, data: null };
   }
 
-  if (!parsed.config || typeof parsed.wizardComplete !== "boolean") {
+  const parsedObj = parsed as Record<string, unknown>;
+  if (!parsedObj.config || typeof parsedObj.wizardComplete !== "boolean") {
     return { valid: false, errorMessage: "Arquivo não parece ser um plano válido. Campos obrigatórios ausentes (config, wizardComplete).", version: "—", filledMonths: 0, exportedAt: null, data: null };
   }
 
-  const meta = parsed._meta as PlanDataExportMeta | undefined;
-  const version = meta?.schemaVersion || parsed.schemaVersion || "legado";
+  const meta = parsedObj._meta as PlanDataExportMeta | undefined;
+  const version = meta?.schemaVersion || (parsedObj.schemaVersion as string | undefined) || "legado";
   const exportedAt = meta?.exportedAt || null;
 
-  const { _meta, _backupAt, ...rest } = parsed;
+  const { _meta, _backupAt, ...rest } = parsedObj;
   const normalized = normalizePlanData(rest);
 
   const filledMonths = normalized.monthRecords.filter(r =>
