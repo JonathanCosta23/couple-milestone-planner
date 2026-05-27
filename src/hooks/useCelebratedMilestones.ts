@@ -16,6 +16,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
+import { logProductEvent } from "@/lib/services/auditService";
 
 const LOCAL_KEY_PREFIX = "plano-celebrated-milestones";
 
@@ -130,7 +131,14 @@ export function useCelebratedMilestones(userId: string | undefined, planId?: str
       if (error) {
         logger.warn("milestones.save.fail", { userId, planId, value }, error.message);
         // Estado local permanece — usuário não verá popup novamente nesta sessão.
+        return;
       }
+      void logProductEvent({
+        userId,
+        planId,
+        event: "milestone_reached",
+        properties: { value, origin: "realized" },
+      });
     },
     [userId, planId, key],
   );
