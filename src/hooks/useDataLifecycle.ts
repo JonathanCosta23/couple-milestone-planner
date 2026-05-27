@@ -43,6 +43,23 @@ import type { PlanMemberRow } from "@/hooks/usePlan";
 
 type LifecycleStatus = "idle" | "hydrating" | "syncing" | "ready" | "error";
 
+/**
+ * Flag per-user que indica que a migração legacy → tabelas normalizadas já foi
+ * resolvida (executada, recusada explicitamente ou desnecessária). Enquanto o
+ * flag estiver presente, NÃO oferecemos novamente o diálogo de blob, NÃO
+ * subimos cache local para o blob `user_financial_data` e NÃO reabrimos o
+ * conflito local-vs-cloud. O `resetService` apaga essa chave junto com o resto
+ * do cache do produto (varredura por prefixo `plano-do-milhao`).
+ */
+const MIGRATION_FLAG_PREFIX = "plano-do-milhao-migration-done:";
+const migrationFlagKey = (uid: string) => `${MIGRATION_FLAG_PREFIX}${uid}`;
+const isMigrationDone = (uid: string): boolean => {
+  try { return localStorage.getItem(migrationFlagKey(uid)) === "1"; } catch { return false; }
+};
+const markMigrationDone = (uid: string): void => {
+  try { localStorage.setItem(migrationFlagKey(uid), "1"); } catch { /* ignore */ }
+};
+
 interface UseDataLifecycleParams {
   user: User | null;
   data: PlanData;
@@ -69,7 +86,7 @@ export function useDataLifecycle({
 
   const [status, setStatus] = useState<LifecycleStatus>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [syncing, setSyncing] = useState(false);
+  const [syncing] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
 
   // Migração de conflito (local vs cloud)
@@ -88,7 +105,6 @@ export function useDataLifecycle({
   const syncRanRef = useRef<string | null>(null); // userId para o qual o sync inicial já rodou
   const assetsHydratedRef = useRef<string | null>(null); // planId para o qual já hidratou
   const blobCheckedRef = useRef(false);
-  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Reset de refs quando o usuário troca/desloga
   useEffect(() => {
@@ -160,6 +176,15 @@ export function useDataLifecycle({
 
   const runInitialSync = useCallback(async () => {
     if (!user) return;
+    // Refatoração Fase 2.E: Supabase normalizado passa a ser fonte de verdade.
+    // Se a migração legacy já foi resolvida para esse usuário, pulamos toda a
+    // dança de "conflito local vs blob" — quem manda é o que o `useDataHydration`
+    // lê das tabelas normalizadas.
+    if (isMigrationDone(user.id)) {
+      setStatus("ready");
+      setLastSyncedAt(new Date());
+      return;
+    }
     setStatus("syncing");
     setError(null);
     try {
@@ -175,12 +200,18 @@ export function useDataLifecycle({
         setCloudSnapshot(buildCloudSnapshot(cloudData?.planData ?? null, cloudData?.appData ?? null));
         setMigrationOpen(true);
       } else if (localHasData && !cloudExists) {
+        // Sobe o cache local UMA VEZ para o blob legado, apenas como ponto de
+        // partida para o fluxo de migração para tabelas normalizadas (Fase 2.E).
+        // Depois disso o autosave contínuo NÃO existe mais.
         await saveToCloud(user.id, data, appData);
         toast.success("Seus dados foram salvos na nuvem! ☁️");
       } else if (!localHasData && cloudExists && cloudData) {
         if (cloudData.planData) importJSON(JSON.stringify(cloudData.planData));
         if (cloudData.appData) setAppData(cloudData.appData as AppData);
         toast.success("Dados carregados da nuvem! ☁️");
+      } else if (!localHasData && !cloudExists) {
+        // Usuário novo, sem nada para migrar — marca como resolvido.
+        markMigrationDone(user.id);
       }
       setStatus("ready");
       setLastSyncedAt(new Date());
@@ -211,33 +242,15 @@ export function useDataLifecycle({
   }, [user?.id]);
 
   // ─────────────────────────────────────────────────────────────
-  // 3. Auto-save debounced — só dispara após hidratação
+  // 3. Auto-save contínuo do blob — REMOVIDO na Fase 2.E.
   // ─────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!user || !data.wizardComplete) return;
-    // Coordenação: só salva depois que hidratação terminou (evita sobrescrever
-    // dados da nuvem com estado local ainda não populado).
-    if (!hydratedRef.current && cloudPlanRow) return;
-
-    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-    autoSaveTimerRef.current = setTimeout(async () => {
-      if (!user) return;
-      setSyncing(true);
-      try {
-        await saveToCloud(user.id, data, appData);
-        setLastSyncedAt(new Date());
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Erro ao salvar";
-        setError(msg);
-      } finally {
-        setSyncing(false);
-      }
-    }, 3000);
-
-    return () => {
-      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-    };
-  }, [user, data, appData, saveToCloud, cloudPlanRow]);
+  // A escrita oficial passa pelos writers normalizados (usePlanWriter,
+  // useAssetWriter, useIncomeWriter, useExpenseWriter, useDebtWriter,
+  // useMonthlyTrackingWriter). O blob `user_financial_data` permanece como
+  // legado: leitura para migração, escrita controlada apenas em
+  // handleUseLocal/runInitialSync (e zerado pelo `resetService`).
+  // Motivação: evitar que o blob "ressuscite" dados após reset, sobrescreva o
+  // estado normalizado ou crie dupla fonte de verdade.
 
   // ─────────────────────────────────────────────────────────────
   // 4. Hidratação de assets (cloud → estado, sem duplicar)
@@ -272,6 +285,10 @@ export function useDataLifecycle({
   // ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!user || !cloudPlanRow || !hydration.hydrated || blobCheckedRef.current) return;
+    if (isMigrationDone(user.id)) {
+      blobCheckedRef.current = true;
+      return;
+    }
     blobCheckedRef.current = true;
     (async () => {
       const remoteBlob = await loadAppDataFromBlob(user.id);
@@ -290,6 +307,9 @@ export function useDataLifecycle({
         setBlobAppDataCache(candidate);
         setBlobCounts(counts);
         setBlobOpen(true);
+      } else {
+        // Nada para migrar — marca como resolvido para não reabrir esse fluxo.
+        markMigrationDone(user.id);
       }
     })();
   }, [user, cloudPlanRow, hydration.hydrated, hydration.counts, appData]);
@@ -302,6 +322,7 @@ export function useDataLifecycle({
     setMigrationLoading(true);
     backupBeforeDestructiveOp();
     await saveToCloud(user.id, data, appData);
+    markMigrationDone(user.id);
     setMigrationLoading(false);
     setMigrationOpen(false);
     setLocalSnapshot(null);
@@ -316,6 +337,7 @@ export function useDataLifecycle({
     const cloudData = await loadFromCloud(user.id);
     if (cloudData?.planData) importJSON(JSON.stringify(cloudData.planData));
     if (cloudData?.appData) setAppData(cloudData.appData as AppData);
+    markMigrationDone(user.id);
     setMigrationLoading(false);
     setMigrationOpen(false);
     setLocalSnapshot(null);
@@ -338,6 +360,7 @@ export function useDataLifecycle({
     if (!user || !cloudPlanRow || !blobAppDataCache) return;
     backupBeforeDestructiveOp();
     const summary = await migrateBlobToTables(user.id, cloudPlanRow.id, blobAppDataCache, cloudMembers);
+    markMigrationDone(user.id);
     setBlobOpen(false);
     if (summary.errors.length > 0) toast.error(`Migração concluída com avisos: ${summary.errors.join("; ")}`);
     else toast.success(`Migrado: ${summary.incomes} renda(s), ${summary.expenses} gasto(s), ${summary.debts} dívida(s).`);
@@ -346,6 +369,7 @@ export function useDataLifecycle({
 
   const handleBlobLater = useCallback(() => {
     setBlobOpen(false);
+    // Não marca migração como concluída — usuário pode reabrir na próxima sessão.
     toast.message("Tudo bem!", { description: "Você pode migrar depois nas configurações." });
   }, []);
 
