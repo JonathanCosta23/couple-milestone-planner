@@ -55,6 +55,8 @@ function formatDate(iso?: string): string {
 
 export function RestoreBackupButton() {
   const [open, setOpen] = useState(false);
+  // Reread backup snapshot whenever dialog opens — `open` is intentional.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const backup = useMemo(() => readBackup(), [open]);
   const hasBackup = !!backup && (backup[LEGACY_PLAN_KEY] || backup[LEGACY_APP_KEY]);
 
