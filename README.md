@@ -24,12 +24,19 @@ Aplicativo de planejamento financeiro pessoal e patrimonial para brasileiros —
 
 ```sh
 npm install          # instala dependências
+npm ci               # instalação limpa determinística (CI / reset local)
 npm run dev          # dev server com HMR (porta 8080)
 npm run build        # build de produção
 npm run preview      # serve o build localmente
 npm run lint         # ESLint (zero erros é critério de aceite)
-npx vitest run       # roda a suíte de testes
+npm test             # roda a suíte de testes uma vez (Vitest, comando oficial de CI)
+npm run test:watch   # modo watch durante desenvolvimento
 ```
+
+> **CI oficial:** `npm ci && npm run lint && npm test && npm run build`.
+> O `vitest.config.ts` está configurado com `clearMocks`, pool de forks
+> limitado (`maxForks: 2`) e `teardownTimeout` curto para encerrar de
+> forma determinística e evitar processos pendurados.
 
 ## Arquitetura de dados
 
@@ -79,13 +86,22 @@ Camada derivada única em `src/hooks/useFinancialCore.ts` calcula reserva, taxa 
 
 ## Testes
 
-Vitest + Testing Library cobrem os fluxos críticos de dados. Rodar tudo:
+Vitest + Testing Library cobrem os fluxos críticos de dados. Comandos:
 
 ```sh
-npx vitest run        # CI / one-shot
-npx vitest            # modo watch durante desenvolvimento
-npx vitest run path/to/file.test.ts  # arquivo específico
+npm test                              # CI / one-shot (equivalente a vitest run)
+npm run test:watch                    # modo watch durante desenvolvimento
+npx vitest run path/to/file.test.ts   # arquivo específico
 ```
+
+Boas práticas adotadas para confiabilidade:
+- `clearMocks: true` no Vitest limpa histórico entre testes sem destruir
+  implementações de mock declaradas no escopo do módulo.
+- `cleanup()` do Testing Library roda em `afterEach` global
+  (`src/test/setup.ts`) para desmontar o DOM entre testes.
+- `auditService` é mockado nos testes de RPC (`transactionalRpcs`,
+  `planWriterModeSwitch`) para evitar chamadas fire-and-forget a
+  `supabase.from("audit_log")` fora do escopo testado.
 
 Fluxos cobertos hoje (não removíveis sem substituição):
 

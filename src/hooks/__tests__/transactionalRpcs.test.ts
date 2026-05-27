@@ -18,6 +18,15 @@ vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => ({ user: { id: "user-1" } }),
 }));
 
+// auditService é fire-and-forget e tenta gravar em audit_log/product_events.
+// Nestes testes focamos só nas RPCs transacionais — mockamos o serviço
+// para evitar chamadas extras a supabase.from() e warnings de undefined.
+vi.mock("@/lib/services/auditService", () => ({
+  trackWriterChange: vi.fn().mockResolvedValue(undefined),
+  logAudit: vi.fn().mockResolvedValue({ ok: true }),
+  logProductEvent: vi.fn().mockResolvedValue({ ok: true }),
+}));
+
 import { renderHook, act } from "@testing-library/react";
 import { usePlanWriter } from "@/hooks/usePlanWriter";
 import { useMonthlyTrackingWriter } from "@/hooks/useMonthlyTrackingWriter";
@@ -93,9 +102,7 @@ describe("useMonthlyTrackingWriter.upsertMonth", () => {
       }),
     );
     expect(res.data?.id).toBe("t1");
-    // RPC path não cai no fallback de monthly_tracking. Permitido apenas
-    // chamadas para audit_log/product_events do auditService.
-    const tables = fromMock.mock.calls.map((c) => c[0]);
-    expect(tables.every((t) => t === "audit_log" || t === "product_events")).toBe(true);
+    // RPC path não pode cair no fallback de monthly_tracking.
+    expect(fromMock).not.toHaveBeenCalled();
   });
 });
