@@ -18,6 +18,15 @@ vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => ({ user: { id: "user-1" } }),
 }));
 
+// auditService é fire-and-forget e tenta gravar em audit_log/product_events.
+// Nestes testes focamos só nas RPCs transacionais — mockamos o serviço
+// para evitar chamadas extras a supabase.from() e warnings de undefined.
+vi.mock("@/lib/services/auditService", () => ({
+  trackWriterChange: vi.fn().mockResolvedValue(undefined),
+  logAudit: vi.fn().mockResolvedValue({ ok: true }),
+  logProductEvent: vi.fn().mockResolvedValue({ ok: true }),
+}));
+
 import { renderHook, act } from "@testing-library/react";
 import { usePlanWriter } from "@/hooks/usePlanWriter";
 import { useMonthlyTrackingWriter } from "@/hooks/useMonthlyTrackingWriter";
