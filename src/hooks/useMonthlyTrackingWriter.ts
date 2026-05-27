@@ -13,6 +13,7 @@
 import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { trackWriterChange } from "@/lib/services/auditService";
 
 export interface MonthlyTrackingRow {
   id: string;
