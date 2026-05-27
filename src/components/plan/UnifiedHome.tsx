@@ -161,15 +161,15 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
 
       {/* ── 6. Indicadores rápidos ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-4">
-        <IndicatorCard icon="💪" label="Estrutura" value={`${healthScore}`} sub={`Organização geral: ${healthLabel.toLowerCase()}`} valueColor={healthColor}
+        <IndicatorCard Icon={Activity} label="Estrutura" value={`${healthScore}`} sub={`Organização geral: ${healthLabel.toLowerCase()}`} valueColor={healthColor}
           onClick={() => onNavigateToTab("diagnostico")} />
-        <IndicatorCard icon="🛡️" label="Reserva" value={`${metrics.reserveMonths.toFixed(1)}m`}
+        <IndicatorCard Icon={Shield} label="Reserva" value={`${metrics.reserveMonths.toFixed(1)}m`}
           sub={metrics.reserveStatus === "complete" ? "Dinheiro para imprevistos" : metrics.reserveStatus === "partial" ? "Proteção em construção" : "Comece pelos imprevistos"}
           valueColor={metrics.reserveStatus === "complete" ? "text-primary" : metrics.reserveStatus === "partial" ? "text-warning" : "text-destructive"} />
-        <IndicatorCard icon="📈" label="Poupança" value={metrics.totalIncome > 0 ? `${(metrics.savingsRate * 100).toFixed(0)}%` : "—"}
+        <IndicatorCard Icon={TrendingUp} label="Poupança" value={metrics.totalIncome > 0 ? `${(metrics.savingsRate * 100).toFixed(0)}%` : "—"}
           sub={metrics.savingsRate >= 0.2 ? "Sobra para investir" : metrics.savingsRate >= 0.1 ? "Bom começo" : "Ajustar gastos"}
           valueColor={metrics.savingsRate >= 0.2 ? "text-primary" : metrics.savingsRate >= 0.1 ? "text-warning" : "text-destructive"} />
-        <IndicatorCard icon="🏛️" label="Concentração" value={`${(metrics.protectedRatio * 100).toFixed(0)}%`}
+        <IndicatorCard Icon={Landmark} label="Concentração" value={`${(metrics.protectedRatio * 100).toFixed(0)}%`}
           sub={metrics.protectedRatio >= 0.6 ? "Risco bem dividido" : metrics.protectedRatio >= 0.3 ? "Revisar distribuição" : "Muito concentrado"}
           valueColor={metrics.protectedRatio >= 0.6 ? "text-primary" : metrics.protectedRatio >= 0.3 ? "text-warning" : "text-destructive"}
           onClick={() => onNavigateToTab("estrutura")} />
@@ -408,15 +408,15 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
   );
 }
 
-function IndicatorCard({ icon, label, value, sub, valueColor, onClick }: {
-  icon: string; label: string; value: string; sub: string; valueColor: string; onClick?: () => void;
+function IndicatorCard({ Icon, label, value, sub, valueColor, onClick }: {
+  Icon: LucideIcon; label: string; value: string; sub: string; valueColor: string; onClick?: () => void;
 }) {
   return (
     <Card
       className={`glass-card p-3.5 lg:p-5 text-center ${onClick ? "cursor-pointer hover:ring-1 hover:ring-primary/20 active:scale-[0.97]" : ""} transition-all`}
       onClick={onClick}
     >
-      <p className="text-sm lg:text-base mb-1">{icon}</p>
+      <Icon className="w-4 h-4 lg:w-5 lg:h-5 mx-auto mb-1 text-muted-foreground" aria-hidden />
       <p className={`text-lg lg:text-xl font-bold ${valueColor}`}>{value}</p>
       <p className="text-[10px] sm:text-xs text-muted-foreground uppercase mt-0.5">{label}</p>
       <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">{sub}</p>
