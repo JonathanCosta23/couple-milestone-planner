@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, type ComponentType } from "react";
 import { PlanConfig, MonthRecord, ProjectionRow, formatBRL, formatBRLCompact, formatPercent, monthKeyToLabel, MILESTONES } from "@/lib/types";
 import { generateProjection, getReachedMilestones } from "@/lib/calculator";
 import { exportProjectionCSV, exportTrackerCSV } from "@/lib/export";
@@ -13,7 +13,7 @@ interface DashboardProps {
   startDate: string;
 }
 
-function StatCard({ icon: Icon, label, value, sub, color }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; sub?: string; color: string }) {
+function StatCard({ icon: Icon, label, value, sub, color }: { icon: ComponentType<{ className?: string }>; label: string; value: string; sub?: string; color: string }) {
   return (
     <Card className="glass-card p-4 lg:p-5">
       <div className="flex items-start gap-2.5 lg:gap-3">
