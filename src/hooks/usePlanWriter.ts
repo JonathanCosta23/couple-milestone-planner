@@ -85,7 +85,7 @@ export function usePlanWriter() {
       });
 
       if (!rpcRes.error && rpcRes.data) {
-        const payload = rpcRes.data as { plan: PlanRow; members: PlanMemberRow[] };
+        const payload = rpcRes.data as unknown as { plan: PlanRow; members: PlanMemberRow[] };
         return { data: { plan: payload.plan, members: payload.members ?? [] }, error: null };
       }
 
