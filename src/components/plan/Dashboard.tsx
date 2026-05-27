@@ -51,7 +51,7 @@ export function Dashboard({ config, monthRecords, startDate }: DashboardProps) {
 
   const sampleRate = planned.length > 120 ? Math.ceil(planned.length / 60) : 1;
   const chartData = useMemo(() => {
-    const result: any[] = [];
+    const result: { name: string; Planejado: number; Real: number }[] = [];
     for (let i = 0; i < planned.length; i += sampleRate) {
       result.push({
         name: monthKeyToLabel(planned[i].date),
