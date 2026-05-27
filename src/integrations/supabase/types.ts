@@ -427,6 +427,36 @@ export type Database = {
           },
         ]
       }
+      legal_consents: {
+        Row: {
+          accepted_at: string
+          consent_type: string
+          created_at: string
+          id: string
+          metadata: Json
+          user_id: string
+          version: string
+        }
+        Insert: {
+          accepted_at?: string
+          consent_type: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          user_id: string
+          version: string
+        }
+        Update: {
+          accepted_at?: string
+          consent_type?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          user_id?: string
+          version?: string
+        }
+        Relationships: []
+      }
       milestones: {
         Row: {
           created_at: string
