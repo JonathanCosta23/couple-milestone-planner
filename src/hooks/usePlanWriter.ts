@@ -254,6 +254,33 @@ export function usePlanWriter() {
       const uid = ensureUser(user?.id);
       if (!uid) return { data: null, error: "Usuário não autenticado." };
 
+      // Caminho preferencial: RPC transacional. Precisa do nome do primary
+      // atual para não mexer no titular.
+      const { data: primary } = await supabase
+        .from("plan_members")
+        .select("name, age")
+        .eq("plan_id", planId)
+        .eq("user_id", uid)
+        .eq("is_primary", true)
+        .maybeSingle();
+
+      if (primary?.name) {
+        const rpcRes = await supabase.rpc("upsert_plan_with_members", {
+          p_mode: mode,
+          p_primary_name: primary.name,
+          p_primary_age: primary.age ?? null,
+          p_partner_name: partner?.name ?? null,
+          p_partner_age: partner?.age ?? null,
+        });
+        if (!rpcRes.error && rpcRes.data) {
+          const payload = rpcRes.data as unknown as { plan: PlanRow; members: PlanMemberRow[] };
+          return { data: { plan: payload.plan, members: payload.members ?? [] }, error: null };
+        }
+        if (rpcRes.error && !/function .* does not exist|PGRST202/i.test(rpcRes.error.message)) {
+          return { data: null, error: rpcRes.error.message };
+        }
+      }
+
       const { data: planData, error: planErr } = await supabase
         .from("plans")
         .update({ mode })
