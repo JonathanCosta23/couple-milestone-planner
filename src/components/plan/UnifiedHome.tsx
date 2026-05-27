@@ -193,22 +193,6 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
 
       {/* ── Desktop: Two-column action cards ── */}
       <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-5 lg:space-y-0">
-        {/* ── 3. Próximo melhor passo ── */}
-        {false && nextBestAction && (
-          <Card className="action-card animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <Zap className="w-5 h-5 text-primary" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs text-primary font-bold uppercase tracking-wider mb-0.5">Próximo passo</p>
-                <p className="text-sm lg:text-base font-semibold leading-snug">{nextBestAction.title}</p>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">{nextBestAction.message}</p>
-              </div>
-            </div>
-          </Card>
-        )}
-
         {/* ── 4. Principal gargalo ── */}
         {biggestBottleneck && (
           <Card className="alert-card animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
