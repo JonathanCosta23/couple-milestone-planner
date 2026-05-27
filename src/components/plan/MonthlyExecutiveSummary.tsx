@@ -2,12 +2,7 @@ import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatBRL } from "@/lib/types";
 import type { PlanConfig, MonthRecord } from "@/lib/types";
 import {
@@ -114,8 +109,8 @@ export function MonthlyExecutiveSummary({
 
       {summary.isCouple && summary.perMember.length > 1 && (
         <div className="space-y-1.5 pt-1 border-t border-border/40">
-          {summary.perMember.map((m) => (
-            <div key={m.name} className="space-y-1">
+          {summary.perMember.map((m, idx) => (
+            <div key={`${m.name || "membro"}-${idx}`} className="space-y-1">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground truncate">{m.name}</span>
                 <span className="font-medium">
@@ -137,22 +132,22 @@ export function MonthlyExecutiveSummary({
             <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
               Disciplina de execução
             </p>
-            <TooltipProvider delayDuration={150}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label="Como o score é calculado"
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <Info className="w-3.5 h-3.5" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-[260px] text-xs leading-snug">
-                  {score.explanation}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            {/* Popover funciona em toque (mobile) e clique (desktop), ao
+                contrário do Tooltip que só responde a hover. */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Como o score é calculado"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Info className="w-3.5 h-3.5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="top" align="start" className="max-w-[280px] text-xs leading-snug">
+                {score.explanation}
+              </PopoverContent>
+            </Popover>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">{score.label}</p>
         </div>
