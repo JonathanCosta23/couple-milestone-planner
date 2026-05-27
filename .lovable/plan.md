@@ -1,6 +1,6 @@
 # Plano do Milhão — Refatoração Estrutural
 
-Status: **Fase 2.D em curso · Login obrigatório ativo · Writers em produção** · Atualizado: 2026-05-27
+Status: **Fase 2.D concluída · Supabase normalizado oficial para meses · Login obrigatório ativo** · Atualizado: 2026-05-27
 
 ## Princípios da refatoração
 
@@ -31,7 +31,7 @@ Dividida em 4 lotes para reduzir risco:
   - Lote 4 ✅: login obrigatório (`AuthPage` como porta de entrada, modo anônimo desativado).
 - **2.B — assets ✅**: `useAssetWriter` espelhando `usePlanWriter` (CRUD em `assets`, hidratação cloud-first com cache local).
 - **2.C — income, expenses, debts ✅**: `useIncomeWriter`, `useExpenseWriter`, `useDebtWriter` ativos. `useCloudSync` segue em paralelo como rede de segurança até Fase 2.D fechar.
-- **2.D — monthly_tracking + monthly_member_tracking ⏳**: `useMonthlyTrackingWriter` em produção para registros mensais; falta consolidar o split por participante em `monthly_member_tracking` e remover a dependência do blob `user_financial_data`.
+- **2.D — monthly_tracking + monthly_member_tracking ✅**: `useMonthlyTrackingWriter` grava o mês completo via RPC transacional `upsert_month_with_members` (totais + split por participante). `useDataHydration` carrega meses + depósitos por membro do Supabase normalizado e vence sobre o cache local. `QuickDeposit` e `MonthlyTracker` passam pelo `useTrackingActions`, que delega ao writer. Blob `user_financial_data` deixou de ser fonte operacional para dados mensais — só é lido em migração controlada quando as tabelas estão vazias.
 - **2.E — desligar autosave do blob ✅**: `useDataLifecycle` não grava mais `user_financial_data` continuamente. Blob vira legado controlado, escrito apenas em migração explícita e zerado pelo `resetService`. Flag `plano-do-milhao-migration-done:<uid>` evita reimportar o mesmo blob; Supabase normalizado vence sobre cache local no login.
 
 ### Fase 3 — Coerência financeira

@@ -47,11 +47,11 @@ Fonte de verdade desejada: **tabelas Supabase normalizadas**. CRUD acontece via 
 - `useIncomeWriter` → `incomes`
 - `useExpenseWriter` → `expenses`
 - `useDebtWriter` → `debts`
-- `useMonthlyTrackingWriter` → `monthly_tracking` (+ `monthly_member_tracking` em curso)
+- `useMonthlyTrackingWriter` → `monthly_tracking` + `monthly_member_tracking` (RPC transacional `upsert_month_with_members`)
 
 Camada derivada única em `src/hooks/useFinancialCore.ts` calcula reserva, taxa de poupança, score de saúde, fase da jornada, projeções nominal/líquido/real e próximo melhor passo. Todas as telas leem dessa camada.
 
-**localStorage e blob `user_financial_data`** existem apenas como **compatibilidade de migração** e cache offline. Não são fonte de verdade; `useCloudSync` os mantém em paralelo até a Fase 2.D consolidar os writers normalizados. `dataMigrationService` e `blobMigrationService` migram dados antigos para o schema normalizado no primeiro login.
+**localStorage e blob `user_financial_data`** existem apenas como **compatibilidade de migração** e cache offline. Não são fonte de verdade: todos os writers normalizados (incluindo `monthly_tracking` e `monthly_member_tracking`, concluídos na Fase 2.D) escrevem direto nas tabelas Supabase, e a hidratação por `useDataHydration` sempre vence sobre o cache local. `dataMigrationService` e `blobMigrationService` migram dados antigos para o schema normalizado no primeiro login.
 
 ### Fonte de verdade (Fase 2.E)
 
