@@ -86,6 +86,16 @@ export function usePlanWriter() {
 
       if (!rpcRes.error && rpcRes.data) {
         const payload = rpcRes.data as unknown as { plan: PlanRow; members: PlanMemberRow[] };
+        void trackWriterChange({
+          userId: uid,
+          planId: payload.plan.id,
+          entity: "plan",
+          entityId: payload.plan.id,
+          action: "create",
+          newValue: payload.plan as unknown as Record<string, unknown>,
+          event: "plan_created",
+          eventProperties: { mode: input.mode, members: payload.members?.length ?? 0 },
+        });
         return { data: { plan: payload.plan, members: payload.members ?? [] }, error: null };
       }
 
