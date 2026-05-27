@@ -46,6 +46,14 @@ Camada derivada única em `src/hooks/useFinancialCore.ts` calcula reserva, taxa 
 
 **localStorage e blob `user_financial_data`** existem apenas como **compatibilidade de migração** e cache offline. Não são fonte de verdade; `useCloudSync` os mantém em paralelo até a Fase 2.D consolidar os writers normalizados. `dataMigrationService` e `blobMigrationService` migram dados antigos para o schema normalizado no primeiro login.
 
+### Fonte de verdade (Fase 2.E)
+
+- **Supabase normalizado é a fonte oficial de verdade** para dados financeiros. Todo CRUD novo passa pelos writers (`usePlanWriter`, `useAssetWriter`, `useIncomeWriter`, `useExpenseWriter`, `useDebtWriter`, `useMonthlyTrackingWriter`).
+- **`user_financial_data` (blob JSONB) é legado controlado**. Não há mais autosave contínuo: o blob só é escrito em pontos explícitos de migração (handleUseLocal do diálogo de conflito e primeiro upload de cache local quando o usuário ainda não tem dados na nuvem) e zerado pelo `resetService`.
+- **localStorage é cache e preferência**. Continua guardando `plano-do-milhao-v6` / `plano-do-milhao-app-v7` para uso offline e migração, mas nunca sobrescreve dados normalizados carregados do Supabase no login.
+- Ao logar, a hidratação das tabelas normalizadas vence sobre o cache local. Se as tabelas estiverem vazias e o blob legado tiver dados, o `BlobMigrationDialog` oferece a migração uma única vez.
+- O flag por usuário `plano-do-milhao-migration-done:<uid>` marca a migração como resolvida e impede que o mesmo blob seja reimportado em sessões futuras. O `resetService` limpa esse flag junto com o resto do cache do produto.
+
 ## Fluxo básico do usuário
 
 1. Login ou cadastro (e-mail, Google).
