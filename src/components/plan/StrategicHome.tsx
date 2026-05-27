@@ -11,7 +11,7 @@ import { EducationalTooltip } from "./EducationalTooltip";
 import { MentorshipHome } from "./MentorshipHome";
 import {
   Activity, Target, Shield, AlertTriangle, TrendingUp, DollarSign,
-  Heart, Lightbulb, ArrowRight, Trophy, Zap, CreditCard, Wallet, Flame, CheckCircle, Check,
+  Heart, Lightbulb, ArrowRight, Trophy, Zap, CreditCard, Wallet, Flame, Check,
 } from "lucide-react";
 
 interface Props {
