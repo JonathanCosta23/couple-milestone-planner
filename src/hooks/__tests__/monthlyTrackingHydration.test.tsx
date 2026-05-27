@@ -12,11 +12,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 
-const listIncome = vi.fn().mockResolvedValue({ data: [], error: null });
-const listExpenses = vi.fn().mockResolvedValue({ data: [], error: null });
-const listDebts = vi.fn().mockResolvedValue({ data: [], error: null });
-const listMonthlyTracking = vi.fn();
-const listMemberTracking = vi.fn();
+const listIncome = vi.fn(async () => ({ data: [], error: null }));
+const listExpenses = vi.fn(async () => ({ data: [], error: null }));
+const listDebts = vi.fn(async () => ({ data: [], error: null }));
+const listMonthlyTracking = vi.fn(async () => ({ data: [], error: null }));
+const listMemberTracking = vi.fn(async () => ({ data: [], error: null }));
 
 vi.mock("@/hooks/useIncomeWriter", () => ({
   useIncomeWriter: () => ({ listIncome }),
@@ -43,27 +43,30 @@ const members: PlanMemberRow[] = [
 ];
 
 beforeEach(() => {
-  listMonthlyTracking.mockReset();
-  listMemberTracking.mockReset();
+  listMonthlyTracking.mockClear();
+  listMemberTracking.mockClear();
+  listIncome.mockClear();
+  listExpenses.mockClear();
+  listDebts.mockClear();
 });
 
 describe("useDataHydration — monthly_tracking + monthly_member_tracking", () => {
   it("hidrata monthRecords e mantém ordem titular → parceiro", async () => {
-    listMonthlyTracking.mockResolvedValueOnce({
+    listMonthlyTracking.mockImplementationOnce(async () => ({
       data: [
         { id: "t1", month_key: "2026-01", status: "partial", notes: "" },
         { id: "t2", month_key: "2026-02", status: "completed", notes: "ok" },
       ],
       error: null,
-    });
-    listMemberTracking.mockResolvedValueOnce({
+    }));
+    listMemberTracking.mockImplementationOnce(async () => ({
       data: [
         { monthly_tracking_id: "t1", plan_member_id: "m-primary", actual_selic: 100, actual_cdb: 50 },
         { monthly_tracking_id: "t1", plan_member_id: "m-partner", actual_selic: 70, actual_cdb: 30 },
         { monthly_tracking_id: "t2", plan_member_id: "m-primary", actual_selic: 200, actual_cdb: 0 },
       ],
       error: null,
-    });
+    }));
 
     const setAppData = vi.fn();
     const setPlanData = vi.fn();
@@ -85,9 +88,6 @@ describe("useDataHydration — monthly_tracking + monthly_member_tracking", () =
   });
 
   it("NÃO sobrescreve monthRecords locais quando a tabela está vazia", async () => {
-    listMonthlyTracking.mockResolvedValueOnce({ data: [], error: null });
-    listMemberTracking.mockResolvedValueOnce({ data: [], error: null });
-
     const setAppData = vi.fn();
     const setPlanData = vi.fn();
     renderHook(() =>
@@ -103,18 +103,18 @@ describe("useDataHydration — monthly_tracking + monthly_member_tracking", () =
   });
 
   it("modo individual gera apenas o slot do titular (parceiro ignorado)", async () => {
-    listMonthlyTracking.mockResolvedValueOnce({
+    listMonthlyTracking.mockImplementationOnce(async () => ({
       data: [{ id: "t1", month_key: "2026-03", status: "pending", notes: "" }],
       error: null,
-    });
-    listMemberTracking.mockResolvedValueOnce({
+    }));
+    listMemberTracking.mockImplementationOnce(async () => ({
       data: [
         { monthly_tracking_id: "t1", plan_member_id: "m-primary", actual_selic: 500, actual_cdb: 0 },
         // Depósito órfão de um parceiro que não está mais ativo: deve ser ignorado.
         { monthly_tracking_id: "t1", plan_member_id: "m-removed", actual_selic: 999, actual_cdb: 0 },
       ],
       error: null,
-    });
+    }));
 
     const setAppData = vi.fn();
     const setPlanData = vi.fn();
