@@ -285,6 +285,16 @@ export function usePlanWriter() {
         });
         if (!rpcRes.error && rpcRes.data) {
           const payload = rpcRes.data as unknown as { plan: PlanRow; members: PlanMemberRow[] };
+          void trackWriterChange({
+            userId: uid,
+            planId,
+            entity: "plan",
+            entityId: planId,
+            action: "update",
+            newValue: { mode } as Record<string, unknown>,
+            event: "plan_updated",
+            eventProperties: { mode },
+          });
           return { data: { plan: payload.plan, members: payload.members ?? [] }, error: null };
         }
         if (rpcRes.error && !/function .* does not exist|PGRST202/i.test(rpcRes.error.message)) {
