@@ -5,11 +5,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const rpcMock = vi.fn();
+const insertMock = vi.fn();
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     rpc: (...args: unknown[]) => rpcMock(...args),
     from: () => ({
-      insert: vi.fn().mockResolvedValue({ error: null }),
+      insert: (...a: unknown[]) => insertMock(...a),
     }),
   },
 }));
@@ -27,6 +28,8 @@ import { resetUserPlan } from "@/lib/services/resetService";
 
 beforeEach(() => {
   rpcMock.mockReset();
+  insertMock.mockReset();
+  insertMock.mockResolvedValue({ error: null });
   clearAllMock.mockClear();
   listDeadLettersMock.mockClear();
   removeWriteMock.mockClear();
@@ -97,5 +100,28 @@ describe("resetService.resetUserPlan", () => {
     expect(res.cleared.rpc).toBe(false);
     expect(res.cleared.offlineQueue).toBe(true);
     expect(localStorage.getItem("plano-do-milhao-v6")).toBeNull();
+  });
+
+  it("registra evento de auditoria crítica ao resetar com sucesso", async () => {
+    rpcMock.mockResolvedValueOnce({ data: { ok: true }, error: null });
+    const res = await resetUserPlan("user-1");
+    expect(res.audit.ok).toBe(true);
+    // product_events insert deve ter sido chamado com plan_reset
+    const calls = insertMock.mock.calls.map((c) => c[0]);
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ event_name: "plan_reset", user_id: "user-1" }),
+      ]),
+    );
+  });
+
+  it("falha de auditoria crítica gera alerta explícito (audit.ok=false)", async () => {
+    rpcMock.mockResolvedValueOnce({ data: { ok: true }, error: null });
+    insertMock.mockResolvedValueOnce({ error: { message: "audit_down" } });
+    const res = await resetUserPlan("user-1");
+    expect(res.ok).toBe(true);
+    expect(res.cleared.rpc).toBe(true);
+    expect(res.audit.ok).toBe(false);
+    expect(res.audit.error).toBe("audit_down");
   });
 });
