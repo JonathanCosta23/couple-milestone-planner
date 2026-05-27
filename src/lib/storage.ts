@@ -158,15 +158,16 @@ export function parseImportJSON(json: string): ImportPreview {
     return { valid: false, errorMessage: "Formato de arquivo não reconhecido.", version: "—", filledMonths: 0, exportedAt: null, data: null };
   }
 
-  if (!parsed.config || typeof parsed.wizardComplete !== "boolean") {
+  const parsedObj = parsed as Record<string, unknown>;
+  if (!parsedObj.config || typeof parsedObj.wizardComplete !== "boolean") {
     return { valid: false, errorMessage: "Arquivo não parece ser um plano válido. Campos obrigatórios ausentes (config, wizardComplete).", version: "—", filledMonths: 0, exportedAt: null, data: null };
   }
 
-  const meta = parsed._meta as PlanDataExportMeta | undefined;
-  const version = meta?.schemaVersion || parsed.schemaVersion || "legado";
+  const meta = parsedObj._meta as PlanDataExportMeta | undefined;
+  const version = meta?.schemaVersion || (parsedObj.schemaVersion as string | undefined) || "legado";
   const exportedAt = meta?.exportedAt || null;
 
-  const { _meta, _backupAt, ...rest } = parsed;
+  const { _meta, _backupAt, ...rest } = parsedObj;
   const normalized = normalizePlanData(rest);
 
   const filledMonths = normalized.monthRecords.filter(r =>
