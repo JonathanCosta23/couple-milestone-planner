@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, Loader2 } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface AuthPageProps {
   onClose?: () => void;
@@ -54,7 +55,8 @@ export function AuthPage({ onClose, onSuccess, mode: initialMode = "login", show
           } else if (msg.toLowerCase().includes("email")) {
             toast.error("E-mail inválido. Verifique e tente novamente.");
           } else {
-            toast.error(`Erro ao criar conta: ${msg || "tente novamente"}`);
+            logger.warn("auth.signup.fallback", { code, message: msg });
+            toast.error("Erro ao criar conta. Tente novamente.");
           }
         } else {
           toast.success("Conta criada! Verifique seu e-mail para confirmar.", { duration: 6000 });
