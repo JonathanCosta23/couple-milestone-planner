@@ -519,6 +519,7 @@ const Index = () => {
   };
 
   return (
+    <ConsentGate userId={user.id} onSignOut={handleSignOut}>
     <div className="min-h-screen bg-background pb-20 lg:pb-4">
       <OfflineBanner />
       <AppHeader
@@ -608,6 +609,7 @@ const Index = () => {
 
       <LegalFooter onRequestReset={() => setShowResetDialog(true)} />
     </div>
+    </ConsentGate>
   );
 };
 
