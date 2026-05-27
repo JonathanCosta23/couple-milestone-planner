@@ -67,6 +67,33 @@ export function usePlanWriter() {
       const uid = ensureUser(user?.id);
       if (!uid) return { data: null, error: "Usuário não autenticado." };
 
+      // Caminho preferencial: RPC transacional (plano + membros em uma tx).
+      const rpcRes = await supabase.rpc("upsert_plan_with_members", {
+        p_mode: input.mode,
+        p_primary_name: input.primaryName,
+        p_primary_age: input.primaryAge ?? null,
+        p_partner_name: input.partnerName ?? null,
+        p_partner_age: input.partnerAge ?? null,
+        p_goal_amount: input.goalAmount ?? null,
+        p_initial_amount: input.initialAmount ?? null,
+        p_monthly_contribution: input.monthlyContribution ?? null,
+        p_goal_years: input.goalYears ?? null,
+        p_goal_purpose: input.goalPurpose ?? null,
+        p_goal_purpose_custom: input.goalPurposeCustom ?? null,
+        p_wizard_complete: input.wizardComplete ?? true,
+        p_onboarding_complete: null,
+      });
+
+      if (!rpcRes.error && rpcRes.data) {
+        const payload = rpcRes.data as { plan: PlanRow; members: PlanMemberRow[] };
+        return { data: { plan: payload.plan, members: payload.members ?? [] }, error: null };
+      }
+
+      // Fallback (apenas se a RPC ainda não estiver disponível neste ambiente).
+      if (rpcRes.error && !/function .* does not exist|PGRST202/i.test(rpcRes.error.message)) {
+        return { data: null, error: rpcRes.error.message };
+      }
+
       // Reutiliza plano existente se houver (1 plano por usuário no MVP)
       const { data: existingPlans, error: fetchErr } = await supabase
         .from("plans")
