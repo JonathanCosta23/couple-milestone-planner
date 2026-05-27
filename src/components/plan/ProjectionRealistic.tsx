@@ -5,7 +5,7 @@ import { PlanConfig, MonthRecord, formatBRL, formatBRLCompact } from "@/lib/type
 import { simulateAdvancedScenario } from "@/lib/financialEngine";
 import { AppData } from "@/lib/models";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from "recharts";
-import { TrendingUp, Eye, EyeOff, ArrowUpRight, ArrowDownRight, Clock, DollarSign, Shield } from "lucide-react";
+import { TrendingUp, Eye, EyeOff, ArrowUpRight, ArrowDownRight, Clock, DollarSign, Shield, Info } from "lucide-react";
 
 import { FinancialCoreState } from "@/hooks/useFinancialCore";
 
@@ -70,6 +70,13 @@ export function ProjectionRealistic({ appData, config, monthRecords, startDate, 
         <h3 className="font-bold lg:text-lg">Projeção Realista</h3>
         <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-md mx-auto">
           Seu patrimônio nominal não é o que você vai ter de verdade. Veja o impacto de impostos e inflação.
+        </p>
+        <p className="mt-3 mx-auto max-w-md inline-flex items-start gap-1.5 text-[11px] text-muted-foreground/90 leading-snug text-left">
+          <Info className="w-3 h-3 mt-0.5 shrink-0" aria-hidden />
+          <span>
+            Estimativas baseadas nas premissas cadastradas (Selic, CDI, inflação, IR e aportes).
+            Não constituem recomendação de investimento.
+          </span>
         </p>
       </Card>
 
@@ -186,7 +193,10 @@ export function ProjectionRealistic({ appData, config, monthRecords, startDate, 
 
       {/* Education */}
       <Card className="glass-card p-4 lg:p-5 border-primary/20">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-primary mb-2">💡 Entenda a diferença</h4>
+        <h4 className="text-xs font-bold uppercase tracking-wider text-primary mb-2 flex items-center gap-1.5">
+          <Info className="w-3.5 h-3.5" aria-hidden />
+          Entenda a diferença
+        </h4>
         <div className="space-y-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
           <p><strong>Nominal</strong> é o número que aparece na conta. <strong>Líquido</strong> é o que sobra depois de pagar imposto. <strong>Real</strong> é o que esse dinheiro realmente compra.</p>
           <p>Chegar a R$ 1 milhão nominal em 20 anos não é a mesma coisa que ter R$ 1 milhão em poder de compra. A inflação corrói silenciosamente. Por isso, a meta real importa mais que a meta nominal.</p>
