@@ -20,7 +20,7 @@ const PHASE_ORDER = ["chaos", "control", "protection", "accumulation", "accelera
 export function JourneyPhases({ appData, config, monthRecords, startDate, core }: Props) {
   const { journey, metrics, allocation } = core;
   const currentPhase = journey.currentPhase;
-  const currentIdx = PHASE_ORDER.indexOf(currentPhase as any);
+  const currentIdx = PHASE_ORDER.indexOf(currentPhase as typeof PHASE_ORDER[number]);
 
   // Use old phase info for detailed content (priorities, recommendations etc)
   const phaseInfo = OLD_PHASES.find(p => p.id === currentPhase) || OLD_PHASES[0];

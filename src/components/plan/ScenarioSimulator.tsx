@@ -11,7 +11,7 @@ interface ScenarioSimulatorProps {
   startDate: string;
 }
 
-const scenarios: { key: "pause6" | "pause12" | "increase10" | "decrease20"; icon: any; label: string; color: string }[] = [
+const scenarios: { key: "pause6" | "pause12" | "increase10" | "decrease20"; icon: React.ComponentType<{ className?: string }>; label: string; color: string }[] = [
   { key: "pause6", icon: PauseCircle, label: "Pausar 6 meses", color: "text-warning" },
   { key: "pause12", icon: PauseCircle, label: "Pausar 1 ano", color: "text-destructive" },
   { key: "increase10", icon: TrendingUp, label: "Aumentar +10%", color: "text-primary" },
