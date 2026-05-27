@@ -46,6 +46,8 @@ import {
   countWrites,
   countDeadLetters,
   MAX_WRITE_ATTEMPTS,
+  sanitizeUpdatePayload,
+  validateCreatePayload,
   type QueuedWrite,
   type WriteEntity,
   type WriteOp,
@@ -260,9 +262,24 @@ export function OfflineQueueProvider({ children }: ProviderProps) {
           return await dispatchMonthlyTrackingWrite(write, askUserForConflict);
         }
         if (write.op === "create") {
-          const payload = { ...write.payload, user_id: write.userId };
-          if (write.planId) (payload as Record<string, unknown>).plan_id = write.planId;
-          if (write.memberId) (payload as Record<string, unknown>).member_id = write.memberId;
+          const validation = validateCreatePayload(write);
+          if (validation.ok === false) {
+            const reason = validation.reason;
+            logger.error("offlineQueue.dispatch.invalid_create", {
+              entity: write.entity,
+              entityId: write.entityId,
+              userId: write.userId,
+              planId: write.planId,
+              memberId: write.memberId,
+              reason,
+            });
+            await deadLetterWrite(write.id, reason);
+            toast.error(
+              `Um ${ENTITY_LABEL[write.entity]} ficou sem titular válido e precisa de revisão em Dados.`,
+            );
+            return "done";
+          }
+          const payload = validation.payload;
           const { data, error } = await supabase
             .from(table as never)
             .insert(payload as never)
@@ -298,10 +315,9 @@ export function OfflineQueueProvider({ children }: ProviderProps) {
             }
           }
 
-          const updatePayload = { ...write.payload };
-          delete (updatePayload as Record<string, unknown>).user_id;
-          delete (updatePayload as Record<string, unknown>).plan_id;
-          if (write.memberId !== null) (updatePayload as Record<string, unknown>).member_id = write.memberId;
+          // Sanitiza: jamais sobrescreve member_id da nuvem se o payload
+          // original não mencionou explicitamente esse campo.
+          const updatePayload = sanitizeUpdatePayload(write);
           const { error } = await supabase
             .from(table as never)
             .update(updatePayload as never)

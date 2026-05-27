@@ -340,3 +340,92 @@ export async function countDeadLetters(userId: string): Promise<number> {
     return 0;
   }
 }
+
+// ============================================================================
+// Helpers puros de validação/sanitização do replay.
+//
+// Isolados aqui para serem testáveis sem IndexedDB e para garantir que o
+// dispatcher (useOfflineQueue) e qualquer consumidor futuro apliquem
+// EXATAMENTE as mesmas regras de integridade ao reabrir conexão.
+//
+// Regras de produto que justificam cada helper:
+//   1. Replay NUNCA pode reintroduzir `member_id = null` num registro que
+//      depende de titular (asset).  Se o titular sumiu, vai para dead-letter.
+//   2. Update parcial NUNCA pode sobrescrever `member_id` que já existe na
+//      nuvem — só envia se o payload original mencionou explicitamente.
+//   3. Conflict resolution "mine" preserva member_id do servidor pelo
+//      mesmo motivo: payload sem member_id ⇒ não tocar nesse campo.
+// ============================================================================
+
+/** Entidades que exigem member_id válido para serem criadas. */
+const ENTITY_REQUIRES_MEMBER: ReadonlySet<WriteEntity> = new Set(["asset"]);
+
+/** Resolve o member_id final de um write (payload tem prioridade sobre snapshot). */
+export function resolveMemberId(write: Pick<QueuedWrite, "payload" | "memberId">): string | null {
+  const fromPayload = write.payload?.member_id;
+  if (typeof fromPayload === "string" && fromPayload.length > 0) return fromPayload;
+  if (fromPayload === null) return null;
+  return write.memberId ?? null;
+}
+
+/** True se o payload original mencionou member_id (mesmo como null explícito). */
+export function payloadMentionsMember(payload: Record<string, unknown> | undefined | null): boolean {
+  if (!payload) return false;
+  return Object.prototype.hasOwnProperty.call(payload, "member_id");
+}
+
+/**
+ * Sanitiza payload de UPDATE antes do replay:
+ *  - Remove user_id/plan_id (jamais devem ser alterados via update).
+ *  - Só inclui member_id se o payload original mencionou explicitamente
+ *    OU se o write é de troca de titular (out-of-band do payload).
+ *  - Devolve cópia rasa — não muta a entrada.
+ */
+export function sanitizeUpdatePayload(write: Pick<QueuedWrite, "payload" | "memberId">): Record<string, unknown> {
+  const payload = { ...(write.payload ?? {}) } as Record<string, unknown>;
+  delete payload.user_id;
+  delete payload.plan_id;
+  if (!payloadMentionsMember(write.payload)) {
+    // Não tocar em member_id — preserva vínculo existente no banco/cloud.
+    delete payload.member_id;
+  } else {
+    // Payload mencionou: usa o valor resolvido (string ou null explícito).
+    const resolved = resolveMemberId(write);
+    if (resolved === null) {
+      delete payload.member_id;
+    } else {
+      payload.member_id = resolved;
+    }
+  }
+  return payload;
+}
+
+export type CreateValidation =
+  | { ok: false; reason: string }
+  | { ok: true; payload: Record<string, unknown> };
+
+/**
+ * Valida e monta o payload de CREATE para replay.
+ * Falhas devem ser enviadas ao dead-letter — nunca tentar inserir dado órfão.
+ */
+export function validateCreatePayload(
+  write: Pick<QueuedWrite, "entity" | "userId" | "planId" | "payload" | "memberId">,
+): CreateValidation {
+  if (!write.userId) return { ok: false, reason: "Write sem user_id." };
+  const payload: Record<string, unknown> = { ...(write.payload ?? {}), user_id: write.userId };
+  if (write.planId) payload.plan_id = write.planId;
+
+  const memberId = resolveMemberId(write);
+  if (memberId) payload.member_id = memberId;
+
+  if (ENTITY_REQUIRES_MEMBER.has(write.entity)) {
+    if (!write.planId) {
+      return { ok: false, reason: `Replay de ${write.entity} sem plan_id válido.` };
+    }
+    if (!memberId) {
+      return { ok: false, reason: `Replay de ${write.entity} sem member_id válido — titular ausente.` };
+    }
+  }
+
+  return { ok: true, payload };
+}
