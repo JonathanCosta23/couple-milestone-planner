@@ -86,9 +86,13 @@ export function useCloudSync() {
   const hasCloudData = useCallback(async (userId: string): Promise<boolean> => {
     const cloud = await loadFromCloud(userId);
     if (!cloud) return false;
-    const pd = cloud.planData as any;
-    const ad = cloud.appData as any;
-    return !!(pd?.wizardComplete || ad?.incomes?.length > 0 || ad?.expenses?.length > 0);
+    const pd = cloud.planData;
+    const ad = cloud.appData;
+    return !!(
+      pd?.wizardComplete ||
+      (ad?.incomes?.length ?? 0) > 0 ||
+      (ad?.expenses?.length ?? 0) > 0
+    );
   }, [loadFromCloud]);
 
   return {
