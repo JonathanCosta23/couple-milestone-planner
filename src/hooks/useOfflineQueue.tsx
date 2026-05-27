@@ -263,16 +263,17 @@ export function OfflineQueueProvider({ children }: ProviderProps) {
         }
         if (write.op === "create") {
           const validation = validateCreatePayload(write);
-          if (!validation.ok) {
+          if (validation.ok === false) {
+            const reason = validation.reason;
             logger.error("offlineQueue.dispatch.invalid_create", {
               entity: write.entity,
               entityId: write.entityId,
               userId: write.userId,
               planId: write.planId,
               memberId: write.memberId,
-              reason: validation.reason,
+              reason,
             });
-            await deadLetterWrite(write.id, validation.reason);
+            await deadLetterWrite(write.id, reason);
             toast.error(
               `Um ${ENTITY_LABEL[write.entity]} ficou sem titular válido e precisa de revisão em Dados.`,
             );
