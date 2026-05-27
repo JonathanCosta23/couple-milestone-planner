@@ -16,6 +16,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
+import { logProductEvent } from "@/lib/services/auditService";
 import { clearAll, listDeadLetters, removeWrite } from "@/lib/offlineQueue";
 
 // Chaves do produto (mantidas em sincronia com storage.ts, appStorage.ts,
@@ -104,6 +105,12 @@ export async function resetUserPlan(userId: string): Promise<ResetResult> {
       logger.error("reset.rpc.fail", { userId }, error.message);
     } else {
       result.cleared.rpc = true;
+      void logProductEvent({
+        userId,
+        event: "plan_reset",
+        properties: { source: "user_action" },
+        critical: true,
+      });
     }
   } catch (err) {
     result.ok = false;

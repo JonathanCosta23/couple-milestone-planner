@@ -6,6 +6,7 @@ import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { Expense } from "@/lib/models";
+import { trackWriterChange } from "@/lib/services/auditService";
 
 export interface ExpenseRow {
   id: string;
@@ -110,6 +111,12 @@ export function useExpenseWriter() {
       const { data, error } = await supabase
         .from("expenses").insert(payload as never).select().single();
       if (error || !data) return { data: null, error: error?.message ?? "Falha ao criar gasto." };
+      void trackWriterChange({
+        userId: uid, planId, entity: "expense",
+        entityId: (data as ExpenseRow).id, action: "create",
+        newValue: data as unknown as Record<string, unknown>,
+        event: "expense_created",
+      });
       return { data: data as ExpenseRow, error: null };
     },
     [user],
@@ -126,6 +133,12 @@ export function useExpenseWriter() {
         .from("expenses").update(payload as never)
         .eq("id", expenseId).eq("user_id", uid).select().single();
       if (error || !data) return { data: null, error: error?.message ?? "Falha ao atualizar gasto." };
+      void trackWriterChange({
+        userId: uid, planId, entity: "expense",
+        entityId: expenseId, action: "update",
+        newValue: data as unknown as Record<string, unknown>,
+        event: "expense_updated",
+      });
       return { data: data as ExpenseRow, error: null };
     },
     [user],
@@ -137,6 +150,10 @@ export function useExpenseWriter() {
       if (!uid) return { data: null, error: "Usuário não autenticado." };
       const { error } = await supabase.from("expenses").delete().eq("id", expenseId).eq("user_id", uid);
       if (error) return { data: null, error: error.message };
+      void trackWriterChange({
+        userId: uid, entity: "expense", entityId: expenseId,
+        action: "delete", event: "expense_deleted",
+      });
       return { data: true, error: null };
     },
     [user],

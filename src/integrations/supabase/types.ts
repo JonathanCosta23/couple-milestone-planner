@@ -104,6 +104,42 @@ export type Database = {
           },
         ]
       }
+      audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          entity: string
+          entity_id: string | null
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          plan_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity: string
+          entity_id?: string | null
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          plan_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity?: string
+          entity_id?: string | null
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          plan_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       debts: {
         Row: {
           created_at: string
@@ -684,6 +720,33 @@ export type Database = {
           updated_at?: string
           user_id?: string
           wizard_complete?: boolean
+        }
+        Relationships: []
+      }
+      product_events: {
+        Row: {
+          created_at: string
+          event_name: string
+          id: string
+          plan_id: string | null
+          properties: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_name: string
+          id?: string
+          plan_id?: string | null
+          properties?: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_name?: string
+          id?: string
+          plan_id?: string | null
+          properties?: Json
+          user_id?: string
         }
         Relationships: []
       }

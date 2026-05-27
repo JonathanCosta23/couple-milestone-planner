@@ -14,6 +14,7 @@
 import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { trackWriterChange } from "@/lib/services/auditService";
 import type { CanonicalPlanMode } from "@/lib/services/dataMigrationService";
 import type { PlanRow, PlanMemberRow } from "@/hooks/usePlan";
 
@@ -86,6 +87,16 @@ export function usePlanWriter() {
 
       if (!rpcRes.error && rpcRes.data) {
         const payload = rpcRes.data as unknown as { plan: PlanRow; members: PlanMemberRow[] };
+        void trackWriterChange({
+          userId: uid,
+          planId: payload.plan.id,
+          entity: "plan",
+          entityId: payload.plan.id,
+          action: "create",
+          newValue: payload.plan as unknown as Record<string, unknown>,
+          event: "plan_created",
+          eventProperties: { mode: input.mode, members: payload.members?.length ?? 0 },
+        });
         return { data: { plan: payload.plan, members: payload.members ?? [] }, error: null };
       }
 
@@ -274,6 +285,16 @@ export function usePlanWriter() {
         });
         if (!rpcRes.error && rpcRes.data) {
           const payload = rpcRes.data as unknown as { plan: PlanRow; members: PlanMemberRow[] };
+          void trackWriterChange({
+            userId: uid,
+            planId,
+            entity: "plan",
+            entityId: planId,
+            action: "update",
+            newValue: { mode } as Record<string, unknown>,
+            event: "plan_updated",
+            eventProperties: { mode },
+          });
           return { data: { plan: payload.plan, members: payload.members ?? [] }, error: null };
         }
         if (rpcRes.error && !/function .* does not exist|PGRST202/i.test(rpcRes.error.message)) {

@@ -13,6 +13,7 @@
 import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { trackWriterChange } from "@/lib/services/auditService";
 
 export interface MonthlyTrackingRow {
   id: string;
@@ -139,6 +140,32 @@ export function useMonthlyTrackingWriter() {
 
       if (!rpcRes.error && rpcRes.data) {
         const payload = rpcRes.data as unknown as { tracking: MonthlyTrackingRow };
+        void trackWriterChange({
+          userId: uid,
+          planId,
+          entity: "monthly_tracking",
+          entityId: payload.tracking?.id ?? null,
+          action: payload.tracking?.status === "completed" ? "complete" : "update",
+          newValue: payload.tracking as unknown as Record<string, unknown>,
+          event: "monthly_deposit_registered",
+          eventProperties: {
+            month_key: monthKey,
+            status: payload.tracking?.status,
+            actual_total: payload.tracking?.actual_total,
+            planned_total: payload.tracking?.planned_total,
+          },
+        });
+        if (payload.tracking?.status === "completed") {
+          void trackWriterChange({
+            userId: uid,
+            planId,
+            entity: "monthly_tracking",
+            entityId: payload.tracking.id,
+            action: "complete",
+            event: "month_completed",
+            eventProperties: { month_key: monthKey },
+          });
+        }
         return { data: payload.tracking, error: null };
       }
       if (rpcRes.error && !/function .* does not exist|PGRST202/i.test(rpcRes.error.message)) {
