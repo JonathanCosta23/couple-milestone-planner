@@ -56,6 +56,7 @@ import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
 import { PlanModeChip } from "@/components/plan/PlanModeChip";
 import { RestoreBackupButton } from "@/components/plan/RestoreBackupButton";
 import { ResetPlanDialog } from "@/components/plan/ResetPlanDialog";
+import { LegalFooter } from "@/components/plan/LegalDialogs";
 
 import { EMOTIONAL_GOAL_LABELS, PlanConfig } from "@/lib/types";
 import { useFinancialCore } from "@/hooks/useFinancialCore";
@@ -597,6 +598,8 @@ const Index = () => {
         onOpenChange={setShowResetDialog}
         userId={user?.id}
       />
+
+      <LegalFooter onRequestReset={() => setShowResetDialog(true)} />
     </div>
   );
 };

@@ -67,6 +67,16 @@ Camada derivada única em `src/hooks/useFinancialCore.ts` calcula reserva, taxa 
 
 "Resetar plano" exige confirmação explícita (`AlertDialog` + digitar `RESETAR`) e usa `resetService` + RPC `reset_user_plan_data` para limpar Supabase, offline queue (`offlineQueue` + dead-letter) e todas as chaves de `localStorage` (atuais, legadas e backups). Autenticação é preservada.
 
+## Compliance, privacidade e limitações
+
+- **Natureza do produto.** Ferramenta de organização e educação financeira pessoal. **Não é** consultoria, corretora, gestora nem agente autônomo de investimentos. Nenhum texto ou número exibido constitui recomendação personalizada.
+- **Disclaimer obrigatório.** Toda projeção exibe explicitamente que os valores são *estimativas baseadas nas premissas cadastradas pelo usuário* (Selic, CDI, inflação, IR, aportes, prazo). O componente `LegalFooter` mantém o disclaimer + links para Termos, Privacidade e Aviso educacional acessíveis em todas as telas autenticadas (`src/components/plan/LegalDialogs.tsx`).
+- **Sem promessas.** O produto não promete retorno garantido, enriquecimento rápido ou independência financeira em prazo fixo. Toda copy de UI segue esse contrato.
+- **LGPD.** Coletamos apenas o necessário para operar o produto: e-mail/nome (auth), dados financeiros cadastrados pelo usuário, participantes do plano, preferências e logs de eventos de produto (`product_events`, `audit_log`). Não vendemos nem compartilhamos dados pessoais para marketing.
+- **Direito de exclusão.** O usuário pode (a) exportar seus dados em **Perfil → Exportar** e (b) apagar tudo com **"Resetar plano"** ou pelo link *"Apagar meus dados"* no rodapé legal — limpa banco, cache local e fila offline em uma transação destrutiva. A conta de autenticação permanece e pode ser removida sob solicitação.
+- **Segurança de acesso.** Todas as tabelas têm RLS por `auth.uid()`. RPCs transacionais (`upsert_plan_with_members`, `upsert_month_with_members`, `reset_user_plan_data`) rodam como `SECURITY DEFINER` e validam o usuário autenticado.
+- **Limitações conhecidas.** Sem billing, sem multiusuário real (compartilhamento de plano entre contas), sem integração Open Finance, sem geração de PDF. Premissas econômicas são editáveis pelo usuário mas seguem defaults centralizados em `src/lib/financialAssumptions.ts`.
+
 ## Testes
 
 Vitest + Testing Library cobrem os fluxos críticos de dados. Rodar tudo:
