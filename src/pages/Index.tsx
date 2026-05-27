@@ -289,11 +289,6 @@ const Index = () => {
     return <AuthPage />;
   }
 
-  // ── Consentimento legal versionado (Termos + Aviso educacional) ──
-  // Bloqueia qualquer uso do app autenticado até o aceite.
-  // Wrapper retorna children quando aceito.
-  // Continua renderizando o restante do app abaixo.
-
   // ── Onboarding ──
   if (!data.onboardingComplete) {
     return (
@@ -306,6 +301,7 @@ const Index = () => {
   // ── Financial Profile Setup ──
   if (showFinancialSetup) {
     return (
+      <ConsentGate userId={user.id} onSignOut={handleSignOut}>
       <div className="min-h-screen bg-background">
         <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border/50">
           <div className="flex items-center justify-between h-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
@@ -330,6 +326,7 @@ const Index = () => {
           />
         </main>
       </div>
+      </ConsentGate>
     );
   }
 
