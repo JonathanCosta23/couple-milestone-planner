@@ -523,7 +523,8 @@ const Index = () => {
         onSignOut={handleSignOut}
       />
 
-      {data.wizardComplete && navSection === "home" && (
+      {/* Hero institucional aparece apenas fora da Home logada (ex.: durante wizard). */}
+      {!data.wizardComplete && (
         <Hero goalLabel={goalLabel} config={data.config} contributorCount={data.config.contributors.length} />
       )}
 
