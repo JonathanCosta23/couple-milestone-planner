@@ -68,12 +68,12 @@ export function MilestoneProgress({
           <span className="text-muted-foreground">
             Faltam {formatBRL(Math.max(0, next - currentWealth))}
           </span>
-          {monthsToNext != null && (
-            <span className="text-muted-foreground flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" />
-              ~{monthsToNext} meses
-            </span>
-          )}
+          <span className="text-muted-foreground flex items-center gap-1">
+            <TrendingUp className="w-3 h-3" />
+            {monthsToNextMilestone != null && monthsToNextMilestone > 0
+              ? `~${monthsToNextMilestone} meses`
+              : "estimativa indisponível"}
+          </span>
         </div>
       </div>
 
