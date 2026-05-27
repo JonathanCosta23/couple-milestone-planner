@@ -70,11 +70,12 @@ describe("usePlanWriter.setPlanMode (RPC)", () => {
     });
 
     expect(rpcMock).toHaveBeenCalledWith(
-      "upsert_plan_with_members",
+      "upsert_plan_with_members_v2",
       expect.objectContaining({
         p_mode: "individual",
         p_primary_name: "Ana",
         p_partner_name: null,
+        p_plan_id: "p1",
       }),
     );
     expect(res.data?.plan.mode).toBe("individual");
@@ -103,12 +104,13 @@ describe("usePlanWriter.setPlanMode (RPC)", () => {
     });
 
     expect(rpcMock).toHaveBeenCalledWith(
-      "upsert_plan_with_members",
+      "upsert_plan_with_members_v2",
       expect.objectContaining({
         p_mode: "casal",
         p_primary_name: "Ana",
         p_partner_name: "Bia",
         p_partner_age: 30,
+        p_plan_id: "p1",
       }),
     );
   });
