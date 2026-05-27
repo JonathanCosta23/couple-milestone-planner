@@ -118,6 +118,34 @@ export function useMonthlyTrackingWriter() {
       const uid = user?.id;
       if (!uid) return { data: null, error: "Usuário não autenticado." };
 
+      // Caminho preferencial: RPC transacional (mês + depósitos por membro).
+      const rpcMembers = members
+        .filter((m) => m.planMemberId)
+        .map((m) => ({
+          plan_member_id: m.planMemberId,
+          planned_selic: m.plannedSelic,
+          planned_cdb: m.plannedCDB,
+          actual_selic: m.actualSelic,
+          actual_cdb: m.actualCDB,
+        }));
+
+      const rpcRes = await supabase.rpc("upsert_month_with_members", {
+        p_plan_id: planId,
+        p_month_key: monthKey,
+        p_members: rpcMembers as unknown as never,
+        p_notes: notes ?? null,
+        p_completed: completed ?? null,
+      });
+
+      if (!rpcRes.error && rpcRes.data) {
+        const payload = rpcRes.data as unknown as { tracking: MonthlyTrackingRow };
+        return { data: payload.tracking, error: null };
+      }
+      if (rpcRes.error && !/function .* does not exist|PGRST202/i.test(rpcRes.error.message)) {
+        return { data: null, error: rpcRes.error.message };
+      }
+
+      // Fallback legacy (delete+insert fora de transação) — só se RPC indisponível.
       const { year, month } = parseMonthKey(monthKey);
       const plannedTotal = members.reduce((s, m) => s + m.plannedSelic + m.plannedCDB, 0);
       const actualTotal = members.reduce((s, m) => s + m.actualSelic + m.actualCDB, 0);
