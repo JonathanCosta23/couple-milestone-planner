@@ -134,7 +134,7 @@ export function migrateFromLegacy(planData: PlanData): AppData {
         : planData.emotionalGoal,
       targetAmount: planData.config.targetAmount,
       currentAmount: planData.config.initialAmount,
-      category: (goalCategoryMap[planData.emotionalGoal] || "other") as any,
+      category: (goalCategoryMap[planData.emotionalGoal] || "other") as Goal["category"],
       status: "active",
       priority: 1,
       createdAt: new Date().toISOString(),
