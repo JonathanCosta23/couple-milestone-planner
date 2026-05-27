@@ -4,7 +4,7 @@
  * Migration from legacy is automatic and non-destructive.
  */
 
-import { AppData, createDefaultAppData, generateId, PlanMode } from "./models";
+import { AppData, createDefaultAppData, generateId, PlanMode, Goal } from "./models";
 import { LegacyFinancialProfile, PlanData } from "./types";
 import { loadPlanData } from "./storage";
 
