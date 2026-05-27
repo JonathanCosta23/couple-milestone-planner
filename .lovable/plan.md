@@ -49,6 +49,7 @@ Dividida em 4 lotes para reduzir risco:
 - QA: consistência reserva entre telas, Simular=Projeção, Patrimônio=Concentração=Governança.
 - Reset destrutivo via RPC `reset_user_plan_data` + `resetService` limpando cloud, offline queue e localStorage.
 - Sprint 0 de higiene técnica (lint zero erros, código morto removido, docs atualizadas) concluída.
+- Consentimento legal versionado (`legal_consents` + `ConsentGate`) bloqueia o app autenticado até aceite de Termos + Aviso educacional; auditoria de reset aguardada com alerta explícito em caso de falha.
 
 ## Conversão `solo`/`couple` → `individual`/`casal`
 
