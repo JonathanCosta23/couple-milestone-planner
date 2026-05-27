@@ -232,3 +232,12 @@ export function ProjectionRealistic({ appData, config, monthRecords, startDate, 
     </div>
   );
 }
+
+function AssumptionItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md bg-muted/30 px-3 py-2">
+      <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</dt>
+      <dd className="text-sm font-semibold mt-0.5">{value}</dd>
+    </div>
+  );
+}
