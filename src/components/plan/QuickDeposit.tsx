@@ -1,26 +1,31 @@
 import { useState } from "react";
-import { PlanConfig, MonthDeposit, EMPTY_DEPOSIT, formatBRL, getCurrentMonthKey, monthKeyToFullLabel } from "@/lib/types";
+import { PlanConfig, EMPTY_DEPOSIT, formatBRL, getCurrentMonthKey, monthKeyToFullLabel } from "@/lib/types";
 import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { DollarSign, CheckCircle2 } from "lucide-react";
+import { DollarSign, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { MonthRecord } from "@/lib/types";
+import type { TrackingActions } from "@/hooks/domain/useTrackingActions";
 
 interface QuickDepositProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   config: PlanConfig;
   monthRecords: MonthRecord[];
-  onUpdateMonth: (monthKey: string, contributorIndex: number, deposit: MonthDeposit) => void;
-  onToggleCompleted: (monthKey: string) => void;
+  /**
+   * Persiste todos os aportes do mês em uma única operação.
+   * Substitui o loop anterior que disparava múltiplas RPCs e podia
+   * causar persistência parcial em modo casal.
+   */
+  onSaveBatch: TrackingActions["saveMonthDepositsBatch"];
 }
 
 const DOT_COLORS = ["bg-primary", "bg-accent", "bg-chart-3", "bg-chart-4", "bg-chart-5"];
 
-export function QuickDeposit({ open, onOpenChange, config, monthRecords, onUpdateMonth, onToggleCompleted }: QuickDepositProps) {
+export function QuickDeposit({ open, onOpenChange, config, monthRecords, onSaveBatch }: QuickDepositProps) {
   const currentKey = getCurrentMonthKey();
   const record = monthRecords.find((r) => r.monthKey === currentKey);
 
@@ -31,26 +36,51 @@ export function QuickDeposit({ open, onOpenChange, config, monthRecords, onUpdat
     })
   );
   const [markComplete, setMarkComplete] = useState(!!record?.completed);
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
-    config.contributors.forEach((c, i) => {
-      const hasPlan = c.plannedSelic > 0 || c.plannedCDB > 0;
-      if (!hasPlan) return;
-      const val = values[i] || 0;
-      const totalPlanned = c.plannedSelic + c.plannedCDB;
-      const selicRatio = totalPlanned > 0 ? c.plannedSelic / totalPlanned : 1;
-      onUpdateMonth(currentKey, i, {
-        actualSelic: Math.round(val * selicRatio),
-        actualCDB: Math.round(val * (1 - selicRatio)),
-      });
-    });
+  const handleSave = async () => {
+    if (saving) return;
+    // 1) Monta o batch consolidado uma vez — sem múltiplas escritas.
+    const batch = config.contributors
+      .map((c, i) => {
+        const hasPlan = c.plannedSelic > 0 || c.plannedCDB > 0;
+        if (!hasPlan) return null;
+        const val = values[i] || 0;
+        const totalPlanned = c.plannedSelic + c.plannedCDB;
+        const selicRatio = totalPlanned > 0 ? c.plannedSelic / totalPlanned : 1;
+        return {
+          contributorIndex: i,
+          deposit: {
+            actualSelic: Math.round(val * selicRatio),
+            actualCDB: Math.round(val * (1 - selicRatio)),
+          },
+        };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null);
 
-    if (markComplete && !record?.completed) {
-      onToggleCompleted(currentKey);
+    if (batch.length === 0) {
+      toast.error("Defina uma meta antes de registrar o aporte.");
+      return;
     }
 
-    toast.success("Aporte registrado! 🎉");
-    onOpenChange(false);
+    setSaving(true);
+    try {
+      const result = await onSaveBatch(currentKey, batch, {
+        markCompleted: markComplete && !record?.completed,
+      });
+      if (!result.ok) {
+        toast.error("Não conseguimos salvar o aporte agora. Tente novamente.");
+        return;
+      }
+      if (result.queuedOffline) {
+        toast.success("Sem conexão — registraremos seu aporte quando voltar online.");
+      } else {
+        toast.success("Aporte registrado.");
+      }
+      onOpenChange(false);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -92,6 +122,7 @@ export function QuickDeposit({ open, onOpenChange, config, monthRecords, onUpdat
                   setValues(newVals);
                 }}
                 className="text-right h-12 lg:h-10 text-base lg:text-sm"
+                disabled={saving}
               />
             </div>
           );
@@ -106,11 +137,24 @@ export function QuickDeposit({ open, onOpenChange, config, monthRecords, onUpdat
             id="quick-complete"
             checked={markComplete}
             onCheckedChange={setMarkComplete}
+            disabled={saving}
           />
         </div>
 
-        <Button className="w-full h-12 lg:h-10 text-base lg:text-sm" onClick={handleSave}>
-          <DollarSign className="w-4 h-4 mr-1" /> Salvar aporte
+        <Button
+          className="w-full h-12 lg:h-10 text-base lg:text-sm"
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-1 animate-spin" /> Salvando…
+            </>
+          ) : (
+            <>
+              <DollarSign className="w-4 h-4 mr-1" /> Salvar aporte
+            </>
+          )}
         </Button>
       </div>
     </ResponsiveModal>
