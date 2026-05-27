@@ -8,6 +8,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Re
 import { TrendingUp, Eye, EyeOff, ArrowUpRight, ArrowDownRight, Clock, DollarSign, Shield, Info } from "lucide-react";
 
 import { FinancialCoreState } from "@/hooks/useFinancialCore";
+import { PROJECTION_DISCLAIMER } from "@/lib/financialAssumptions";
 
 interface Props {
   appData: AppData;
@@ -62,6 +63,13 @@ export function ProjectionRealistic({ appData, config, monthRecords, startDate, 
 
   const baseScenario = scenarios[1];
 
+  const assumptions = core.assumptions;
+  const calcDate = new Date().toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+
   return (
     <div className="space-y-4 lg:space-y-6">
       {/* Header */}
@@ -73,10 +81,28 @@ export function ProjectionRealistic({ appData, config, monthRecords, startDate, 
         </p>
         <p className="mt-3 mx-auto max-w-md inline-flex items-start gap-1.5 text-[11px] text-muted-foreground/90 leading-snug text-left">
           <Info className="w-3 h-3 mt-0.5 shrink-0" aria-hidden />
-          <span>
-            Estimativas baseadas nas premissas cadastradas (Selic, CDI, inflação, IR e aportes).
-            Não constituem recomendação de investimento.
-          </span>
+          <span>{PROJECTION_DISCLAIMER}</span>
+        </p>
+      </Card>
+
+      {/* Premissas utilizadas */}
+      <Card className="glass-card p-4 lg:p-5" aria-label="Premissas financeiras">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Premissas usadas no cálculo
+          </h4>
+          <span className="text-[10px] text-muted-foreground">Calculado em {calcDate}</span>
+        </div>
+        <dl className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+          <AssumptionItem label="Retorno bruto a.a." value={`${(assumptions.expectedReturnRate * 100).toFixed(2)}%`} />
+          <AssumptionItem label="CDB (% do CDI)" value={`${(assumptions.cdbPctOfCdi * 100).toFixed(0)}%`} />
+          <AssumptionItem label="Inflação a.a." value={`${(assumptions.inflationRate * 100).toFixed(2)}%`} />
+          <AssumptionItem label="IR estimado" value={`${(assumptions.taxRate * 100).toFixed(0)}%`} />
+          <AssumptionItem label="IOF" value={assumptions.iofRate === 0 ? "Não aplicável" : `${(assumptions.iofRate * 100).toFixed(2)}%`} />
+          <AssumptionItem label="Cenário" value="Base (do plano)" />
+        </dl>
+        <p className="mt-3 text-[11px] text-muted-foreground leading-snug">
+          Premissas editáveis no plano. Estimativas educacionais, não recomendação de investimento.
         </p>
       </Card>
 
