@@ -285,13 +285,20 @@ export function usePlanWriter() {
         .maybeSingle();
 
       if (primary?.name) {
-        const rpcRes = await supabase.rpc("upsert_plan_with_members", {
+        const rpcArgs = {
           p_mode: mode,
           p_primary_name: primary.name,
           p_primary_age: primary.age ?? null,
           p_partner_name: partner?.name ?? null,
           p_partner_age: partner?.age ?? null,
+        };
+        let rpcRes = await supabase.rpc("upsert_plan_with_members_v2", {
+          ...rpcArgs,
+          p_plan_id: planId,
         });
+        if (rpcRes.error && /function .* does not exist|PGRST202/i.test(rpcRes.error.message)) {
+          rpcRes = await supabase.rpc("upsert_plan_with_members", rpcArgs);
+        }
         if (!rpcRes.error && rpcRes.data) {
           const payload = rpcRes.data as unknown as { plan: PlanRow; members: PlanMemberRow[] };
           void trackWriterChange({
