@@ -92,7 +92,7 @@ describe("useDataHydration — monthly_tracking + monthly_member_tracking", () =
     const setPlanData = vi.fn();
     renderHook(() =>
       useDataHydration({
-        userId: "u1", planId: "p1", members,
+        userId: "u1", planId: "p2-empty", members,
         setAppData, setPlanData,
       }),
     );
@@ -120,7 +120,7 @@ describe("useDataHydration — monthly_tracking + monthly_member_tracking", () =
     const setPlanData = vi.fn();
     renderHook(() =>
       useDataHydration({
-        userId: "u1", planId: "p1", members: [members[0]],
+        userId: "u1", planId: "p3-individual", members: [members[0]],
         setAppData, setPlanData,
       }),
     );
