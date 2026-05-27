@@ -6,6 +6,7 @@ import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { Debt } from "@/lib/models";
+import { trackWriterChange } from "@/lib/services/auditService";
 
 export interface DebtRow {
   id: string;
@@ -127,6 +128,12 @@ export function useDebtWriter() {
       const { data, error } = await supabase
         .from("debts").insert(payload as never).select().single();
       if (error || !data) return { data: null, error: error?.message ?? "Falha ao criar dívida." };
+      void trackWriterChange({
+        userId: uid, planId, entity: "debt",
+        entityId: (data as DebtRow).id, action: "create",
+        newValue: data as unknown as Record<string, unknown>,
+        event: "debt_created",
+      });
       return { data: data as DebtRow, error: null };
     },
     [user],
@@ -143,6 +150,12 @@ export function useDebtWriter() {
         .from("debts").update(payload as never)
         .eq("id", debtId).eq("user_id", uid).select().single();
       if (error || !data) return { data: null, error: error?.message ?? "Falha ao atualizar dívida." };
+      void trackWriterChange({
+        userId: uid, planId, entity: "debt",
+        entityId: debtId, action: "update",
+        newValue: data as unknown as Record<string, unknown>,
+        event: "debt_updated",
+      });
       return { data: data as DebtRow, error: null };
     },
     [user],
@@ -155,6 +168,11 @@ export function useDebtWriter() {
       const { error } = await supabase.from("debts").update({ is_active: false })
         .eq("id", debtId).eq("user_id", uid);
       if (error) return { data: null, error: error.message };
+      void trackWriterChange({
+        userId: uid, entity: "debt", entityId: debtId,
+        action: "delete", event: "debt_deleted",
+        eventProperties: { soft: true },
+      });
       return { data: true, error: null };
     },
     [user],
@@ -166,6 +184,11 @@ export function useDebtWriter() {
       if (!uid) return { data: null, error: "Usuário não autenticado." };
       const { error } = await supabase.from("debts").delete().eq("id", debtId).eq("user_id", uid);
       if (error) return { data: null, error: error.message };
+      void trackWriterChange({
+        userId: uid, entity: "debt", entityId: debtId,
+        action: "delete", event: "debt_deleted",
+        eventProperties: { soft: false },
+      });
       return { data: true, error: null };
     },
     [user],
