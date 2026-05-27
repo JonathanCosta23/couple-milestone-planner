@@ -12,9 +12,11 @@ export default defineConfig({
     // Encerramento determinístico: limpa mocks e DOM entre testes,
     // usa pool de forks com paralelismo controlado e timeout de teardown
     // baixo para evitar processos pendurados em CI.
+    // clearMocks limpa histórico entre testes sem destruir implementações
+    // declaradas no escopo do módulo (vi.fn().mockResolvedValue(...)).
+    // restoreMocks/mockReset ficam off porque vários testes dependem de
+    // implementações persistentes definidas fora de beforeEach.
     clearMocks: true,
-    restoreMocks: true,
-    mockReset: false,
     pool: "forks",
     poolOptions: {
       forks: {
