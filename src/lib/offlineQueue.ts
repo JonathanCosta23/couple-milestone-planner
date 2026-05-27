@@ -400,15 +400,9 @@ export function sanitizeUpdatePayload(write: Pick<QueuedWrite, "payload" | "memb
   return payload;
 }
 
-export interface CreateValidationFailure {
-  readonly ok: false;
-  readonly reason: string;
-}
-export interface CreateValidationSuccess {
-  readonly ok: true;
-  readonly payload: Record<string, unknown>;
-}
-export type CreateValidation = CreateValidationFailure | CreateValidationSuccess;
+export type CreateValidation =
+  | { ok: false; reason: string }
+  | { ok: true; payload: Record<string, unknown> };
 
 /**
  * Valida e monta o payload de CREATE para replay.
