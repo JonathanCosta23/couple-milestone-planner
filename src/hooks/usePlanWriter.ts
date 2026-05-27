@@ -112,21 +112,23 @@ export function usePlanWriter() {
       }
 
       // Upsert primary member
-      const { data: existingMembers } = await supabase
+      const { data: existingMembers, error: membersFetchErr } = await supabase
         .from("plan_members")
         .select("*")
         .eq("plan_id", plan.id);
+      if (membersFetchErr) return { data: null, error: membersFetchErr.message };
 
       const existingPrimary = existingMembers?.find((m) => m.is_primary);
       const existingPartner = existingMembers?.find((m) => !m.is_primary);
 
       if (existingPrimary) {
-        await supabase
+        const { error: primUpdErr } = await supabase
           .from("plan_members")
           .update({ name: input.primaryName, age: input.primaryAge ?? null, is_active: true })
           .eq("id", existingPrimary.id);
+        if (primUpdErr) return { data: null, error: `Falha ao atualizar titular: ${primUpdErr.message}` };
       } else {
-        await supabase.from("plan_members").insert({
+        const { error: primInsErr } = await supabase.from("plan_members").insert({
           plan_id: plan.id,
           user_id: uid,
           name: input.primaryName,
@@ -135,17 +137,19 @@ export function usePlanWriter() {
           role: "titular",
           is_active: true,
         });
+        if (primInsErr) return { data: null, error: `Falha ao criar titular: ${primInsErr.message}` };
       }
 
       // Parceiro: criar/ativar se casal, desativar se individual
       if (input.mode === "casal" && input.partnerName) {
         if (existingPartner) {
-          await supabase
+          const { error: partUpdErr } = await supabase
             .from("plan_members")
             .update({ name: input.partnerName, age: input.partnerAge ?? null, is_active: true })
             .eq("id", existingPartner.id);
+          if (partUpdErr) return { data: null, error: `Falha ao atualizar parceiro: ${partUpdErr.message}` };
         } else {
-          await supabase.from("plan_members").insert({
+          const { error: partInsErr } = await supabase.from("plan_members").insert({
             plan_id: plan.id,
             user_id: uid,
             name: input.partnerName,
@@ -154,17 +158,21 @@ export function usePlanWriter() {
             role: "parceiro",
             is_active: true,
           });
+          if (partInsErr) return { data: null, error: `Falha ao criar parceiro: ${partInsErr.message}` };
         }
       } else if (input.mode === "individual" && existingPartner) {
-        await supabase.from("plan_members").update({ is_active: false }).eq("id", existingPartner.id);
+        const { error: partDeactErr } = await supabase
+          .from("plan_members").update({ is_active: false }).eq("id", existingPartner.id);
+        if (partDeactErr) return { data: null, error: `Falha ao desativar parceiro: ${partDeactErr.message}` };
       }
 
-      const { data: finalMembers } = await supabase
+      const { data: finalMembers, error: finalErr } = await supabase
         .from("plan_members")
         .select("*")
         .eq("plan_id", plan.id)
         .eq("is_active", true)
         .order("is_primary", { ascending: false });
+      if (finalErr) return { data: null, error: finalErr.message };
 
       return { data: { plan, members: (finalMembers ?? []) as PlanMemberRow[] }, error: null };
     },
@@ -228,16 +236,17 @@ export function usePlanWriter() {
         .single();
       if (planErr || !planData) return { data: null, error: planErr?.message ?? "Falha ao trocar modo." };
 
-      const { data: members } = await supabase
+      const { data: members, error: membersErr } = await supabase
         .from("plan_members")
         .select("*")
         .eq("plan_id", planId);
+      if (membersErr) return { data: null, error: membersErr.message };
 
       const partnerRow = members?.find((m) => !m.is_primary);
 
       if (mode === "casal") {
         if (partnerRow) {
-          await supabase
+          const { error: upErr } = await supabase
             .from("plan_members")
             .update({
               is_active: true,
@@ -245,8 +254,9 @@ export function usePlanWriter() {
               ...(partner?.age !== undefined ? { age: partner.age } : {}),
             })
             .eq("id", partnerRow.id);
+          if (upErr) return { data: null, error: `Falha ao reativar parceiro: ${upErr.message}` };
         } else if (partner?.name) {
-          await supabase.from("plan_members").insert({
+          const { error: insErr } = await supabase.from("plan_members").insert({
             plan_id: planId,
             user_id: uid,
             name: partner.name,
@@ -255,9 +265,12 @@ export function usePlanWriter() {
             role: "parceiro",
             is_active: true,
           });
+          if (insErr) return { data: null, error: `Falha ao criar parceiro: ${insErr.message}` };
         }
       } else if (mode === "individual" && partnerRow?.is_active) {
-        await supabase.from("plan_members").update({ is_active: false }).eq("id", partnerRow.id);
+        const { error: deactErr } = await supabase
+          .from("plan_members").update({ is_active: false }).eq("id", partnerRow.id);
+        if (deactErr) return { data: null, error: `Falha ao desativar parceiro: ${deactErr.message}` };
       }
 
       const { data: finalMembers } = await supabase
@@ -363,14 +376,17 @@ export function usePlanWriter() {
       const uid = ensureUser(user?.id);
       if (!uid) return { data: null, error: "Usuário não autenticado." };
 
-      await supabase
+      const { error: deactErr } = await supabase
         .from("plan_members")
         .update({ is_active: false })
         .eq("plan_id", planId)
         .eq("user_id", uid)
         .eq("is_primary", false);
+      if (deactErr) return { data: null, error: `Falha ao desativar parceiro: ${deactErr.message}` };
 
-      await supabase.from("plans").update({ mode: "individual" }).eq("id", planId).eq("user_id", uid);
+      const { error: modeErr } = await supabase
+        .from("plans").update({ mode: "individual" }).eq("id", planId).eq("user_id", uid);
+      if (modeErr) return { data: null, error: `Falha ao trocar modo do plano: ${modeErr.message}` };
 
       return { data: true, error: null };
     },
