@@ -7,6 +7,7 @@ import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { Income } from "@/lib/models";
+import { trackWriterChange } from "@/lib/services/auditService";
 
 export interface IncomeRow {
   id: string;
@@ -112,6 +113,12 @@ export function useIncomeWriter() {
       const { data, error } = await supabase
         .from("income").insert(payload as never).select().single();
       if (error || !data) return { data: null, error: error?.message ?? "Falha ao criar renda." };
+      void trackWriterChange({
+        userId: uid, planId, entity: "income",
+        entityId: (data as IncomeRow).id, action: "create",
+        newValue: data as unknown as Record<string, unknown>,
+        event: "income_created",
+      });
       return { data: data as IncomeRow, error: null };
     },
     [user],
@@ -128,6 +135,12 @@ export function useIncomeWriter() {
         .from("income").update(payload as never)
         .eq("id", incomeId).eq("user_id", uid).select().single();
       if (error || !data) return { data: null, error: error?.message ?? "Falha ao atualizar renda." };
+      void trackWriterChange({
+        userId: uid, planId, entity: "income",
+        entityId: incomeId, action: "update",
+        newValue: data as unknown as Record<string, unknown>,
+        event: "income_updated",
+      });
       return { data: data as IncomeRow, error: null };
     },
     [user],
@@ -139,6 +152,10 @@ export function useIncomeWriter() {
       if (!uid) return { data: null, error: "Usuário não autenticado." };
       const { error } = await supabase.from("income").delete().eq("id", incomeId).eq("user_id", uid);
       if (error) return { data: null, error: error.message };
+      void trackWriterChange({
+        userId: uid, entity: "income", entityId: incomeId,
+        action: "delete", event: "income_deleted",
+      });
       return { data: true, error: null };
     },
     [user],
