@@ -106,3 +106,26 @@ Marque ✅ / ❌ no PR ou na issue de release.
 - `npm test` passa (Vitest one-shot).
 - `npm run build` passa.
 - Todas as 15 seções acima validadas no ambiente alvo.
+
+## 16. Sprint P0 — Hardening de execução mensal
+- [ ] **QuickDeposit casal com dois aportes**: abrir QuickDeposit em modo casal,
+      preencher valor para os dois titulares, salvar uma única vez. Verificar
+      no DevTools que **apenas uma** request `rpc/upsert_month_with_members`
+      sai e que ambos os `plan_member_id` aparecem no payload.
+- [ ] **Refresh após salvar QuickDeposit**: depois do salvamento bem-sucedido,
+      recarregar a página. Os dois aportes devem persistir na aba Histórico →
+      Meses, sem perda do primeiro membro.
+- [ ] **Falha de persistência**: simular falha (devtools offline + sem rede ⇒
+      enfileira; ou rede instável ⇒ toast de erro). Modal NÃO deve fechar em
+      caso de erro e o toast deve ser genérico ("Não conseguimos salvar").
+- [ ] **Próxima Melhor Ação · Revisar próximo mês**: com mês corrente fechado e
+      patrimônio recente, o CTA "Revisar próximo mês" deve abrir a aba
+      Histórico → Meses (tracker), **não** voltar para Home.
+- [ ] **Milestone respeita meta do plano**: definir `targetAmount` ≠ R$ 1M
+      (ex.: R$ 300k). O cartão "Marcos patrimoniais" deve mostrar a meta como
+      último marco e "Jornada" calculada sobre `targetAmount`, sem promessa
+      de retorno.
+- [ ] **MonthsToNext não usa monthsToTargetNominal**: quando o próximo marco
+      é R$ 100k mas a meta é R$ 1M, o prazo exibido deve corresponder ao
+      cruzamento dos R$ 100k (ou "estimativa indisponível"), nunca o prazo
+      até a meta final.
