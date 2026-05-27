@@ -57,6 +57,7 @@ import { PlanModeChip } from "@/components/plan/PlanModeChip";
 import { RestoreBackupButton } from "@/components/plan/RestoreBackupButton";
 import { ResetPlanDialog } from "@/components/plan/ResetPlanDialog";
 import { LegalFooter } from "@/components/plan/LegalDialogs";
+import { ConsentGate } from "@/components/auth/ConsentGate";
 
 import { EMOTIONAL_GOAL_LABELS, PlanConfig } from "@/lib/types";
 import { useFinancialCore } from "@/hooks/useFinancialCore";
@@ -288,9 +289,18 @@ const Index = () => {
     return <AuthPage />;
   }
 
+  // ── Consentimento legal versionado (Termos + Aviso educacional) ──
+  // Bloqueia qualquer uso do app autenticado até o aceite.
+  // Wrapper retorna children quando aceito.
+  // Continua renderizando o restante do app abaixo.
+
   // ── Onboarding ──
   if (!data.onboardingComplete) {
-    return <Onboarding onComplete={completeOnboarding} />;
+    return (
+      <ConsentGate userId={user.id} onSignOut={handleSignOut}>
+        <Onboarding onComplete={completeOnboarding} />
+      </ConsentGate>
+    );
   }
 
   // ── Financial Profile Setup ──
