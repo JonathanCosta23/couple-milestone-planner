@@ -102,9 +102,7 @@ describe("useMonthlyTrackingWriter.upsertMonth", () => {
       }),
     );
     expect(res.data?.id).toBe("t1");
-    // RPC path não cai no fallback de monthly_tracking. Permitido apenas
-    // chamadas para audit_log/product_events do auditService.
-    const tables = fromMock.mock.calls.map((c) => c[0]);
-    expect(tables.every((t) => t === "audit_log" || t === "product_events")).toBe(true);
+    // RPC path não pode cair no fallback de monthly_tracking.
+    expect(fromMock).not.toHaveBeenCalled();
   });
 });
