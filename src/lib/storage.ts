@@ -23,7 +23,7 @@ export function normalizePlanData(parsed: Partial<PlanData>): PlanData {
   const parsedContributors = parsed.config?.contributors;
   let contributors = defaults.config.contributors.map(c => ({ ...c }));
   if (Array.isArray(parsedContributors) && parsedContributors.length > 0) {
-    contributors = parsedContributors.map((c: any) => ({
+    contributors = parsedContributors.map((c: Partial<typeof defaults.config.contributors[number]>) => ({
       name: c?.name || "",
       plannedSelic: c?.plannedSelic || 0,
       plannedCDB: c?.plannedCDB || 0,
@@ -147,7 +147,7 @@ export interface ImportPreview {
 
 /** Parse and validate an import JSON string, returning a preview */
 export function parseImportJSON(json: string): ImportPreview {
-  let parsed: any;
+  let parsed: unknown;
   try {
     parsed = JSON.parse(json);
   } catch {
