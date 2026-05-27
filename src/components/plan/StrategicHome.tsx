@@ -11,7 +11,7 @@ import { EducationalTooltip } from "./EducationalTooltip";
 import { MentorshipHome } from "./MentorshipHome";
 import {
   Activity, Target, Shield, AlertTriangle, TrendingUp, DollarSign,
-  Heart, Lightbulb, ArrowRight, Trophy, Zap, CreditCard, Wallet,
+  Heart, Lightbulb, ArrowRight, Trophy, Zap, CreditCard, Wallet, Flame, CheckCircle, Check,
 } from "lucide-react";
 
 interface Props {
@@ -47,7 +47,7 @@ export function StrategicHome({ appData, config, monthRecords, startDate, onNavi
 
   const closerToMillion: string[] = [];
   const awayFromMillion: string[] = [];
-  if (streak > 0) closerToMillion.push(`Sequência de ${streak} meses ✅`);
+  if (streak > 0) closerToMillion.push(`Sequência de ${streak} meses`);
   if (diag.savingsRate > 0.2) closerToMillion.push(`Taxa de poupança de ${(diag.savingsRate * 100).toFixed(0)}%`);
   if (diag.emergencyMonths >= 6) closerToMillion.push("Reserva de emergência completa");
   if (diag.debtWeight > 0.2) awayFromMillion.push(`${(diag.debtWeight * 100).toFixed(0)}% da renda vai para dívidas`);
@@ -128,7 +128,7 @@ export function StrategicHome({ appData, config, monthRecords, startDate, onNavi
           </div>
           <EducationalTooltip tipKey="streak">
             <div className="flex items-center gap-1">
-              <span className="text-lg">🔥</span>
+              <Flame className="w-4 h-4 text-warning" aria-hidden />
               <span className="text-sm font-bold">{streak}</span>
             </div>
           </EducationalTooltip>
@@ -229,9 +229,12 @@ export function StrategicHome({ appData, config, monthRecords, startDate, onNavi
             <div key={m} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${
               isReached ? "bg-primary/20 border-primary/30 text-primary" : "bg-muted border-border text-muted-foreground"
             }`}>
-              <Trophy className="w-3 h-3" />
+              {isReached ? (
+                <Check className="w-3 h-3" aria-hidden />
+              ) : (
+                <Trophy className="w-3 h-3" aria-hidden />
+              )}
               {formatBRLCompact(m)}
-              {isReached && " ✓"}
             </div>
           );
         })}
