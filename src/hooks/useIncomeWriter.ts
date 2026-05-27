@@ -71,8 +71,10 @@ export function incomeToPayload(
   const payload: Record<string, unknown> = {
     user_id: ctx.userId,
     plan_id: ctx.planId,
-    member_id: ctx.memberId ?? null,
   };
+  // member_id: só entra no payload quando explicitado (`null` = limpar,
+  // valor = setar). `undefined` significa "não tocar".
+  if (ctx.memberId !== undefined) payload.member_id = ctx.memberId;
   if (inc.label !== undefined) payload.source = inc.label || "Renda";
   if (inc.type !== undefined) payload.income_type = inc.type;
   else if (inc.recurrence !== undefined) payload.income_type = RECURRENCE_TO_TYPE[inc.recurrence];

@@ -68,8 +68,8 @@ export function expenseToPayload(
   const payload: Record<string, unknown> = {
     user_id: ctx.userId,
     plan_id: ctx.planId,
-    member_id: ctx.memberId ?? null,
   };
+  if (ctx.memberId !== undefined) payload.member_id = ctx.memberId;
   if (exp.category !== undefined) payload.category = exp.category;
   if (exp.subcategory !== undefined || exp.name !== undefined) {
     payload.subcategory = exp.subcategory ?? exp.name ?? null;

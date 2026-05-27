@@ -81,8 +81,8 @@ export function debtToPayload(
   const payload: Record<string, unknown> = {
     user_id: ctx.userId,
     plan_id: ctx.planId,
-    member_id: ctx.memberId ?? null,
   };
+  if (ctx.memberId !== undefined) payload.member_id = ctx.memberId;
   if (debt.type !== undefined) payload.debt_type = debt.type;
   if (debt.creditor !== undefined || debt.name !== undefined) {
     payload.institution = debt.creditor ?? debt.name ?? null;

@@ -17,6 +17,8 @@ interface Deps {
   addIncomeLocal: (income: Income) => void;
   updateIncomeLocal: (id: string, updates: Partial<Income>) => void;
   deleteIncomeLocal: (id: string) => void;
+  /** Necessário para rollback otimista em update/delete. */
+  getIncomeById?: (id: string) => Income | undefined;
 }
 
 export interface IncomeActions {
@@ -26,7 +28,7 @@ export interface IncomeActions {
 }
 
 export function useIncomeActions(deps: Deps): IncomeActions {
-  const { user, planId, resolveMemberId, addIncomeLocal, updateIncomeLocal, deleteIncomeLocal } = deps;
+  const { user, planId, resolveMemberId, addIncomeLocal, updateIncomeLocal, deleteIncomeLocal, getIncomeById } = deps;
   const writer = useIncomeWriter();
   const offlineQueue = useOfflineQueue();
 
@@ -47,14 +49,23 @@ export function useIncomeActions(deps: Deps): IncomeActions {
       () => writer.createIncome(planId, income, memberId),
       { event: "writer.income.create", context: { userId: user.id, planId } },
     );
-    if (r.error) toast.error(`Falha ao salvar renda: ${toFriendlyError(r.error)}`);
-    else if (r.data) updateIncomeLocal(income.id, { id: r.data.id } as Partial<Income>);
-  }, [user, planId, writer, resolveMemberId, addIncomeLocal, updateIncomeLocal, offlineQueue]);
+    if (r.error) {
+      deleteIncomeLocal(income.id);
+      toast.error(`Falha ao salvar renda: ${toFriendlyError(r.error)}`);
+    } else if (r.data) {
+      updateIncomeLocal(income.id, { id: r.data.id } as Partial<Income>);
+    }
+  }, [user, planId, writer, resolveMemberId, addIncomeLocal, updateIncomeLocal, deleteIncomeLocal, offlineQueue]);
 
   const update = useCallback(async (id: string, updates: Partial<Income>) => {
+    // Só resolve memberId quando o titular foi explicitamente alterado.
+    const titularChanged = updates.profileId !== undefined;
+    const memberId: string | null | undefined = titularChanged
+      ? resolveMemberId(updates.profileId)
+      : undefined;
+    const prev = getIncomeById?.(id);
     updateIncomeLocal(id, updates);
     if (!user || !planId) return;
-    const memberId = updates.profileId !== undefined ? resolveMemberId(updates.profileId) : undefined;
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
       const payload = incomeToPayload(updates, { userId: user.id, planId, memberId });
       await offlineQueue.enqueue({
@@ -67,10 +78,14 @@ export function useIncomeActions(deps: Deps): IncomeActions {
       () => writer.updateIncome(planId, id, updates, memberId),
       { event: "writer.income.update", context: { userId: user.id, planId } },
     );
-    if (r.error) toast.error(`Falha ao atualizar renda: ${toFriendlyError(r.error)}`);
-  }, [user, planId, writer, resolveMemberId, updateIncomeLocal, offlineQueue]);
+    if (r.error) {
+      if (prev) updateIncomeLocal(id, prev);
+      toast.error(`Falha ao atualizar renda: ${toFriendlyError(r.error)}`);
+    }
+  }, [user, planId, writer, resolveMemberId, updateIncomeLocal, getIncomeById, offlineQueue]);
 
   const remove = useCallback(async (id: string) => {
+    const prev = getIncomeById?.(id);
     deleteIncomeLocal(id);
     if (!user) return;
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
@@ -86,8 +101,11 @@ export function useIncomeActions(deps: Deps): IncomeActions {
       () => writer.deleteIncome(id),
       { event: "writer.income.delete", context: { userId: user.id } },
     );
-    if (r.error) toast.error(`Falha ao remover renda: ${toFriendlyError(r.error)}`);
-  }, [user, planId, writer, deleteIncomeLocal, offlineQueue]);
+    if (r.error) {
+      if (prev) addIncomeLocal(prev);
+      toast.error(`Falha ao remover renda: ${toFriendlyError(r.error)}`);
+    }
+  }, [user, planId, writer, deleteIncomeLocal, addIncomeLocal, getIncomeById, offlineQueue]);
 
   return { add, update, remove };
 }

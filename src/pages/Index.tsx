@@ -206,6 +206,7 @@ const Index = () => {
   const incomeActions = useIncomeActions({
     user, planId, resolveMemberId,
     addIncomeLocal: addIncome, updateIncomeLocal: updateIncome, deleteIncomeLocal: deleteIncome,
+    getIncomeById: (id) => appData.incomes.find((i) => i.id === id),
   });
 
   const expenseActions = useExpenseActions({
@@ -218,11 +219,13 @@ const Index = () => {
   const debtActions = useDebtActions({
     user, planId, resolveMemberId,
     addDebtLocal: addDebt, updateDebtLocal: updateDebt, deleteDebtLocal: deleteDebt,
+    getDebtById: (id) => appData.debts.find((d) => d.id === id),
   });
 
   const assetActions = useAssetActions({
     user, planId, resolveMemberId: resolveAssetMemberId,
     addInvestmentLocal: addInvestment, updateInvestmentLocal: updateInvestment, deleteInvestmentLocal: deleteInvestment,
+    getInvestmentById: (id) => appData.investments.find((i) => i.id === id),
   });
 
   const trackingActions = useTrackingActions({

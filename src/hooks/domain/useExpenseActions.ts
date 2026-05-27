@@ -60,14 +60,23 @@ export function useExpenseActions(deps: Deps): ExpenseActions {
       () => writer.createExpense(planId, expense, memberId),
       { event: "writer.expense.create", context: { userId: user.id, planId } },
     );
-    if (r.error) toast.error(`Falha ao salvar gasto: ${toFriendlyError(r.error)}`);
-    else if (r.data) updateExpenseLocal(expense.id, { id: r.data.id } as Partial<Expense>);
-  }, [user, planId, writer, resolveMemberId, addExpenseLocal, updateExpenseLocal, offlineQueue]);
+    if (r.error) {
+      deleteExpenseLocal(expense.id);
+      toast.error(`Falha ao salvar gasto: ${toFriendlyError(r.error)}`);
+    } else if (r.data) {
+      updateExpenseLocal(expense.id, { id: r.data.id } as Partial<Expense>);
+    }
+  }, [user, planId, writer, resolveMemberId, addExpenseLocal, updateExpenseLocal, deleteExpenseLocal, offlineQueue]);
 
   const update = useCallback(async (id: string, updates: Partial<Expense>) => {
+    // Só resolve memberId quando o responsável foi explicitamente alterado.
+    const titularChanged = updates.responsibleProfileId !== undefined;
+    const memberId: string | null | undefined = titularChanged
+      ? resolveMemberId(updates.responsibleProfileId)
+      : undefined;
+    const prev = getExpenseById?.(id);
     updateExpenseLocal(id, updates);
     if (!user || !planId) return;
-    const memberId = updates.responsibleProfileId !== undefined ? resolveMemberId(updates.responsibleProfileId) : undefined;
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
       const payload = expenseToPayload(updates, { userId: user.id, planId, memberId });
       await offlineQueue.enqueue({ entity: "expense", op: "update", entityId: id, planId, payload, memberId: memberId ?? null });
@@ -78,10 +87,14 @@ export function useExpenseActions(deps: Deps): ExpenseActions {
       () => writer.updateExpense(planId, id, updates, memberId),
       { event: "writer.expense.update", context: { userId: user.id, planId } },
     );
-    if (r.error) toast.error(`Falha ao atualizar gasto: ${toFriendlyError(r.error)}`);
-  }, [user, planId, writer, resolveMemberId, updateExpenseLocal, offlineQueue]);
+    if (r.error) {
+      if (prev) updateExpenseLocal(id, prev);
+      toast.error(`Falha ao atualizar gasto: ${toFriendlyError(r.error)}`);
+    }
+  }, [user, planId, writer, resolveMemberId, updateExpenseLocal, getExpenseById, offlineQueue]);
 
   const remove = useCallback(async (id: string) => {
+    const prev = getExpenseById?.(id);
     deleteExpenseLocal(id);
     if (!user) return;
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
@@ -92,8 +105,11 @@ export function useExpenseActions(deps: Deps): ExpenseActions {
       () => writer.deleteExpense(id),
       { event: "writer.expense.delete", context: { userId: user.id } },
     );
-    if (r.error) toast.error(`Falha ao remover gasto: ${toFriendlyError(r.error)}`);
-  }, [user, planId, writer, deleteExpenseLocal, offlineQueue]);
+    if (r.error) {
+      if (prev) addExpenseLocal(prev);
+      toast.error(`Falha ao remover gasto: ${toFriendlyError(r.error)}`);
+    }
+  }, [user, planId, writer, deleteExpenseLocal, addExpenseLocal, getExpenseById, offlineQueue]);
 
   // ---- Operações derivadas (agora persistidas) ----
 
