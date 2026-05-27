@@ -3,8 +3,11 @@ import {
   buildMonthlySummary,
   computeNextBestAction,
   buildMilestoneProgress,
+  getRelevantMilestones,
+  findMonthsToCrossing,
 } from "@/lib/services/monthlySummary";
 import type { PlanConfig, MonthRecord } from "@/lib/types";
+import { PLANO_TABS, HISTORICO_TABS, PERFIL_TABS } from "@/hooks/useAppNavigation";
 
 const solo: PlanConfig = {
   initialAmount: 0,
@@ -91,7 +94,34 @@ describe("computeNextBestAction", () => {
 
   it("sugere revisar próximo mês como fallback de mês fechado", () => {
     const s = buildMonthlySummary(solo, [record("2026-06", 600, 400)], "2026-06");
-    expect(computeNextBestAction(s).id).toBe("review_next_month");
+    const action = computeNextBestAction(s);
+    expect(action.id).toBe("review_next_month");
+    // Aba retornada precisa existir em useAppNavigation, senão cai no fallback "home".
+    expect(action.tab).toBe("tracker");
+  });
+
+  it("toda ação retornada usa uma tab válida (ou vazia)", () => {
+    const validTabs = new Set<string>([
+      ...PLANO_TABS, ...HISTORICO_TABS, ...PERFIL_TABS, "",
+    ]);
+    const ctxList: Array<Parameters<typeof computeNextBestAction>[1]> = [
+      undefined,
+      { assumptionsIncomplete: true },
+      { lastWealthUpdateAt: Date.now() - 60 * 24 * 60 * 60 * 1000 },
+      { nextMilestoneValue: 100_000, nextMilestoneMonths: 8 },
+    ];
+    const summaries = [
+      buildMonthlySummary({ ...solo, contributors: [{ name: "Você", plannedSelic: 0, plannedCDB: 0 }] }, [], "2026-06"),
+      buildMonthlySummary(solo, [], "2026-06"),
+      buildMonthlySummary(solo, [record("2026-06", 300, 0)], "2026-06"),
+      buildMonthlySummary(solo, [record("2026-06", 600, 400)], "2026-06"),
+    ];
+    for (const s of summaries) {
+      for (const ctx of ctxList) {
+        const action = computeNextBestAction(s, ctx);
+        expect(validTabs.has(action.tab)).toBe(true);
+      }
+    }
   });
 });
 
@@ -108,5 +138,45 @@ describe("buildMilestoneProgress", () => {
     expect(r.previous).toBe(0);
     expect(r.next).toBe(50_000);
     expect(r.pct).toBeCloseTo(0.2, 2);
+  });
+});
+
+describe("getRelevantMilestones", () => {
+  it("filtra marcos acima da meta e inclui a meta final", () => {
+    const list = getRelevantMilestones([50_000, 100_000, 1_000_000], 250_000);
+    expect(list).toEqual([50_000, 100_000, 250_000]);
+  });
+  it("respeita meta diferente de 1M", () => {
+    const list = getRelevantMilestones([50_000, 100_000, 250_000, 1_000_000], 300_000);
+    expect(list[list.length - 1]).toBe(300_000);
+    expect(list).not.toContain(1_000_000);
+  });
+});
+
+describe("findMonthsToCrossing", () => {
+  it("retorna o monthIndex em que a série cruza o valor", () => {
+    const series = [
+      { monthIndex: 1, balance: 1000 },
+      { monthIndex: 2, balance: 2500 },
+      { monthIndex: 3, balance: 6000 },
+    ];
+    expect(findMonthsToCrossing(series, 5000)).toBe(3);
+  });
+  it("retorna null quando a série não cruza", () => {
+    const series = [{ monthIndex: 1, balance: 100 }];
+    expect(findMonthsToCrossing(series, 10_000)).toBeNull();
+  });
+  it("não confunde meses até a meta final com meses até o próximo marco", () => {
+    // Cenário: meta final em 1M, próximo marco 100k. A função NÃO deve
+    // retornar o índice da meta final se houver um cruzamento anterior.
+    const series = Array.from({ length: 60 }, (_, i) => ({
+      monthIndex: i + 1,
+      balance: (i + 1) * 5000,
+    }));
+    const monthsToFinal = findMonthsToCrossing(series, 1_000_000); // não cruza
+    const monthsToNext = findMonthsToCrossing(series, 100_000);
+    expect(monthsToFinal).toBeNull();
+    expect(monthsToNext).toBe(20);
+    expect(monthsToNext).not.toBe(monthsToFinal);
   });
 });
