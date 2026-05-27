@@ -3,13 +3,14 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { AppData } from "@/lib/models";
-import { PlanConfig, MonthRecord, formatBRL, formatBRLCompact, getCurrentMonthKey, monthKeyToFullLabel } from "@/lib/types";
+import { PlanConfig, MonthRecord, formatBRL, formatBRLCompact, getCurrentMonthKey, monthKeyToFullLabel, MILESTONES } from "@/lib/types";
 import { getCurrentMonthDeposited } from "@/lib/calculator";
 import { generateNudges } from "@/lib/behavioralEngine";
 import { ContextualEducation } from "./ContextualEducation";
 import { MonthlyExecutiveSummary } from "./MonthlyExecutiveSummary";
 import { MilestoneProgress } from "./MilestoneProgress";
 import type { FinancialCoreState } from "@/hooks/useFinancialCore";
+import { findMonthsToCrossing, getRelevantMilestones } from "@/lib/services/monthlySummary";
 import {
   DollarSign, Target, TrendingUp, Zap, AlertTriangle, Lightbulb, ArrowRight,
   Wallet, Shield, ChevronDown, ChevronUp, Eye, CheckCircle, Calendar, Settings2, Flame,
@@ -93,6 +94,21 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
   // Time to target
   const monthsToTarget = projection.monthsToTargetNominal;
 
+  // Próximo marco real (não a meta final) e meses estimados para cruzá-lo
+  // usando a série nominal projetada. Sem chumbar monthsToTargetNominal.
+  const relevantMilestones = useMemo(
+    () => getRelevantMilestones(MILESTONES, config.targetAmount),
+    [config.targetAmount],
+  );
+  const nextMilestoneValue = useMemo(
+    () => relevantMilestones.find((m) => metrics.grossWealth < m) ?? null,
+    [relevantMilestones, metrics.grossWealth],
+  );
+  const monthsToNextMilestone = useMemo(
+    () => (nextMilestoneValue ? findMonthsToCrossing(projection.nominal, nextMilestoneValue) : null),
+    [projection.nominal, nextMilestoneValue],
+  );
+
   // Empty state
   if (metrics.totalIncome === 0 && metrics.totalExpenses === 0 && metrics.grossWealth === 0) {
     return <EmptyHomeState onNavigateToTab={onNavigateToTab} onOpenQuickDeposit={onOpenQuickDeposit} activationSteps={activationSteps} />;
@@ -132,8 +148,8 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
         config={config}
         monthRecords={monthRecords}
         nextActionContext={{
-          nextMilestoneValue: null,
-          nextMilestoneMonths: projection.monthsToTargetNominal,
+          nextMilestoneValue,
+          nextMilestoneMonths: monthsToNextMilestone,
         }}
         onOpenQuickDeposit={onOpenQuickDeposit}
         onNavigateToTab={onNavigateToTab}
@@ -142,7 +158,8 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
       {/* ── Marcos patrimoniais (orientado a progresso) ── */}
       <MilestoneProgress
         currentWealth={metrics.grossWealth}
-        monthsToNext={projection.monthsToTargetNominal}
+        targetAmount={config.targetAmount}
+        monthsToNextMilestone={monthsToNextMilestone}
         streakMonths={metrics.streak}
       />
 
