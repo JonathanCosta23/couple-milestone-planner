@@ -98,98 +98,31 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
   return (
     <div className="space-y-5 lg:space-y-6 pb-4">
       {topSlot && <div className="animate-fade-in-up">{topSlot}</div>}
-      {/* ── Desktop: Two-column hero layout ── */}
-      <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-5 lg:space-y-0">
-        {/* ── 1. CARD HERO: Rotina do mês ── */}
-        <Card className="glass-card-hero p-5 lg:p-6 animate-fade-in-up">
-          <div className="flex items-start justify-between gap-3 mb-3">
-            <div>
-              <p className="text-xs sm:text-sm text-muted-foreground">{monthKeyToFullLabel(currentKey)}</p>
-              <p className="section-title lg:text-lg mt-0.5">Rotina do mês</p>
-            </div>
-            {metrics.streak > 0 && (
-              <span className="text-xs font-medium text-primary shrink-0">🔥 {metrics.streak} {metrics.streak === 1 ? "mês seguido" : "meses seguidos"}</span>
-            )}
-          </div>
-          <p className="text-xs sm:text-sm text-muted-foreground mb-4">
-            Aporte é o dinheiro que {isCouple ? "vocês separaram" : "você separou"} para investir. Aqui fica o tracking mensal: planejado vs. realizado.
-          </p>
-          <div className="flex items-end justify-between gap-3 mb-3">
-            <div>
-              <p className="text-2xl lg:text-3xl font-extrabold text-primary">{(monthProgress * 100).toFixed(0)}%</p>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                {formatBRL(realizedAmount)} realizado
-              </p>
-            </div>
-            <div className="text-right">
-              <p className={`text-xs sm:text-sm font-semibold ${monthStatus.tone}`}>{monthStatus.label}</p>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                Faltam <span className="font-semibold text-foreground">{formatBRL(remainingAmount)}</span>
-              </p>
-            </div>
-          </div>
-          <Progress value={monthProgress * 100} className="h-2.5 rounded-full mb-3" />
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            <MiniMetric label="Planejado" value={formatBRLCompact(plannedAmount)} />
-            <MiniMetric label="Realizado" value={formatBRLCompact(realizedAmount)} />
-            <MiniMetric label="Falta" value={formatBRLCompact(remainingAmount)} />
-          </div>
-          <p className="text-xs text-muted-foreground mb-4 leading-relaxed">{monthStatus.message}</p>
-          <Button className="w-full h-12 font-bold text-sm touch-target shadow-lg shadow-primary/20" onClick={onOpenQuickDeposit}>
-            <DollarSign className="w-4 h-4 mr-2" /> Registrar aporte
-          </Button>
-        </Card>
-
-        {/* ── 2. Patrimônio investido ── */}
-        <Card className="glass-card p-4 lg:p-6 cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all flex flex-col justify-between" onClick={() => onNavigateToTab("patrimonio")}>
-          <div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Target className="w-5 h-5 lg:w-6 lg:h-6 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Patrimônio atual</p>
-                  <p className="text-lg lg:text-2xl font-extrabold text-gradient">{formatBRLCompact(metrics.grossWealth)}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-xs sm:text-sm font-semibold text-foreground">{progressPct.toFixed(1)}%</p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground">da meta</p>
-              </div>
-            </div>
-            <Progress value={progressPct} className="h-1.5 rounded-full mt-3" />
-          </div>
-          {monthsToTarget && (
-            <p className="text-[11px] sm:text-xs text-muted-foreground mt-3">
-              Patrimônio é tudo que já foi acumulado. A projeção estima o caminho se o ritmo atual continuar.
-            </p>
-          )}
-        </Card>
-      </div>
-
-      {/* ── 2. Next action made explicit ── */}
-      <Card className="action-card animate-fade-in-up" style={{ animationDelay: "0.08s" }}>
-        <div className="flex items-start gap-3">
-          <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-            <Zap className="w-5 h-5 text-primary" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] sm:text-xs text-primary font-bold uppercase tracking-wider mb-0.5">Faça agora</p>
-            <p className="text-sm lg:text-base font-semibold leading-snug">
-              {remainingAmount > 0 ? "Registre o aporte deste mês" : nextBestAction?.title || "Revise seu próximo passo"}
-            </p>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">
-              {remainingAmount > 0
-                ? "Isso atualiza o realizado, mostra quanto falta e mantém sua evolução mensal em dia."
-                : nextBestAction?.message || "Com o mês em dia, você pode revisar gastos ou explorar simulações sem pressa."}
-            </p>
-          </div>
-          <Button size="sm" className="hidden sm:inline-flex shrink-0" onClick={onOpenQuickDeposit}>
-            Registrar aporte
-          </Button>
-        </div>
-      </Card>
+      <MonthlyCockpit
+        currentKey={currentKey}
+        grossWealth={metrics.grossWealth}
+        targetAmount={config.targetAmount}
+        progressPct={progressPct}
+        planned={plannedAmount}
+        realized={realizedAmount}
+        remaining={remainingAmount}
+        monthProgress={monthProgress}
+        status={monthStatus}
+        streak={metrics.streak}
+        completedThisYear={countCompletedMonthsThisYear(monthRecords)}
+        isCouple={isCouple}
+        perMember={currentMonth.perPerson}
+        prescriptiveInsight={buildPrescriptiveInsight({
+          planned: plannedAmount,
+          realized: realizedAmount,
+          remaining: remainingAmount,
+          nextBestActionTitle: nextBestAction?.title,
+        })}
+        onPrimaryAction={onOpenQuickDeposit}
+        onSecondaryAction={() => onNavigateToTab("historico")}
+        onTertiaryAction={() => onNavigateToTab("simulador")}
+        onOpenPatrimonio={() => onNavigateToTab("patrimonio")}
+      />
 
       {/* ── Desktop: Two-column action cards ── */}
       <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-5 lg:space-y-0">
