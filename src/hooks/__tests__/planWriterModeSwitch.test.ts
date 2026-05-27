@@ -18,6 +18,14 @@ vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => ({ user: { id: "user-1" } }),
 }));
 
+// Evita chamadas reais ao auditService (que tentaria gravar em audit_log /
+// product_events via supabase.from, fora do escopo deste teste de RPC).
+vi.mock("@/lib/services/auditService", () => ({
+  trackWriterChange: vi.fn().mockResolvedValue(undefined),
+  logAudit: vi.fn().mockResolvedValue({ ok: true }),
+  logProductEvent: vi.fn().mockResolvedValue({ ok: true }),
+}));
+
 import { renderHook, act } from "@testing-library/react";
 import { usePlanWriter } from "@/hooks/usePlanWriter";
 
