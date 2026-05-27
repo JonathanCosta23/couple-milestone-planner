@@ -20,6 +20,10 @@ import { detectJourneyState, type JourneyState } from "@/lib/services/journeySer
 import { generateInsights, type InsightsResult } from "@/lib/services/insightsService";
 import { checkMilestones, type MilestoneStatus } from "@/lib/services/milestoneService";
 import type { PlanRow, PlanMemberRow } from "@/hooks/usePlan";
+import {
+  resolveAssumptions,
+  type FinancialAssumptions,
+} from "@/lib/financialAssumptions";
 
 export interface FinancialCoreState {
   metrics: CoreMetrics;
@@ -31,6 +35,8 @@ export interface FinancialCoreState {
   milestones: MilestoneStatus;
   /** AppData efetivo após overlay com dados canônicos da nuvem. */
   effectiveAppData: AppData;
+  /** Premissas financeiras resolvidas (plano > defaults). Auditável pela UI. */
+  assumptions: FinancialAssumptions;
 }
 
 export interface CloudPlanOverlay {
@@ -104,18 +110,12 @@ export function useFinancialCore({
 }: FinancialCoreInput): FinancialCoreState {
   return useMemo(() => {
     const effectiveAppData = applyCloudPlanToAppData(appData, cloudPlan);
+    const assumptions = resolveAssumptions(cloudPlan?.plan ?? null);
 
     const metrics = calculateCoreMetrics(effectiveAppData, config, monthRecords, startDate, profile);
 
-    const projection = calculateProjection(config, "planned", monthRecords, startDate, {
-      inflationRate: 0.045,
-      irRate: 0.15,
-    });
-
-    const projectionActual = calculateProjection(config, "actual", monthRecords, startDate, {
-      inflationRate: 0.045,
-      irRate: 0.15,
-    });
+    const projection = calculateProjection(config, "planned", monthRecords, startDate, assumptions);
+    const projectionActual = calculateProjection(config, "actual", monthRecords, startDate, assumptions);
 
     const allocation = analyzeAllocation(effectiveAppData);
     const journey = detectJourneyState(metrics);
@@ -131,6 +131,7 @@ export function useFinancialCore({
       insights,
       milestones,
       effectiveAppData,
+      assumptions,
     };
   }, [appData, config, monthRecords, startDate, profile, celebratedMilestones, cloudPlan]);
 }
