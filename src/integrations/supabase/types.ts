@@ -856,6 +856,25 @@ export type Database = {
         }
         Returns: Json
       }
+      upsert_plan_with_members_v2: {
+        Args: {
+          p_goal_amount?: number
+          p_goal_purpose?: string
+          p_goal_purpose_custom?: string
+          p_goal_years?: number
+          p_initial_amount?: number
+          p_mode: string
+          p_monthly_contribution?: number
+          p_onboarding_complete?: boolean
+          p_partner_age?: number
+          p_partner_name?: string
+          p_plan_id?: string
+          p_primary_age?: number
+          p_primary_name: string
+          p_wizard_complete?: boolean
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

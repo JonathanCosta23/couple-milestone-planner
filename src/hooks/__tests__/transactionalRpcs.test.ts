@@ -37,7 +37,7 @@ beforeEach(() => {
 });
 
 describe("usePlanWriter.createPlanFromWizard", () => {
-  it("chama RPC upsert_plan_with_members com modo individual", async () => {
+  it("chama RPC upsert_plan_with_members_v2 com modo individual", async () => {
     rpcMock.mockResolvedValueOnce({
       data: { plan: { id: "p1", mode: "individual" }, members: [] },
       error: null,
@@ -53,8 +53,8 @@ describe("usePlanWriter.createPlanFromWizard", () => {
     });
 
     expect(rpcMock).toHaveBeenCalledWith(
-      "upsert_plan_with_members",
-      expect.objectContaining({ p_mode: "individual", p_primary_name: "Ana" }),
+      "upsert_plan_with_members_v2",
+      expect.objectContaining({ p_mode: "individual", p_primary_name: "Ana", p_plan_id: null }),
     );
     expect((res as { data: { plan: { id: string } } }).data.plan.id).toBe("p1");
   });

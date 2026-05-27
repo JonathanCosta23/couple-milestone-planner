@@ -68,8 +68,9 @@ export function usePlanWriter() {
       const uid = ensureUser(user?.id);
       if (!uid) return { data: null, error: "Usuário não autenticado." };
 
-      // Caminho preferencial: RPC transacional (plano + membros em uma tx).
-      const rpcRes = await supabase.rpc("upsert_plan_with_members", {
+      // Caminho preferencial: RPC v2 transacional (plano + membros em uma tx,
+      // com validação estrita de plan_id e exigência de parceiro em modo casal).
+      const rpcArgs = {
         p_mode: input.mode,
         p_primary_name: input.primaryName,
         p_primary_age: input.primaryAge ?? null,
@@ -83,7 +84,15 @@ export function usePlanWriter() {
         p_goal_purpose_custom: input.goalPurposeCustom ?? null,
         p_wizard_complete: input.wizardComplete ?? true,
         p_onboarding_complete: null,
+      };
+      let rpcRes = await supabase.rpc("upsert_plan_with_members_v2", {
+        ...rpcArgs,
+        p_plan_id: null,
       });
+      if (rpcRes.error && /function .* does not exist|PGRST202/i.test(rpcRes.error.message)) {
+        // Fallback: ambiente ainda sem a v2 deployada.
+        rpcRes = await supabase.rpc("upsert_plan_with_members", rpcArgs);
+      }
 
       if (!rpcRes.error && rpcRes.data) {
         const payload = rpcRes.data as unknown as { plan: PlanRow; members: PlanMemberRow[] };
@@ -276,13 +285,20 @@ export function usePlanWriter() {
         .maybeSingle();
 
       if (primary?.name) {
-        const rpcRes = await supabase.rpc("upsert_plan_with_members", {
+        const rpcArgs = {
           p_mode: mode,
           p_primary_name: primary.name,
           p_primary_age: primary.age ?? null,
           p_partner_name: partner?.name ?? null,
           p_partner_age: partner?.age ?? null,
+        };
+        let rpcRes = await supabase.rpc("upsert_plan_with_members_v2", {
+          ...rpcArgs,
+          p_plan_id: planId,
         });
+        if (rpcRes.error && /function .* does not exist|PGRST202/i.test(rpcRes.error.message)) {
+          rpcRes = await supabase.rpc("upsert_plan_with_members", rpcArgs);
+        }
         if (!rpcRes.error && rpcRes.data) {
           const payload = rpcRes.data as unknown as { plan: PlanRow; members: PlanMemberRow[] };
           void trackWriterChange({
