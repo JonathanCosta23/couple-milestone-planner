@@ -35,6 +35,20 @@ export interface TrackingActions {
   ) => void;
   updateNotes: (monthKey: string, notes: string) => void;
   toggleCompleted: (monthKey: string) => void;
+  /**
+   * Persiste vários aportes do mesmo mês em uma única operação.
+   * - Atualiza o estado local de forma otimista (cada contribuinte).
+   * - Faz UMA única chamada de RPC `upsert_month_with_members`.
+   * - Se `markCompleted` for true e o mês ainda não estiver concluído,
+   *   o status é gravado como "completed" no mesmo write.
+   * - Resolve com `{ ok: true }` quando a persistência (ou enfileiramento
+   *   offline) é confirmada, `{ ok: false, reason }` caso contrário.
+   */
+  saveMonthDepositsBatch: (
+    monthKey: string,
+    deposits: Array<{ contributorIndex: number; deposit: { actualSelic: number; actualCDB: number } }>,
+    options?: { markCompleted?: boolean; notes?: string },
+  ) => Promise<{ ok: true; queuedOffline: boolean } | { ok: false; reason: string }>;
 }
 
 export function useTrackingActions(deps: Deps): TrackingActions {
@@ -137,5 +151,111 @@ export function useTrackingActions(deps: Deps): TrackingActions {
     void persistMonth(nextRecord);
   }, [buildRecord, toggleMonthCompletedLocal, persistMonth]);
 
-  return { updateMonth, updateNotes, toggleCompleted };
+  const saveMonthDepositsBatch = useCallback<TrackingActions["saveMonthDepositsBatch"]>(
+    async (monthKey, depositsByContributor, options) => {
+      if (!user || !planId || members.length === 0) {
+        return { ok: false, reason: "not_ready" };
+      }
+      const base = buildRecord(monthKey);
+      const deposits = [...base.deposits];
+      for (const { contributorIndex, deposit } of depositsByContributor) {
+        while (deposits.length <= contributorIndex) deposits.push({ actualSelic: 0, actualCDB: 0 });
+        deposits[contributorIndex] = deposit;
+      }
+      const willComplete = options?.markCompleted === true ? true : base.completed === true;
+      const nextRecord: MonthRecord = {
+        ...base,
+        deposits,
+        notes: options?.notes ?? base.notes,
+        completed: willComplete,
+      };
+
+      // Otimista no local — uma atualização por contribuidor para manter
+      // os subscribers (gráficos, totais) coerentes sem flicker.
+      depositsByContributor.forEach(({ contributorIndex, deposit }) => {
+        updateMonthRecordLocal(monthKey, contributorIndex, deposit, options?.notes);
+      });
+      if (options?.markCompleted === true && base.completed !== true) {
+        toggleMonthCompletedLocal(monthKey);
+      }
+
+      // Caminho offline — enfileira em vez de gravar.
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        try {
+          const [year, month] = monthKey.split("-").map(Number);
+          const ordered = [...members].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
+          const memberInputs = ordered.map((m, idx) => {
+            const contrib = config.contributors[idx];
+            const dep = nextRecord.deposits[idx];
+            return {
+              plan_member_id: m.id,
+              planned_selic: contrib?.plannedSelic ?? 0,
+              planned_cdb: contrib?.plannedCDB ?? 0,
+              actual_selic: dep?.actualSelic ?? 0,
+              actual_cdb: dep?.actualCDB ?? 0,
+            };
+          });
+          const plannedTotal = memberInputs.reduce((s, m) => s + m.planned_selic + m.planned_cdb, 0);
+          const actualTotal = memberInputs.reduce((s, m) => s + m.actual_selic + m.actual_cdb, 0);
+          const status = nextRecord.completed
+            ? "completed"
+            : actualTotal <= 0
+              ? "pending"
+              : actualTotal >= plannedTotal && plannedTotal > 0 ? "completed" : "partial";
+          await offlineQueue.enqueue({
+            entity: "monthly_tracking",
+            op: "update",
+            entityId: `${planId}:${monthKey}`,
+            planId,
+            memberId: null,
+            payload: {
+              user_id: user.id,
+              plan_id: planId,
+              year, month, month_key: monthKey,
+              planned_total: plannedTotal,
+              actual_total: actualTotal,
+              shortfall: Math.max(0, plannedTotal - actualTotal),
+              status,
+              notes: nextRecord.notes ?? null,
+              member_inputs: memberInputs,
+            },
+          });
+          logger.warn("writer.monthly_tracking.offline.enqueued", { userId: user.id, planId, monthKey });
+          return { ok: true, queuedOffline: true };
+        } catch (err) {
+          logger.warn("writer.monthly_tracking.offline.enqueue.fail", { userId: user.id, planId, monthKey }, err);
+          return { ok: false, reason: "offline_enqueue_failed" };
+        }
+      }
+
+      // Online: uma única chamada de RPC consolidada.
+      const ordered = [...members].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
+      const memberInputs = ordered.map((m, idx) => {
+        const contrib = config.contributors[idx];
+        const dep = nextRecord.deposits[idx];
+        return {
+          planMemberId: m.id,
+          plannedSelic: contrib?.plannedSelic ?? 0,
+          plannedCDB: contrib?.plannedCDB ?? 0,
+          actualSelic: dep?.actualSelic ?? 0,
+          actualCDB: dep?.actualCDB ?? 0,
+        };
+      });
+      const result = await writer.upsertMonth(
+        planId,
+        monthKey,
+        memberInputs,
+        nextRecord.notes ?? "",
+        nextRecord.completed,
+      );
+      if (result.error) {
+        logger.warn("writer.monthly_tracking.batch.fail", { userId: user.id, planId, monthKey }, result.error);
+        return { ok: false, reason: result.error };
+      }
+      return { ok: true, queuedOffline: false };
+    },
+    [user, planId, members, config.contributors, buildRecord, updateMonthRecordLocal, toggleMonthCompletedLocal, writer, offlineQueue],
+  );
+
+  return { updateMonth, updateNotes, toggleCompleted, saveMonthDepositsBatch };
 }

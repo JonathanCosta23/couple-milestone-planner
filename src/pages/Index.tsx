@@ -559,8 +559,7 @@ const Index = () => {
             onOpenChange={setShowQuickDeposit}
             config={data.config}
             monthRecords={data.monthRecords}
-            onUpdateMonth={trackingActions.updateMonth}
-            onToggleCompleted={trackingActions.toggleCompleted}
+            onSaveBatch={trackingActions.saveMonthDepositsBatch}
           />
         )}
         {exportImport.showImportDialog && (

@@ -2,21 +2,31 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Trophy, TrendingUp } from "lucide-react";
 import { formatBRL, formatBRLCompact, MILESTONES } from "@/lib/types";
-import { buildMilestoneProgress } from "@/lib/services/monthlySummary";
+import { buildMilestoneProgress, getRelevantMilestones } from "@/lib/services/monthlySummary";
 
 interface Props {
   currentWealth: number;
-  /** Meses estimados para o próximo marco (planned/actual). */
-  monthsToNext?: number | null;
+  /** Meta final do plano — usada para escalar a jornada e filtrar marcos. */
+  targetAmount: number;
+  /**
+   * Meses estimados para o PRÓXIMO marco (não a meta final).
+   * Deve vir de uma série de projeção cruzando o valor do próximo marco.
+   * `null` ou `undefined` mostra "estimativa indisponível".
+   */
+  monthsToNextMilestone?: number | null;
   /** Streak atual de meses concluídos — usado para "ritmo". */
   streakMonths?: number;
 }
 
-export function MilestoneProgress({ currentWealth, monthsToNext, streakMonths = 0 }: Props) {
-  const { previous, next, pct } = buildMilestoneProgress(currentWealth, MILESTONES);
-  const journeyPct = MILESTONES.length > 0
-    ? Math.min(1, currentWealth / MILESTONES[MILESTONES.length - 1])
-    : 0;
+export function MilestoneProgress({
+  currentWealth,
+  targetAmount,
+  monthsToNextMilestone,
+  streakMonths = 0,
+}: Props) {
+  const relevant = getRelevantMilestones(MILESTONES, targetAmount);
+  const { previous, next, pct } = buildMilestoneProgress(currentWealth, relevant);
+  const journeyPct = targetAmount > 0 ? Math.min(1, currentWealth / targetAmount) : 0;
 
   const paceLabel = streakMonths >= 6
     ? "Ritmo consistente"
@@ -58,12 +68,12 @@ export function MilestoneProgress({ currentWealth, monthsToNext, streakMonths = 
           <span className="text-muted-foreground">
             Faltam {formatBRL(Math.max(0, next - currentWealth))}
           </span>
-          {monthsToNext != null && (
-            <span className="text-muted-foreground flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" />
-              ~{monthsToNext} meses
-            </span>
-          )}
+          <span className="text-muted-foreground flex items-center gap-1">
+            <TrendingUp className="w-3 h-3" />
+            {monthsToNextMilestone != null && monthsToNextMilestone > 0
+              ? `~${monthsToNextMilestone} meses`
+              : "estimativa indisponível"}
+          </span>
         </div>
       </div>
 

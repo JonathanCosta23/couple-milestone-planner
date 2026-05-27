@@ -204,7 +204,8 @@ export function computeNextBestAction(
     title: "Revisar plano do próximo mês",
     description: "Mês atual fechado. Confira a meta do próximo mês antes que vire.",
     ctaLabel: "Revisar próximo mês",
-    tab: "historico",
+    // Aba real registrada em useAppNavigation.HISTORICO_TABS.
+    tab: "tracker",
   };
 }
 
@@ -219,4 +220,29 @@ export function buildMilestoneProgress(
   const span = next - previous;
   const pct = span > 0 ? Math.min(1, Math.max(0, (currentWealth - previous) / span)) : 1;
   return { previous, next, pct };
+}
+
+/**
+ * Retorna a lista de marcos relevantes para um plano, incluindo a meta final.
+ * Filtra marcos acima da meta — não faz sentido orientar o usuário a marcos
+ * inalcançáveis dentro do plano atual.
+ */
+export function getRelevantMilestones(milestoneValues: number[], targetAmount: number): number[] {
+  const cleaned = milestoneValues.filter((v) => v > 0 && v <= targetAmount);
+  if (!cleaned.includes(targetAmount)) cleaned.push(targetAmount);
+  return Array.from(new Set(cleaned)).sort((a, b) => a - b);
+}
+
+/**
+ * Calcula meses até o PRÓXIMO marco (não a meta final) usando uma série
+ * de projeção. Retorna null se a série não cruzar o valor — assim a UI
+ * consegue mostrar "estimativa indisponível" em vez de chumbar número.
+ */
+export function findMonthsToCrossing(
+  series: Array<{ monthIndex: number; balance: number }>,
+  targetValue: number,
+): number | null {
+  if (!Number.isFinite(targetValue) || targetValue <= 0) return null;
+  const hit = series.find((p) => p.balance >= targetValue);
+  return hit ? hit.monthIndex : null;
 }
