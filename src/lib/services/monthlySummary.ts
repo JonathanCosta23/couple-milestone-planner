@@ -183,7 +183,7 @@ export function computeNextBestAction(
       title: "Atualizar patrimônio",
       description: "Seus saldos estão há mais de 30 dias sem revisão.",
       ctaLabel: "Revisar patrimônio",
-      tab: "patrimonio",
+      tab: "ativos",
     };
   }
 
@@ -204,8 +204,8 @@ export function computeNextBestAction(
     title: "Revisar plano do próximo mês",
     description: "Mês atual fechado. Confira a meta do próximo mês antes que vire.",
     ctaLabel: "Revisar próximo mês",
-    // Aba real registrada em useAppNavigation.HISTORICO_TABS.
-    tab: "tracker",
+    // Aba real: "mensal" em Execução (useAppNavigation.EXECUCAO_TABS).
+    tab: "mensal",
   };
 }
 
