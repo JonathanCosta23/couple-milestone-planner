@@ -339,7 +339,7 @@ const Index = () => {
 
     // ── Filtros condicionais por seção ──
     const hasInvestments = (effectiveAppData.investments?.length ?? 0) > 0;
-    const isCouple = cloudIsCouple || (effectiveAppData.mode === "couple" || effectiveAppData.mode === "casal");
+    const isCouple = cloudIsCouple || effectiveAppData.mode === "casal";
     const execucaoSubs = EXECUCAO_SUBS_BASE;
     const patrimonioSubs = PATRIMONIO_SUBS_BASE.filter((s) =>
       s.id === "concentracao" ? hasInvestments : true,
