@@ -1,6 +1,6 @@
-import { Home, Target, CalendarDays, User } from "lucide-react";
+import { Home, CalendarDays, Gem, LineChart, MoreHorizontal } from "lucide-react";
 
-export type NavSection = "home" | "plano" | "historico" | "perfil";
+export type NavSection = "inicio" | "execucao" | "patrimonio" | "projecao" | "mais";
 
 interface Props {
   active: NavSection;
@@ -8,10 +8,11 @@ interface Props {
 }
 
 const NAV_ITEMS: { id: NavSection; icon: React.ElementType; label: string }[] = [
-  { id: "home", icon: Home, label: "Início" },
-  { id: "plano", icon: Target, label: "Plano" },
-  { id: "historico", icon: CalendarDays, label: "Histórico" },
-  { id: "perfil", icon: User, label: "Perfil" },
+  { id: "inicio", icon: Home, label: "Início" },
+  { id: "execucao", icon: CalendarDays, label: "Execução" },
+  { id: "patrimonio", icon: Gem, label: "Patrimônio" },
+  { id: "projecao", icon: LineChart, label: "Projeção" },
+  { id: "mais", icon: MoreHorizontal, label: "Mais" },
 ];
 
 export function BottomNav({ active, onChange }: Props) {
