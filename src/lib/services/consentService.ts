@@ -77,7 +77,13 @@ export async function recordConsents(
 
   const { error } = await supabase
     .from("legal_consents")
-    .upsert(rows as never, { onConflict: "user_id,consent_type,version" });
+    .upsert(rows as never, {
+      onConflict: "user_id,consent_type,version",
+      // Append-only: se já existe (user_id, consent_type, version), não atualiza.
+      // Importante: sem isso o Postgres exige privilégio UPDATE na tabela mesmo
+      // quando não há conflito, e a política RLS de legal_consents é INSERT-only.
+      ignoreDuplicates: true,
+    });
 
   if (error) {
     logger.error("consent.record.fail", { userId: input.userId }, error.message);
