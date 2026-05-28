@@ -83,35 +83,37 @@ import { toast } from "sonner";
 import { ErrorBoundary } from "@/components/system/ErrorBoundary";
 import { OfflineBanner } from "@/components/system/OfflineBanner";
 
-// Sub-nav definitions — shorter labels, better mobile fit
-const PLANO_SUBS = [
-  { id: "aportes", label: "Aportes", icon: "💰" },
-  { id: "estrutura", label: "Estrutura", icon: "🏛️" },
-  { id: "simulador", label: "Simular", icon: "📊" },
-  { id: "projecao", label: "Projeção", icon: "📈" },
-  { id: "diagnostico", label: "Saúde", icon: "🏥" },
-  { id: "jornada", label: "Jornada", icon: "🗺️" },
-  { id: "comportamento", label: "Hábitos", icon: "🧠" },
-  { id: "patrimonio", label: "Patrimônio", icon: "💎" },
-  { id: "concentracao", label: "Concentração", icon: "🎯" },
-  { id: "governanca", label: "Governança", icon: "👥" },
-];
-
-const HISTORICO_SUBS = [
-  { id: "tracker", label: "Meses", icon: "📅" },
-  { id: "gastos", label: "Gastos", icon: "🛒" },
+// Sub-nav definitions — agrupadas pela jornada de execução patrimonial.
+// Ordem reflete a hierarquia de uso (mais frequente → menos frequente).
+const EXECUCAO_SUBS_BASE = [
+  { id: "mensal", label: "Acompanhamento mensal", icon: "📅" },
   { id: "renda", label: "Renda", icon: "💵" },
+  { id: "gastos", label: "Gastos", icon: "🛒" },
   { id: "dividas", label: "Dívidas", icon: "📋" },
+  { id: "disciplina", label: "Disciplina", icon: "🧠" },
 ];
 
-const PERFIL_SUBS = [
-  { id: "aprender", label: "Aprender", icon: "📚" },
+const PATRIMONIO_SUBS_BASE = [
+  { id: "ativos", label: "Ativos", icon: "💎" },
+  { id: "concentracao", label: "Concentração", icon: "🎯" },
+  { id: "estrutura", label: "Arquitetura", icon: "🏛️" },
+];
+
+const PROJECAO_SUBS = [
+  { id: "projecao", label: "Projeção", icon: "📈" },
+  { id: "simulador", label: "Simular", icon: "📊" },
+  { id: "jornada", label: "Jornada", icon: "🗺️" },
+];
+
+const MAIS_SUBS_BASE = [
+  { id: "aprender", label: "Educação", icon: "📚" },
   { id: "glossario", label: "Glossário", icon: "📖" },
   { id: "armadilhas", label: "Radar", icon: "🛡️" },
   { id: "investir", label: "Investir", icon: "📈" },
-  { id: "compartilhar", label: "Exportar", icon: "📤" },
+  { id: "saude", label: "Saúde", icon: "🏥" },
+  { id: "governanca", label: "Governança", icon: "👥" },
   { id: "ajuda", label: "Ajuda", icon: "❓" },
-  { id: "dados", label: "Dados", icon: "💾" },
+  { id: "configuracoes", label: "Configurações", icon: "⚙️" },
 ];
 
 const Index = () => {
@@ -161,8 +163,8 @@ const Index = () => {
 
   // Navigation + Export/Import
   const {
-    navSection, planoSub, historicoSub, perfilSub,
-    setNavSection, setPlanoSub, setHistoricoSub, setPerfilSub,
+    navSection, execucaoSub, patrimonioSub, projecaoSub, maisSub,
+    setNavSection, setExecucaoSub, setPatrimonioSub, setProjecaoSub, setMaisSub,
     goToSection, navigateToTab: handleNavigateToTab,
   } = useAppNavigation();
   const exportImport = useExportImport({ data, exportJSON, importJSON });
@@ -335,8 +337,21 @@ const Index = () => {
       return <Wizard onComplete={handleWizardComplete} />;
     }
 
+    // ── Filtros condicionais por seção ──
+    const hasInvestments = (effectiveAppData.investments?.length ?? 0) > 0;
+    const isCouple = cloudIsCouple || (effectiveAppData.mode === "couple" || effectiveAppData.mode === "casal");
+    const execucaoSubs = EXECUCAO_SUBS_BASE;
+    const patrimonioSubs = PATRIMONIO_SUBS_BASE.filter((s) =>
+      s.id === "concentracao" ? hasInvestments : true,
+    );
+    const maisSubs = MAIS_SUBS_BASE.filter((s) => (s.id === "governanca" ? isCouple : true));
+
+    // Se a sub-aba atual ficou escondida por filtro, fallback para a primeira disponível.
+    const safe = (subs: { id: string }[], current: string) =>
+      subs.find((s) => s.id === current) ? current : subs[0]?.id ?? current;
+
     switch (navSection) {
-      case "home":
+      case "inicio":
         return (
           <div className="space-y-4">
             <UnifiedHome
@@ -364,64 +379,38 @@ const Index = () => {
           </div>
         );
 
-      case "plano":
+      case "execucao": {
+        const sub = safe(execucaoSubs, execucaoSub);
         return (
-          <ErrorBoundary area="plano" title="Não foi possível carregar o Plano">
+          <ErrorBoundary area="execucao" title="Não foi possível carregar a Execução">
           <div className="space-y-4">
-            <SubNav items={PLANO_SUBS} active={planoSub} onChange={setPlanoSub} />
-            {planoSub === "aportes" && (
+            <SubNav items={execucaoSubs} active={sub} onChange={setExecucaoSub} />
+            {sub === "mensal" && (
               <div className="space-y-6">
                 <Dashboard config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} />
+                <MonthlyTracker
+                  config={data.config}
+                  monthRecords={data.monthRecords}
+                  startDate={data.startDate}
+                  onUpdateMonth={trackingActions.updateMonth}
+                  onUpdateNotes={trackingActions.updateNotes}
+                  onToggleCompleted={trackingActions.toggleCompleted}
+                  onGenerateAutoPlan={generateAutoPlan}
+                />
               </div>
             )}
-            {planoSub === "simulador" && (
-              <AdvancedSimulator appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
-            )}
-            {planoSub === "estrutura" && (
-              <PatrimonialArchitecture appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
-            )}
-            {planoSub === "projecao" && (
-              <ProjectionRealistic appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
-            )}
-            {planoSub === "diagnostico" && (
-              <FinancialDiagnostic appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
-            )}
-            {planoSub === "jornada" && (
-              <JourneyPhases appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
-            )}
-            {planoSub === "comportamento" && (
-              <BehavioralPanel appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
-            )}
-            {planoSub === "patrimonio" && (
-              <WealthDistribution appData={effectiveAppData} config={data.config} core={core} onAddInvestment={assetActions.add} onUpdateInvestment={assetActions.update} onDeleteInvestment={assetActions.remove} planMembers={cloudMembers} />
-            )}
-            {planoSub === "concentracao" && (
-              <ConcentrationMap appData={effectiveAppData} config={data.config} core={core} onNavigateToTab={handleNavigateToTab} />
-            )}
-            {planoSub === "governanca" && (
-              <CoupleGovernance appData={effectiveAppData} config={data.config} core={core} onNavigateToTab={handleNavigateToTab} />
-            )}
-          </div>
-          </ErrorBoundary>
-        );
-
-      case "historico":
-        return (
-          <ErrorBoundary area="historico" title="Não foi possível carregar o Histórico">
-          <div className="space-y-4">
-            <SubNav items={HISTORICO_SUBS} active={historicoSub} onChange={setHistoricoSub} />
-            {historicoSub === "tracker" && (
-              <MonthlyTracker
+            {sub === "renda" && (
+              <IncomePanel
+                appData={effectiveAppData}
                 config={data.config}
                 monthRecords={data.monthRecords}
                 startDate={data.startDate}
-                onUpdateMonth={trackingActions.updateMonth}
-                onUpdateNotes={trackingActions.updateNotes}
-                onToggleCompleted={trackingActions.toggleCompleted}
-                onGenerateAutoPlan={generateAutoPlan}
+                onAddIncome={incomeActions.add}
+                onUpdateIncome={incomeActions.update}
+                onDeleteIncome={incomeActions.remove}
               />
             )}
-            {historicoSub === "gastos" && (
+            {sub === "gastos" && (
               <ExpensePanel
                 appData={effectiveAppData}
                 config={data.config}
@@ -433,18 +422,7 @@ const Index = () => {
                 onConvertToRecurring={expenseActions.convertToRecurring}
               />
             )}
-            {historicoSub === "renda" && (
-              <IncomePanel
-                appData={effectiveAppData}
-                config={data.config}
-                monthRecords={data.monthRecords}
-                startDate={data.startDate}
-                onAddIncome={incomeActions.add}
-                onUpdateIncome={incomeActions.update}
-                onDeleteIncome={incomeActions.remove}
-              />
-            )}
-            {historicoSub === "dividas" && (
+            {sub === "dividas" && (
               <DebtModule
                 appData={effectiveAppData}
                 config={data.config}
@@ -453,31 +431,72 @@ const Index = () => {
                 onDeleteDebt={debtActions.remove}
               />
             )}
+            {sub === "disciplina" && (
+              <BehavioralPanel appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
+            )}
           </div>
           </ErrorBoundary>
         );
+      }
 
-      case "perfil":
+      case "patrimonio": {
+        const sub = safe(patrimonioSubs, patrimonioSub);
         return (
-          <ErrorBoundary area="perfil" title="Não foi possível carregar o Perfil">
+          <ErrorBoundary area="patrimonio" title="Não foi possível carregar o Patrimônio">
           <div className="space-y-4">
-            <SubNav items={PERFIL_SUBS} active={perfilSub} onChange={setPerfilSub} />
-            {perfilSub === "aprender" && <MiniLessons />}
-            {perfilSub === "glossario" && <FinancialGlossary />}
-            {perfilSub === "armadilhas" && <TrapDetector />}
-            {perfilSub === "investir" && <InvestmentGuide />}
-            {perfilSub === "compartilhar" && (
-              <SharePlan
-                config={data.config}
-                monthRecords={data.monthRecords}
-                startDate={data.startDate}
-                profile={data.financialProfile}
-                onExportJSON={exportImport.handleExport}
-                onImportClick={exportImport.triggerFilePicker}
-              />
+            <SubNav items={patrimonioSubs} active={sub} onChange={setPatrimonioSub} />
+            {sub === "ativos" && (
+              <WealthDistribution appData={effectiveAppData} config={data.config} core={core} onAddInvestment={assetActions.add} onUpdateInvestment={assetActions.update} onDeleteInvestment={assetActions.remove} planMembers={cloudMembers} />
             )}
-            {perfilSub === "ajuda" && <HowToUse />}
-            {perfilSub === "dados" && (
+            {sub === "concentracao" && hasInvestments && (
+              <ConcentrationMap appData={effectiveAppData} config={data.config} core={core} onNavigateToTab={handleNavigateToTab} />
+            )}
+            {sub === "estrutura" && (
+              <PatrimonialArchitecture appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
+            )}
+          </div>
+          </ErrorBoundary>
+        );
+      }
+
+      case "projecao": {
+        const sub = safe(PROJECAO_SUBS, projecaoSub);
+        return (
+          <ErrorBoundary area="projecao" title="Não foi possível carregar a Projeção">
+          <div className="space-y-4">
+            <SubNav items={PROJECAO_SUBS} active={sub} onChange={setProjecaoSub} />
+            {sub === "projecao" && (
+              <ProjectionRealistic appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
+            )}
+            {sub === "simulador" && (
+              <AdvancedSimulator appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
+            )}
+            {sub === "jornada" && (
+              <JourneyPhases appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
+            )}
+          </div>
+          </ErrorBoundary>
+        );
+      }
+
+      case "mais": {
+        const sub = safe(maisSubs, maisSub);
+        return (
+          <ErrorBoundary area="mais" title="Não foi possível carregar esta área">
+          <div className="space-y-4">
+            <SubNav items={maisSubs} active={sub} onChange={setMaisSub} />
+            {sub === "aprender" && <MiniLessons />}
+            {sub === "glossario" && <FinancialGlossary />}
+            {sub === "armadilhas" && <TrapDetector />}
+            {sub === "investir" && <InvestmentGuide />}
+            {sub === "saude" && (
+              <FinancialDiagnostic appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
+            )}
+            {sub === "governanca" && isCouple && (
+              <CoupleGovernance appData={effectiveAppData} config={data.config} core={core} onNavigateToTab={handleNavigateToTab} />
+            )}
+            {sub === "ajuda" && <HowToUse />}
+            {sub === "configuracoes" && (
               <div className="space-y-4">
                 <PlanModeSelector
                   appData={effectiveAppData}
@@ -487,12 +506,20 @@ const Index = () => {
                   onUpdatePrimaryProfile={planActions.updatePrimaryProfile}
                   onUpdatePartnerProfile={planActions.updatePartnerProfile}
                 />
+                <SharePlan
+                  config={data.config}
+                  monthRecords={data.monthRecords}
+                  startDate={data.startDate}
+                  profile={data.financialProfile}
+                  onExportJSON={exportImport.handleExport}
+                  onImportClick={exportImport.triggerFilePicker}
+                />
                 <div className="space-y-2">
                 <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={() => setShowFinancialSetup(true)}>
                   <Settings className="w-4 h-4 mr-2.5" /> Perfil financeiro
                 </Button>
                 <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={exportImport.handleExport}>
-                  <Download className="w-4 h-4 mr-2.5" /> Exportar dados
+                  <Download className="w-4 h-4 mr-2.5" /> Backup e exportação
                 </Button>
                 <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={exportImport.triggerFilePicker}>
                   <Upload className="w-4 h-4 mr-2.5" /> Importar dados
@@ -512,6 +539,7 @@ const Index = () => {
           </div>
           </ErrorBoundary>
         );
+      }
 
       default:
         return null;
@@ -528,7 +556,7 @@ const Index = () => {
         navSection={navSection}
         showDesktopNav={data.wizardComplete}
         onChangeSection={goToSection}
-        onOpenSettings={() => { setNavSection("perfil"); setPerfilSub("dados"); }}
+        onOpenSettings={() => { setNavSection("mais"); setMaisSub("configuracoes"); }}
         onSignOut={handleSignOut}
       />
 
