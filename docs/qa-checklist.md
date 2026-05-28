@@ -6,6 +6,35 @@ Marque ✅ / ❌ no PR ou na issue de release.
 
 > Comandos oficiais de CI: `npm ci && npm run lint && npm test && npm run build`.
 
+## Mapa de navegação (Sprint Arquitetura de Produto)
+
+Navegação principal reorganizada em 5 seções enxutas:
+
+| Seção           | Subáreas                                                                                   |
+| --------------- | ------------------------------------------------------------------------------------------- |
+| **Início**      | Cockpit (UnifiedHome) — resumo executivo + próxima melhor ação                              |
+| **Execução**    | Acompanhamento mensal · Renda · Gastos · Dívidas · Disciplina                               |
+| **Patrimônio** | Ativos · Concentração (se houver patrimônio) · Arquitetura patrimonial                      |
+| **Projeção**   | Projeção realística · Simulador · Jornada e marcos                                          |
+| **Mais**        | Educação · Glossário · Radar · Investir · Saúde · Governança (casal) · Ajuda · Configurações |
+
+- [ ] BottomNav (mobile) e header (desktop) exibem exatamente 5 seções com os
+      rótulos acima.
+- [ ] **Renomeações** aplicadas: "Histórico" → Execução, "Meses" → Acompanhamento
+      mensal, "Dados" → Configurações, "Compartilhar" → Backup e exportação,
+      "Hábitos" → Disciplina, "Patrimônio" (sub) → Ativos.
+- [ ] **Condicionais** aplicadas:
+      - Governança aparece **somente** quando o plano é casal.
+      - Concentração aparece **somente** quando existe pelo menos um ativo.
+- [ ] **Deep links legados** continuam funcionando via aliases
+      (`tracker`→`mensal`, `patrimonio`→`ativos`, `dados`→`configuracoes`,
+      `compartilhar`→`configuracoes`, `comportamento`→`disciplina`,
+      `diagnostico`→`saude`, `historico`→`mensal`, `aportes`→`mensal`).
+- [ ] Próxima Melhor Ação navega para `mensal` (mês concluído) e `ativos`
+      (patrimônio antigo) — nunca para tabs inexistentes.
+- [ ] Usuário acessa QuickDeposit, Acompanhamento mensal, Patrimônio (Ativos)
+      e Projeção em **até dois toques**.
+
 ## 0. Cockpit mensal premium
 - [ ] Card "Resumo do mês" mostra mês corrente, planejado, realizado, faltam e % de execução.
 - [ ] Em modo casal, aparece progresso por participante usando nomes reais.
