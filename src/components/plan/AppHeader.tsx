@@ -21,11 +21,14 @@ interface AppHeaderProps {
 }
 
 const SECTION_LABELS: Record<NavSection, string> = {
-  home: "Início",
-  plano: "Plano",
-  historico: "Histórico",
-  perfil: "Perfil",
+  inicio: "Início",
+  execucao: "Execução",
+  patrimonio: "Patrimônio",
+  projecao: "Projeção",
+  mais: "Mais",
 };
+
+const SECTION_ORDER: NavSection[] = ["inicio", "execucao", "patrimonio", "projecao", "mais"];
 
 /**
  * Header sticky do app. Exibe:
@@ -70,7 +73,7 @@ export function AppHeader({
           {/* Desktop inline nav */}
           {showDesktopNav && (
             <nav className="hidden lg:flex items-center gap-1">
-              {(["home", "plano", "historico", "perfil"] as NavSection[]).map((s) => (
+              {SECTION_ORDER.map((s) => (
                 <button
                   key={s}
                   onClick={() => onChangeSection(s)}
