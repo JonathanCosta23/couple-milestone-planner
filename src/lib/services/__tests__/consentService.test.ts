@@ -84,11 +84,25 @@ describe("consentService.recordConsents", () => {
     const r = await recordConsents({ userId: "u1", types: ["terms", "educational_disclaimer"] });
     expect(r.ok).toBe(true);
     expect(upsertMock).toHaveBeenCalledTimes(1);
-    const [rows] = upsertMock.mock.calls[0];
+    const [rows, opts] = upsertMock.mock.calls[0];
     expect(rows).toEqual(expect.arrayContaining([
       expect.objectContaining({ user_id: "u1", consent_type: "terms", version: CONSENT_VERSIONS.terms }),
       expect.objectContaining({ user_id: "u1", consent_type: "educational_disclaimer", version: CONSENT_VERSIONS.educational_disclaimer }),
     ]));
+    // Append-only: idempotente, sem exigir privilégio UPDATE na tabela.
+    expect(opts).toMatchObject({
+      onConflict: "user_id,consent_type,version",
+      ignoreDuplicates: true,
+    });
+  });
+
+  it("é idempotente: reaceitar a mesma versão não falha", async () => {
+    upsertMock.mockResolvedValue({ error: null, data: [] });
+    fromMock.mockReturnValue({ upsert: upsertMock });
+    const r1 = await recordConsents({ userId: "u1", types: ["terms", "privacy", "educational_disclaimer"] });
+    const r2 = await recordConsents({ userId: "u1", types: ["terms", "privacy", "educational_disclaimer"] });
+    expect(r1.ok).toBe(true);
+    expect(r2.ok).toBe(true);
   });
 
   it("propaga erro do banco", async () => {
