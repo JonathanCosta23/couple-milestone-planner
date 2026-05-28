@@ -9,7 +9,7 @@ import { useEffect, useState, useCallback, type ReactNode } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, ShieldCheck, FileText, ShieldAlert } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { LegalFooter } from "@/components/plan/LegalDialogs";
 import {
@@ -32,6 +32,7 @@ export function ConsentGate({ userId, onSignOut, children }: ConsentGateProps) {
   const [loading, setLoading] = useState(true);
   const [allAccepted, setAllAccepted] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const [acceptedDisclaimer, setAcceptedDisclaimer] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -46,7 +47,8 @@ export function ConsentGate({ userId, onSignOut, children }: ConsentGateProps) {
     void refresh();
   }, [refresh]);
 
-  const canSubmit = acceptedTerms && acceptedDisclaimer && !submitting;
+  const canSubmit =
+    acceptedTerms && acceptedPrivacy && acceptedDisclaimer && !submitting;
 
   const handleAccept = async () => {
     setSubmitting(true);
@@ -99,31 +101,32 @@ export function ConsentGate({ userId, onSignOut, children }: ConsentGateProps) {
             <Checkbox
               checked={acceptedTerms}
               onCheckedChange={(v) => setAcceptedTerms(v === true)}
-              aria-label="Aceitar Termos de Uso e Política de Privacidade"
+              aria-label="Aceitar Termos de Uso"
             />
             <span className="leading-relaxed">
-              Li e concordo com os <strong>Termos de Uso</strong> e com a{" "}
-              <strong>Política de Privacidade</strong>.
-              <span className="inline-flex items-center gap-1 ml-1 text-xs text-muted-foreground">
-                <FileText className="w-3 h-3" aria-hidden />
-                {CONSENT_VERSIONS.terms}
-              </span>
+              Li e concordo com os <strong>Termos de Uso</strong>.
+            </span>
+          </label>
+          <label className="flex items-start gap-3 text-sm cursor-pointer">
+            <Checkbox
+              checked={acceptedPrivacy}
+              onCheckedChange={(v) => setAcceptedPrivacy(v === true)}
+              aria-label="Aceitar Política de Privacidade"
+            />
+            <span className="leading-relaxed">
+              Li e concordo com a <strong>Política de Privacidade</strong>.
             </span>
           </label>
           <label className="flex items-start gap-3 text-sm cursor-pointer">
             <Checkbox
               checked={acceptedDisclaimer}
               onCheckedChange={(v) => setAcceptedDisclaimer(v === true)}
-              aria-label="Aceitar aviso educacional"
+              aria-label="Aceitar aviso educacional sobre projeções"
             />
             <span className="leading-relaxed">
-              Entendo que o app tem <strong>finalidade educacional</strong> e que as
-              projeções são estimativas — não constituem recomendação de
-              investimento.
-              <span className="inline-flex items-center gap-1 ml-1 text-xs text-muted-foreground">
-                <ShieldAlert className="w-3 h-3" aria-hidden />
-                {CONSENT_VERSIONS.educational_disclaimer}
-              </span>
+              Entendo o <strong>aviso educacional sobre projeções</strong>: o app tem
+              finalidade educacional e as projeções são estimativas — não constituem
+              recomendação de investimento.
             </span>
           </label>
         </div>
