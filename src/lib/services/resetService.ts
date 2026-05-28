@@ -16,6 +16,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
+import { toFriendlyError } from "@/lib/errors/friendlyError";
 import { logProductEvent } from "@/lib/services/auditService";
 import { clearAll, listDeadLetters, removeWrite } from "@/lib/offlineQueue";
 
@@ -107,7 +108,7 @@ export async function resetUserPlan(userId: string): Promise<ResetResult> {
     const { error } = await supabase.rpc("reset_user_plan_data");
     if (error) {
       result.ok = false;
-      result.error = error.message;
+      result.error = toFriendlyError(error);
       logger.error("reset.rpc.fail", { userId }, error.message);
     } else {
       result.cleared.rpc = true;
@@ -119,13 +120,13 @@ export async function resetUserPlan(userId: string): Promise<ResetResult> {
         critical: true,
       });
       if (!auditRes.ok) {
-        result.audit = { ok: false, error: auditRes.error };
+        result.audit = { ok: false, error: toFriendlyError(auditRes.error) };
         logger.error("reset.audit.fail", { userId }, auditRes.error);
       }
     }
   } catch (err) {
     result.ok = false;
-    result.error = err instanceof Error ? err.message : "Erro desconhecido no reset.";
+    result.error = toFriendlyError(err as { message?: string });
     logger.error("reset.rpc.exception", { userId }, err);
   }
 

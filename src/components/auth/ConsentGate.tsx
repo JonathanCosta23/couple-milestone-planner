@@ -64,9 +64,7 @@ export function ConsentGate({ userId, onSignOut, children }: ConsentGateProps) {
     });
     setSubmitting(false);
     if (!result.ok) {
-      toast.error("Não foi possível registrar o aceite", {
-        description: result.error ?? "Tente novamente em instantes.",
-      });
+      toast.error("Não foi possível registrar o aceite agora. Tente novamente em instantes.");
       return;
     }
     toast.success("Aceite registrado");

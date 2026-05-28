@@ -96,7 +96,9 @@ describe("resetService.resetUserPlan", () => {
     const res = await resetUserPlan("user-1");
 
     expect(res.ok).toBe(false);
-    expect(res.error).toBe("boom");
+    // Erro bruto do Supabase nunca vaza: mensagem fica genérica e amigável.
+    expect(res.error).not.toBe("boom");
+    expect(res.error).toBeTruthy();
     expect(res.cleared.rpc).toBe(false);
     expect(res.cleared.offlineQueue).toBe(true);
     expect(localStorage.getItem("plano-do-milhao-v6")).toBeNull();
@@ -122,6 +124,8 @@ describe("resetService.resetUserPlan", () => {
     expect(res.ok).toBe(true);
     expect(res.cleared.rpc).toBe(true);
     expect(res.audit.ok).toBe(false);
-    expect(res.audit.error).toBe("audit_down");
+    // Erro bruto do log não pode vazar para a UI.
+    expect(res.audit.error).not.toBe("audit_down");
+    expect(res.audit.error).toBeTruthy();
   });
 });

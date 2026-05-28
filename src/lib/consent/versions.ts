@@ -17,5 +17,6 @@ export const CONSENT_VERSIONS: Record<ConsentType, string> = {
 /** Tipos de consentimento exigidos antes de liberar o app autenticado. */
 export const REQUIRED_CONSENTS: ConsentType[] = [
   "terms",
+  "privacy",
   "educational_disclaimer",
 ];

@@ -6,6 +6,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
+import { toFriendlyError } from "@/lib/errors/friendlyError";
 import {
   CONSENT_VERSIONS,
   REQUIRED_CONSENTS,
@@ -80,7 +81,7 @@ export async function recordConsents(
 
   if (error) {
     logger.error("consent.record.fail", { userId: input.userId }, error.message);
-    return { ok: false, error: error.message };
+    return { ok: false, error: toFriendlyError(error) };
   }
   return { ok: true };
 }
