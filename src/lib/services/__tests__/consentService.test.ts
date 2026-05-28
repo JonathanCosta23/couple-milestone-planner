@@ -29,6 +29,7 @@ describe("consentService.fetchConsentStatus", () => {
     const status = await fetchConsentStatus("u1");
     expect(status.allAccepted).toBe(false);
     expect(status.pending).toContain("terms");
+    expect(status.pending).toContain("privacy");
     expect(status.pending).toContain("educational_disclaimer");
   });
 
@@ -45,7 +46,8 @@ describe("consentService.fetchConsentStatus", () => {
       }),
     });
     const status = await fetchConsentStatus("u1");
-    expect(status.pending).toEqual(["educational_disclaimer"]);
+    expect(status.pending).toEqual(expect.arrayContaining(["privacy", "educational_disclaimer"]));
+    expect(status.pending).not.toContain("terms");
     expect(status.allAccepted).toBe(false);
   });
 
@@ -55,6 +57,7 @@ describe("consentService.fetchConsentStatus", () => {
         eq: () => Promise.resolve({
           data: [
             { consent_type: "terms", version: CONSENT_VERSIONS.terms, accepted_at: "x" },
+            { consent_type: "privacy", version: CONSENT_VERSIONS.privacy, accepted_at: "x" },
             { consent_type: "educational_disclaimer", version: CONSENT_VERSIONS.educational_disclaimer, accepted_at: "x" },
           ],
           error: null,
@@ -93,7 +96,9 @@ describe("consentService.recordConsents", () => {
     fromMock.mockReturnValue({ upsert: upsertMock });
     const r = await recordConsents({ userId: "u1", types: ["terms"] });
     expect(r.ok).toBe(false);
-    expect(r.error).toBe("rls");
+    // Erro bruto do Supabase é traduzido para mensagem amigável antes da UI.
+    expect(r.error).not.toBe("rls");
+    expect(r.error).toBeTruthy();
   });
 
   it("sem userId retorna missing_user sem chamar banco", async () => {
