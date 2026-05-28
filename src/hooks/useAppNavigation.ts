@@ -2,57 +2,87 @@ import { useState, useCallback } from "react";
 import type { NavSection } from "@/components/plan/BottomNav";
 
 /**
- * Constantes de navegação compartilhadas entre o roteamento de painéis
- * e a lógica de "deep link" interno (handleNavigateToTab).
+ * Navegação principal — 5 seções enxutas orientadas à jornada de execução.
+ *
+ *  - inicio       cockpit estratégico (Home)
+ *  - execucao     acompanhamento mensal, renda, gastos, dívidas
+ *  - patrimonio   ativos, concentração, arquitetura patrimonial
+ *  - projecao     projeção realística, simulador, jornada/marcos
+ *  - mais         educação, configurações, governança, backup, perfil, reset
  */
-export const PLANO_TABS = [
-  "aportes",
-  "estrutura",
-  "simulador",
-  "projecao",
-  "diagnostico",
-  "jornada",
-  "comportamento",
-  "patrimonio",
-  "concentracao",
-  "governanca",
-] as const;
 
-export const HISTORICO_TABS = ["tracker", "gastos", "renda", "dividas"] as const;
-
-export const PERFIL_TABS = [
+export const EXECUCAO_TABS = ["mensal", "renda", "gastos", "dividas", "disciplina"] as const;
+export const PATRIMONIO_TABS = ["ativos", "concentracao", "estrutura"] as const;
+export const PROJECAO_TABS = ["projecao", "simulador", "jornada"] as const;
+export const MAIS_TABS = [
   "aprender",
   "glossario",
   "armadilhas",
   "investir",
-  "compartilhar",
+  "saude",
+  "governanca",
   "ajuda",
-  "dados",
+  "configuracoes",
 ] as const;
 
-export type PlanoTab = (typeof PLANO_TABS)[number];
-export type HistoricoTab = (typeof HISTORICO_TABS)[number];
-export type PerfilTab = (typeof PERFIL_TABS)[number];
+export type ExecucaoTab = (typeof EXECUCAO_TABS)[number];
+export type PatrimonioTab = (typeof PATRIMONIO_TABS)[number];
+export type ProjecaoTab = (typeof PROJECAO_TABS)[number];
+export type MaisTab = (typeof MAIS_TABS)[number];
 
 /**
- * Estado e handlers de navegação do app.
+ * Aliases de retrocompatibilidade — qualquer chamada antiga para
+ * `onNavigateToTab("tracker"|"patrimonio"|"dados"|...)` continua funcionando
+ * porque o ID legado é traduzido para o ID novo. Mantemos a tabela aqui em
+ * vez de quebrar deep links pelo app.
+ */
+export const TAB_ALIASES: Record<string, string> = {
+  // Execução
+  tracker: "mensal",
+  aportes: "mensal",
+  historico: "mensal",
+  comportamento: "disciplina",
+  // Patrimônio
+  patrimonio: "ativos",
+  // Projeção (mantém ids)
+  // Mais
+  diagnostico: "saude",
+  dados: "configuracoes",
+  compartilhar: "configuracoes",
+  perfil: "configuracoes",
+};
+
+function resolveAlias(tab: string): string {
+  return TAB_ALIASES[tab] ?? tab;
+}
+
+function sectionForTab(tab: string): NavSection | null {
+  if ((EXECUCAO_TABS as readonly string[]).includes(tab)) return "execucao";
+  if ((PATRIMONIO_TABS as readonly string[]).includes(tab)) return "patrimonio";
+  if ((PROJECAO_TABS as readonly string[]).includes(tab)) return "projecao";
+  if ((MAIS_TABS as readonly string[]).includes(tab)) return "mais";
+  return null;
+}
+
+/**
+ * Estado e handlers de navegação.
  *
- * Centraliza:
- * - seção principal (home/plano/histórico/perfil)
- * - sub-aba ativa de cada seção
- * - "deep link" interno (handleNavigateToTab) usado em cards/insights da Home
- *   para pular direto para uma sub-aba específica.
- *
- * Sempre faz scroll-to-top suave na navegação.
+ * - Seção principal (`inicio`/`execucao`/`patrimonio`/`projecao`/`mais`)
+ * - Sub-aba ativa por seção
+ * - Deep link interno (`navigateToTab`) usado por cards/insights da Home,
+ *   com aliases para nomes antigos.
  */
 export function useAppNavigation() {
-  const [navSection, setNavSection] = useState<NavSection>("home");
-  const [planoSub, setPlanoSub] = useState<string>("aportes");
-  const [historicoSub, setHistoricoSub] = useState<string>("tracker");
-  const [perfilSub, setPerfilSub] = useState<string>("aprender");
+  const [navSection, setNavSection] = useState<NavSection>("inicio");
+  const [execucaoSub, setExecucaoSub] = useState<string>("mensal");
+  const [patrimonioSub, setPatrimonioSub] = useState<string>("ativos");
+  const [projecaoSub, setProjecaoSub] = useState<string>("projecao");
+  const [maisSub, setMaisSub] = useState<string>("aprender");
 
   const scrollTop = useCallback(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }, []);
 
   const goToSection = useCallback(
@@ -63,23 +93,22 @@ export function useAppNavigation() {
     [scrollTop],
   );
 
-  /**
-   * Navega diretamente para qualquer sub-aba a partir do nome da aba,
-   * resolvendo automaticamente a seção pai. Usado pelos cards da Home.
-   */
   const navigateToTab = useCallback(
-    (tab: string) => {
-      if ((PLANO_TABS as readonly string[]).includes(tab)) {
-        setNavSection("plano");
-        setPlanoSub(tab);
-      } else if ((HISTORICO_TABS as readonly string[]).includes(tab)) {
-        setNavSection("historico");
-        setHistoricoSub(tab);
-      } else if ((PERFIL_TABS as readonly string[]).includes(tab)) {
-        setNavSection("perfil");
-        setPerfilSub(tab);
-      } else {
-        setNavSection("home");
+    (rawTab: string) => {
+      const tab = resolveAlias(rawTab);
+      const section = sectionForTab(tab);
+      if (!section) {
+        // Fallback para a Home se o destino for desconhecido.
+        setNavSection("inicio");
+        scrollTop();
+        return;
+      }
+      setNavSection(section);
+      switch (section) {
+        case "execucao": setExecucaoSub(tab); break;
+        case "patrimonio": setPatrimonioSub(tab); break;
+        case "projecao": setProjecaoSub(tab); break;
+        case "mais": setMaisSub(tab); break;
       }
       scrollTop();
     },
@@ -88,13 +117,15 @@ export function useAppNavigation() {
 
   return {
     navSection,
-    planoSub,
-    historicoSub,
-    perfilSub,
+    execucaoSub,
+    patrimonioSub,
+    projecaoSub,
+    maisSub,
     setNavSection,
-    setPlanoSub,
-    setHistoricoSub,
-    setPerfilSub,
+    setExecucaoSub,
+    setPatrimonioSub,
+    setProjecaoSub,
+    setMaisSub,
     goToSection,
     navigateToTab,
   };
