@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 
 const fetchConsentStatusMock = vi.fn();
 const recordConsentsMock = vi.fn();
@@ -47,15 +46,14 @@ describe("ConsentGate", () => {
     const button = screen.getByRole("button", { name: /Aceitar e continuar/i });
     expect(button).toBeDisabled();
 
-    const user = userEvent.setup();
-    await user.click(screen.getByLabelText(/Aceitar Termos de Uso/i));
+    fireEvent.click(screen.getByLabelText(/Aceitar Termos de Uso/i));
     expect(button).toBeDisabled();
-    await user.click(screen.getByLabelText(/Aceitar Política de Privacidade/i));
+    fireEvent.click(screen.getByLabelText(/Aceitar Política de Privacidade/i));
     expect(button).toBeDisabled();
-    await user.click(screen.getByLabelText(/Aceitar aviso educacional/i));
-    expect(button).toBeEnabled();
+    fireEvent.click(screen.getByLabelText(/Aceitar aviso educacional/i));
+    await waitFor(() => expect(button).toBeEnabled());
 
-    await user.click(button);
+    fireEvent.click(button);
 
     await waitFor(() => expect(recordConsentsMock).toHaveBeenCalledTimes(1));
     const payload = recordConsentsMock.mock.calls[0][0];
@@ -97,11 +95,10 @@ describe("ConsentGate", () => {
     );
     await screen.findByText(/Antes de continuar/i);
 
-    const user = userEvent.setup();
-    await user.click(screen.getByLabelText(/Aceitar Termos de Uso/i));
-    await user.click(screen.getByLabelText(/Aceitar Política de Privacidade/i));
-    await user.click(screen.getByLabelText(/Aceitar aviso educacional/i));
-    await user.click(screen.getByRole("button", { name: /Aceitar e continuar/i }));
+    fireEvent.click(screen.getByLabelText(/Aceitar Termos de Uso/i));
+    fireEvent.click(screen.getByLabelText(/Aceitar Política de Privacidade/i));
+    fireEvent.click(screen.getByLabelText(/Aceitar aviso educacional/i));
+    fireEvent.click(screen.getByRole("button", { name: /Aceitar e continuar/i }));
 
     await waitFor(() => expect(toast.error).toHaveBeenCalled());
     const msg = (toast.error as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
