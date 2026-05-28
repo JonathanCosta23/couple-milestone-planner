@@ -24,10 +24,23 @@ Marque ✅ / ❌ no PR ou na issue de release.
 
 ## 2. Aceite de termos (ConsentGate)
 - [ ] Após o primeiro login o `ConsentGate` aparece bloqueando o app.
-- [ ] Sem aceitar **Termos** e **Aviso educacional**, o botão "Aceitar e continuar" fica desabilitado.
+- [ ] Sem aceitar **Termos / Privacidade** e **Aviso educacional**, o botão "Aceitar e continuar" fica desabilitado.
 - [ ] Clicar em "Sair da conta" desloga e volta para `AuthPage`.
-- [ ] Após aceitar, o registro aparece em `legal_consents` com `consent_type` + `version`.
+- [ ] Após aceitar, `legal_consents` registra três linhas: `terms`, `privacy` e `educational_disclaimer` na versão vigente.
 - [ ] Subindo `CONSENT_VERSIONS.terms` o gate volta a aparecer na próxima sessão.
+- [ ] Forçar erro de persistência (ex.: RLS) mostra mensagem genérica ("Não foi possível registrar o aceite agora…") — nunca o texto cru do Supabase.
+
+## 2.1 Projeção e premissas (Projection Realistic)
+- [ ] Card "Premissas usadas no cálculo" mostra retorno, inflação, IR e CDB exatamente iguais aos do `core.assumptions` aplicados ao gráfico.
+- [ ] Alterar `assumption_inflation` no plano muda a curva Real e o cenário "Inflação alta".
+- [ ] Linha de meta no gráfico (`ReferenceLine`) está posicionada em `config.targetAmount` — não em R$ 1M fixo.
+- [ ] Texto educacional referencia a meta do plano (ex.: "R$ 500 mil"), nunca "R$ 1 milhão" hardcoded quando a meta é outra.
+- [ ] Disclaimer educacional aparece no topo da projeção.
+
+## 2.2 Mensagens de erro seguras
+- [ ] Reset com falha de RPC mostra mensagem amigável (sem expor `error.message` cru do Postgres).
+- [ ] `useMonthlyTrackingWriter.upsertMonth` em falha exibe mensagem genérica/acionável e mantém o log técnico apenas no console (`logger`).
+- [ ] AuthPage não exibe `error.message` cru em fluxo de signup desconhecido.
 
 ## 3. Criação de plano individual
 - [ ] Wizard pede nome, idade, objetivo e aporte.
