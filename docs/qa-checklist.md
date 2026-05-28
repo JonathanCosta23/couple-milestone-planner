@@ -24,9 +24,13 @@ Marque ✅ / ❌ no PR ou na issue de release.
 
 ## 2. Aceite de termos (ConsentGate)
 - [ ] Após o primeiro login o `ConsentGate` aparece bloqueando o app.
-- [ ] Sem aceitar **Termos / Privacidade** e **Aviso educacional**, o botão "Aceitar e continuar" fica desabilitado.
+- [ ] Existem **três checkboxes separados** visíveis: Termos de Uso, Política de Privacidade e Aviso educacional sobre projeções.
+- [ ] Nenhum ID técnico (`terms_v1`, `privacy_v1`, `educational_disclaimer_v1`) aparece visível ao usuário.
+- [ ] O botão "Aceitar e continuar" só fica habilitado quando os três checkboxes estão marcados.
 - [ ] Clicar em "Sair da conta" desloga e volta para `AuthPage`.
 - [ ] Após aceitar, `legal_consents` registra três linhas: `terms`, `privacy` e `educational_disclaimer` na versão vigente.
+- [ ] Reaceitar (clicar de novo) não falha nem duplica registros — upsert é idempotente (`ignoreDuplicates`).
+- [ ] Aceite persiste após refresh e após logout/login na mesma conta.
 - [ ] Subindo `CONSENT_VERSIONS.terms` o gate volta a aparecer na próxima sessão.
 - [ ] Forçar erro de persistência (ex.: RLS) mostra mensagem genérica ("Não foi possível registrar o aceite agora…") — nunca o texto cru do Supabase.
 
