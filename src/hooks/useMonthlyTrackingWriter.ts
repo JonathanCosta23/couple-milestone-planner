@@ -14,6 +14,7 @@ import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { trackWriterChange } from "@/lib/services/auditService";
+import { toFriendlyError } from "@/lib/errors/friendlyError";
 
 export interface MonthlyTrackingRow {
   id: string;
@@ -81,7 +82,7 @@ export function useMonthlyTrackingWriter() {
         .from("monthly_tracking").select("*")
         .eq("plan_id", planId).eq("user_id", uid)
         .order("month_key", { ascending: true });
-      if (error) return { data: null, error: error.message };
+      if (error) return { data: null, error: toFriendlyError(error) };
       return { data: (data ?? []) as MonthlyTrackingRow[], error: null };
     },
     [user],
@@ -97,7 +98,7 @@ export function useMonthlyTrackingWriter() {
         .from("monthly_member_tracking").select("*")
         .in("monthly_tracking_id", monthlyTrackingIds)
         .eq("user_id", uid);
-      if (error) return { data: null, error: error.message };
+      if (error) return { data: null, error: toFriendlyError(error) };
       return { data: (data ?? []) as MonthlyMemberTrackingRow[], error: null };
     },
     [user],
@@ -169,7 +170,7 @@ export function useMonthlyTrackingWriter() {
         return { data: payload.tracking, error: null };
       }
       if (rpcRes.error && !/function .* does not exist|PGRST202/i.test(rpcRes.error.message)) {
-        return { data: null, error: rpcRes.error.message };
+        return { data: null, error: toFriendlyError(rpcRes.error) };
       }
 
       // Fallback legacy (delete+insert fora de transação) — só se RPC indisponível.
@@ -201,12 +202,12 @@ export function useMonthlyTrackingWriter() {
         const { data, error } = await supabase
           .from("monthly_tracking").update(trackingPayload as never)
           .eq("id", existing.id).eq("user_id", uid).select().single();
-        if (error || !data) return { data: null, error: error?.message ?? "Falha ao atualizar mês." };
+        if (error || !data) return { data: null, error: error ? toFriendlyError(error) : "Não foi possível atualizar o mês." };
         trackingRow = data as MonthlyTrackingRow;
       } else {
         const { data, error } = await supabase
           .from("monthly_tracking").insert(trackingPayload as never).select().single();
-        if (error || !data) return { data: null, error: error?.message ?? "Falha ao criar mês." };
+        if (error || !data) return { data: null, error: error ? toFriendlyError(error) : "Não foi possível criar o mês." };
         trackingRow = data as MonthlyTrackingRow;
       }
 
@@ -231,7 +232,7 @@ export function useMonthlyTrackingWriter() {
         if (memberRows.length > 0) {
           const { error: memErr } = await supabase
             .from("monthly_member_tracking").insert(memberRows as never);
-          if (memErr) return { data: null, error: `Mês salvo mas falha em participantes: ${memErr.message}` };
+          if (memErr) return { data: null, error: toFriendlyError(memErr) };
         }
       }
 
@@ -248,7 +249,7 @@ export function useMonthlyTrackingWriter() {
       const { error } = await supabase
         .from("monthly_tracking").update({ notes } as never)
         .eq("plan_id", planId).eq("user_id", uid).eq("month_key", monthKey);
-      if (error) return { data: null, error: error.message };
+      if (error) return { data: null, error: toFriendlyError(error) };
       return { data: true, error: null };
     },
     [user],
@@ -263,7 +264,7 @@ export function useMonthlyTrackingWriter() {
       const { error } = await supabase
         .from("monthly_tracking").update({ status } as never)
         .eq("plan_id", planId).eq("user_id", uid).eq("month_key", monthKey);
-      if (error) return { data: null, error: error.message };
+      if (error) return { data: null, error: toFriendlyError(error) };
       return { data: true, error: null };
     },
     [user],
