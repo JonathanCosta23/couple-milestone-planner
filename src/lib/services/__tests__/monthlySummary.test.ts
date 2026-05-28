@@ -7,7 +7,12 @@ import {
   findMonthsToCrossing,
 } from "@/lib/services/monthlySummary";
 import type { PlanConfig, MonthRecord } from "@/lib/types";
-import { PLANO_TABS, HISTORICO_TABS, PERFIL_TABS } from "@/hooks/useAppNavigation";
+import {
+  EXECUCAO_TABS,
+  PATRIMONIO_TABS,
+  PROJECAO_TABS,
+  MAIS_TABS,
+} from "@/hooks/useAppNavigation";
 
 const solo: PlanConfig = {
   initialAmount: 0,
@@ -96,13 +101,13 @@ describe("computeNextBestAction", () => {
     const s = buildMonthlySummary(solo, [record("2026-06", 600, 400)], "2026-06");
     const action = computeNextBestAction(s);
     expect(action.id).toBe("review_next_month");
-    // Aba retornada precisa existir em useAppNavigation, senão cai no fallback "home".
-    expect(action.tab).toBe("tracker");
+    // Aba retornada precisa existir em useAppNavigation, senão cai no fallback "inicio".
+    expect(action.tab).toBe("mensal");
   });
 
   it("toda ação retornada usa uma tab válida (ou vazia)", () => {
     const validTabs = new Set<string>([
-      ...PLANO_TABS, ...HISTORICO_TABS, ...PERFIL_TABS, "",
+      ...EXECUCAO_TABS, ...PATRIMONIO_TABS, ...PROJECAO_TABS, ...MAIS_TABS, "",
     ]);
     const ctxList: Array<Parameters<typeof computeNextBestAction>[1]> = [
       undefined,
