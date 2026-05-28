@@ -49,21 +49,33 @@ export function ProjectionRealistic({ appData, config, monthRecords, startDate, 
   const currentWealth = appData.investments.filter(i => i.active).reduce((s, i) => s + i.currentBalance, 0) + config.initialAmount;
 
   const scenarios = useMemo(() => {
-    const base = { currentWealth, monthlyContribution: monthly, extraContribution: 0, annualRate: config.selicRate, inflationRate: 0.045, months, skippedMonths: 0 };
+    const baseAnnual = core.assumptions.expectedReturnRate;
+    const baseInflation = core.assumptions.inflationRate;
+    const base = {
+      currentWealth,
+      monthlyContribution: monthly,
+      extraContribution: 0,
+      annualRate: baseAnnual,
+      inflationRate: baseInflation,
+      months,
+      skippedMonths: 0,
+    };
     return [
-      { ...simulateAdvancedScenario(config, monthRecords, startDate, { ...base, annualRate: 0.08 }), label: "Conservador (8% a.a.)" },
-      { ...simulateAdvancedScenario(config, monthRecords, startDate, base), label: `Atual (${(config.selicRate * 100).toFixed(1)}% a.a.)` },
-      { ...simulateAdvancedScenario(config, monthRecords, startDate, { ...base, annualRate: config.selicRate + 0.03 }), label: "Otimista (+3% a.a.)" },
-      { ...simulateAdvancedScenario(config, monthRecords, startDate, { ...base, inflationRate: 0.065 }), label: "Inflação alta (6,5%)" },
+      { ...simulateAdvancedScenario(config, monthRecords, startDate, { ...base, annualRate: Math.max(0.05, baseAnnual - 0.03) }), label: `Conservador (${(Math.max(0.05, baseAnnual - 0.03) * 100).toFixed(1)}% a.a.)` },
+      { ...simulateAdvancedScenario(config, monthRecords, startDate, base), label: `Atual (${(baseAnnual * 100).toFixed(1)}% a.a.)` },
+      { ...simulateAdvancedScenario(config, monthRecords, startDate, { ...base, annualRate: baseAnnual + 0.03 }), label: "Otimista (+3% a.a.)" },
+      { ...simulateAdvancedScenario(config, monthRecords, startDate, { ...base, inflationRate: baseInflation + 0.02 }), label: `Inflação alta (${((baseInflation + 0.02) * 100).toFixed(1)}%)` },
       { ...simulateAdvancedScenario(config, monthRecords, startDate, { ...base, skippedMonths: 12 }), label: "Pausa de 1 ano" },
       { ...simulateAdvancedScenario(config, monthRecords, startDate, { ...base, monthlyContribution: monthly * 0.7 }), label: "Choque de despesas (−30%)" },
-      { ...simulateAdvancedScenario(config, monthRecords, startDate, { ...base, annualRate: config.selicRate * 0.6 }), label: "Queda de rentabilidade" },
+      { ...simulateAdvancedScenario(config, monthRecords, startDate, { ...base, annualRate: baseAnnual * 0.6 }), label: "Queda de rentabilidade" },
     ];
-  }, [config, monthRecords, startDate, currentWealth, monthly, months]);
+  }, [config, monthRecords, startDate, currentWealth, monthly, months, core.assumptions]);
 
   const baseScenario = scenarios[1];
 
   const assumptions = core.assumptions;
+  const targetAmount = config.targetAmount;
+  const targetLabel = formatBRLCompact(targetAmount);
   const calcDate = new Date().toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
@@ -169,7 +181,7 @@ export function ProjectionRealistic({ appData, config, monthRecords, startDate, 
                 formatter={(value: number, name: string) => [formatBRL(value), name === "nominal" ? "Nominal" : name === "net" ? "Líquido" : "Real"]}
                 labelFormatter={(v) => `Ano ${v}`}
               />
-              <ReferenceLine y={1_000_000} stroke="hsl(var(--primary))" strokeDasharray="3 3" label={{ value: "R$ 1M", fontSize: 10 }} />
+              <ReferenceLine y={targetAmount} stroke="hsl(var(--primary))" strokeDasharray="3 3" label={{ value: `Meta ${targetLabel}`, fontSize: 10 }} />
               <Line type="monotone" dataKey="nominal" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} name="Nominal" />
               {showNet && <Line type="monotone" dataKey="net" stroke="hsl(var(--accent))" strokeWidth={2} dot={false} name="Líquido" strokeDasharray="4 2" />}
               {showReal && <Line type="monotone" dataKey="real" stroke="hsl(var(--warning, 38 92% 50%))" strokeWidth={2} dot={false} name="Real" strokeDasharray="6 3" />}
@@ -225,7 +237,7 @@ export function ProjectionRealistic({ appData, config, monthRecords, startDate, 
         </h4>
         <div className="space-y-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
           <p><strong>Nominal</strong> é o número que aparece na conta. <strong>Líquido</strong> é o que sobra depois de pagar imposto. <strong>Real</strong> é o que esse dinheiro realmente compra.</p>
-          <p>Chegar a R$ 1 milhão nominal em 20 anos não é a mesma coisa que ter R$ 1 milhão em poder de compra. A inflação corrói silenciosamente. Por isso, a meta real importa mais que a meta nominal.</p>
+          <p>Chegar a {targetLabel} nominal não é a mesma coisa que ter {targetLabel} em poder de compra. A inflação corrói silenciosamente. Por isso, a meta real importa mais que a meta nominal.</p>
           <p>Um plano responsável considera os três valores. Se o seu patrimônio real está distante da meta, considere aumentar o aporte ou revisar a estratégia.</p>
         </div>
       </Card>
