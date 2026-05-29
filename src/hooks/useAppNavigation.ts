@@ -77,7 +77,7 @@ export function useAppNavigation() {
   const [execucaoSub, setExecucaoSub] = useState<string>("mensal");
   const [patrimonioSub, setPatrimonioSub] = useState<string>("ativos");
   const [projecaoSub, setProjecaoSub] = useState<string>("projecao");
-  const [maisSub, setMaisSub] = useState<string>("aprender");
+  const [maisSub, setMaisSub] = useState<string>("configuracoes");
 
   const scrollTop = useCallback(() => {
     if (typeof window !== "undefined") {

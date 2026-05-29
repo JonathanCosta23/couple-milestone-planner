@@ -28,6 +28,14 @@ const SECTION_LABELS: Record<NavSection, string> = {
   mais: "Mais",
 };
 
+const SECTION_SUBTITLES: Record<NavSection, string> = {
+  inicio: "Cockpit do seu plano patrimonial",
+  execucao: "Acompanhe seu mês e mantenha a disciplina",
+  patrimonio: "Seus ativos, concentração e arquitetura",
+  projecao: "Cenários e jornada do seu patrimônio",
+  mais: "Educação, configurações e backup",
+};
+
 const SECTION_ORDER: NavSection[] = ["inicio", "execucao", "patrimonio", "projecao", "mais"];
 
 /**
@@ -55,7 +63,12 @@ export function AppHeader({
   return (
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border/40">
       <div className="flex items-center justify-between h-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
-        <h1 className="text-sm font-bold text-gradient lg:text-base">Plano do Milhão</h1>
+        <div className="flex flex-col min-w-0 leading-tight">
+          <h1 className="text-sm font-bold text-gradient lg:text-base truncate">Plano do Milhão</h1>
+          <p className="hidden sm:block text-[10px] text-muted-foreground truncate">
+            {SECTION_LABELS[navSection]} · {SECTION_SUBTITLES[navSection]}
+          </p>
+        </div>
         <div className="flex items-center gap-3">
           {/* Cloud sync indicator */}
           {syncing ? (

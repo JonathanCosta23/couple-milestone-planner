@@ -16,7 +16,7 @@ describe("useAppNavigation", () => {
     expect(result.current.execucaoSub).toBe("mensal");
     expect(result.current.patrimonioSub).toBe("ativos");
     expect(result.current.projecaoSub).toBe("projecao");
-    expect(result.current.maisSub).toBe("aprender");
+    expect(result.current.maisSub).toBe("configuracoes");
   });
 
   it("goToSection altera a seção principal", () => {

@@ -175,3 +175,66 @@ Navegação principal reorganizada em 5 seções enxutas:
       é R$ 100k mas a meta é R$ 1M, o prazo exibido deve corresponder ao
       cruzamento dos R$ 100k (ou "estimativa indisponível"), nunca o prazo
       até a meta final.
+
+## 17. Sprint polimento visual — Navegação premium
+
+### 17.1 BottomNav (mobile)
+- [ ] Cinco itens (Início, Execução, Patrimônio, Projeção, Mais) com pesos
+      visuais equivalentes (mesmo tamanho de ícone, mesma largura de coluna).
+- [ ] Labels não quebram linha mesmo em 320px de largura (`truncate`).
+- [ ] Estado ativo claramente destacado: cor `primary` + pill `bg-primary/10`.
+- [ ] Área de toque ≥ 44px de altura (h-16) e botões espaçados.
+- [ ] Ícones com `stroke` consistente (1.8 inativo, 2.4 ativo).
+
+### 17.2 AppHeader
+- [ ] Subtítulo (desktop/tablet) reflete a seção atual:
+      - Início → "Cockpit do seu plano patrimonial"
+      - Execução → "Acompanhe seu mês e mantenha a disciplina"
+      - Patrimônio → "Seus ativos, concentração e arquitetura"
+      - Projeção → "Cenários e jornada do seu patrimônio"
+      - Mais → "Educação, configurações e backup"
+- [ ] Subtítulo é oculto em telas pequenas (`hidden sm:block`) para evitar
+      ruído no mobile.
+- [ ] Nenhum subtítulo duplica títulos internos das telas.
+
+### 17.3 Telas iniciais por seção
+- [ ] Início abre direto no cockpit (`UnifiedHome`).
+- [ ] Execução abre em "Acompanhamento mensal" (`mensal`).
+- [ ] Patrimônio abre em "Ativos" (`ativos`).
+- [ ] Projeção abre em "Projeção" (`projecao`).
+- [ ] Mais abre em "Configurações" (`configuracoes`) — hub organizado, não
+      em "Educação".
+
+### 17.4 Hub "Mais" → Configurações
+Deve aparecer organizado em blocos com título visível:
+- [ ] **Conta e plano** — PlanModeSelector + Perfil financeiro.
+- [ ] **Dados e backup** — SharePlan + Backup/Exportação + Importar + Restaurar.
+- [ ] **Notificações** — NotificationSettings.
+- [ ] **Sessão** — Sair da conta.
+- [ ] **Zona de risco** — separada por borda destrutiva, com aviso textual e
+      botão "Resetar plano" estilizado em vermelho. Não pode estar misturada
+      com botões neutros.
+
+### 17.5 Empty states
+Em cada caso abaixo, a tela deve mostrar título + descrição + CTA claro
+(nunca parecer erro técnico):
+- [ ] Sem patrimônio cadastrado (Patrimônio → Ativos).
+- [ ] Sem renda cadastrada (Execução → Renda).
+- [ ] Sem gastos cadastrados (Execução → Gastos).
+- [ ] Sem dívida cadastrada (Execução → Dívidas).
+- [ ] Sem dados suficientes para projeção (Projeção).
+- [ ] Modo individual: aba Governança **não** aparece (filtrada no SubNav).
+- [ ] Sem patrimônio: aba Concentração **não** aparece (filtrada no SubNav).
+
+### 17.6 Responsividade
+- [ ] iPhone 13 (390×844) — sem overflow horizontal, BottomNav legível.
+- [ ] Safari iOS — `safe-area-bottom` respeita o notch inferior.
+- [ ] Chrome Android (360×800) — labels da BottomNav não quebram.
+- [ ] Desktop médio (1366×768) — nav inline aparece no header e BottomNav
+      fica oculta (`lg:hidden`).
+
+### 17.7 Consistência de labels
+- [ ] Termos respeitam a sprint anterior: "Acompanhamento mensal",
+      "Disciplina", "Ativos", "Configurações", "Backup e exportação".
+- [ ] Nenhum botão usa termos casuais ("Bora!", "Vamos lá") nem técnicos
+      crus ("RPC falhou", "Postgres error").
