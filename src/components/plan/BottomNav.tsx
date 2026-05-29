@@ -18,7 +18,7 @@ const NAV_ITEMS: { id: NavSection; icon: React.ElementType; label: string }[] = 
 export function BottomNav({ active, onChange }: Props) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/98 backdrop-blur-lg border-t border-border/50 safe-area-bottom lg:hidden">
-      <div className="flex items-center justify-around max-w-lg mx-auto h-16 px-2">
+      <div className="grid grid-cols-5 max-w-lg mx-auto h-16 px-1">
         {NAV_ITEMS.map(item => {
           const Icon = item.icon;
           const isActive = active === item.id;
@@ -26,16 +26,16 @@ export function BottomNav({ active, onChange }: Props) {
             <button
               key={item.id}
               onClick={() => onChange(item.id)}
-              className={`flex flex-col items-center justify-center gap-1 flex-1 py-2 rounded-xl transition-all duration-150 touch-target active:scale-95 ${
+              className={`flex flex-col items-center justify-center gap-0.5 py-1.5 mx-0.5 rounded-xl transition-all duration-150 touch-target active:scale-95 min-w-0 ${
                 isActive
-                  ? "text-primary"
+                  ? "text-primary bg-primary/10"
                   : "text-muted-foreground hover:text-foreground"
               }`}
               aria-label={item.label}
               aria-current={isActive ? "page" : undefined}
             >
-              <Icon className={`w-[22px] h-[22px] ${isActive ? "stroke-[2.5]" : "stroke-[1.8]"}`} />
-              <span className={`text-[11px] leading-none ${isActive ? "font-bold" : "font-medium"}`}>
+              <Icon className={`w-5 h-5 shrink-0 ${isActive ? "stroke-[2.4]" : "stroke-[1.8]"}`} />
+              <span className={`text-[10px] leading-tight truncate max-w-full px-0.5 ${isActive ? "font-semibold" : "font-medium"}`}>
                 {item.label}
               </span>
             </button>
