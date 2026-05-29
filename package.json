@@ -1,5 +1,5 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "plano-do-milhao",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,7 +10,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "tsc -b --noEmit",
+    "ci": "npm run lint && npm test && npm run typecheck && npm run build"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
