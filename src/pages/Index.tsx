@@ -39,10 +39,10 @@ const DebtModule = lazy(() => import("@/components/plan/DebtModule").then(m => (
 const MonthlyTracker = lazy(() => import("@/components/plan/MonthlyTracker").then(m => ({ default: m.MonthlyTracker })));
 
 // ── Lazy: painéis "Perfil" e educação ──
+// NotificationSettings, SharePlan e PlanModeSelector são consumidos por
+// SettingsHub (eager) — não precisam de import lazy aqui.
 const InvestmentGuide = lazy(() => import("@/components/plan/InvestmentGuide").then(m => ({ default: m.InvestmentGuide })));
 const HowToUse = lazy(() => import("@/components/plan/HowToUse").then(m => ({ default: m.HowToUse })));
-const NotificationSettings = lazy(() => import("@/components/plan/NotificationSettings").then(m => ({ default: m.NotificationSettings })));
-const SharePlan = lazy(() => import("@/components/plan/SharePlan").then(m => ({ default: m.SharePlan })));
 const TrapDetector = lazy(() => import("@/components/plan/TrapDetector").then(m => ({ default: m.TrapDetector })));
 const FinancialGlossary = lazy(() => import("@/components/plan/FinancialGlossary").then(m => ({ default: m.FinancialGlossary })));
 const MiniLessons = lazy(() => import("@/components/plan/MiniLessons").then(m => ({ default: m.MiniLessons })));
@@ -52,12 +52,11 @@ const QuickDeposit = lazy(() => import("@/components/plan/QuickDeposit").then(m 
 const ImportDialog = lazy(() => import("@/components/plan/ImportDialog").then(m => ({ default: m.ImportDialog })));
 const DataMigrationDialog = lazy(() => import("@/components/auth/DataMigrationDialog").then(m => ({ default: m.DataMigrationDialog })));
 const BlobMigrationDialog = lazy(() => import("@/components/auth/BlobMigrationDialog").then(m => ({ default: m.BlobMigrationDialog })));
-import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
 import { PlanModeChip } from "@/components/plan/PlanModeChip";
-import { RestoreBackupButton } from "@/components/plan/RestoreBackupButton";
 import { ResetPlanDialog } from "@/components/plan/ResetPlanDialog";
 import { LegalFooter } from "@/components/plan/LegalDialogs";
 import { ConsentGate } from "@/components/auth/ConsentGate";
+import { SettingsHub } from "@/pages/index/SettingsHub";
 
 import { EMOTIONAL_GOAL_LABELS, PlanConfig } from "@/lib/types";
 import { useFinancialCore } from "@/hooks/useFinancialCore";
@@ -78,7 +77,7 @@ import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { useExportImport } from "@/hooks/useExportImport";
 import { AppHeader } from "@/components/plan/AppHeader";
 import { Button } from "@/components/ui/button";
-import { Download, Upload, RotateCcw, Settings, ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { ErrorBoundary } from "@/components/system/ErrorBoundary";
 import { OfflineBanner } from "@/components/system/OfflineBanner";
@@ -497,82 +496,27 @@ const Index = () => {
             )}
             {sub === "ajuda" && <HowToUse />}
             {sub === "configuracoes" && (
-              <div className="space-y-6">
-                {/* Conta e plano */}
-                <section className="space-y-2">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
-                    Conta e plano
-                  </h3>
-                  <PlanModeSelector
-                    appData={effectiveAppData}
-                    onSetMode={planActions.setMode}
-                    onAddPartner={planActions.addPartner}
-                    onRemovePartner={planActions.removePartner}
-                    onUpdatePrimaryProfile={planActions.updatePrimaryProfile}
-                    onUpdatePartnerProfile={planActions.updatePartnerProfile}
-                  />
-                  <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={() => setShowFinancialSetup(true)}>
-                    <Settings className="w-4 h-4 mr-2.5" /> Perfil financeiro
-                  </Button>
-                </section>
-
-                {/* Dados e backup */}
-                <section className="space-y-2">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
-                    Dados e backup
-                  </h3>
-                  <SharePlan
-                    config={data.config}
-                    monthRecords={data.monthRecords}
-                    startDate={data.startDate}
-                    profile={data.financialProfile}
-                    onExportJSON={exportImport.handleExport}
-                    onImportClick={exportImport.triggerFilePicker}
-                  />
-                  <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={exportImport.handleExport}>
-                    <Download className="w-4 h-4 mr-2.5" /> Backup e exportação
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={exportImport.triggerFilePicker}>
-                    <Upload className="w-4 h-4 mr-2.5" /> Importar dados
-                  </Button>
-                  <RestoreBackupButton />
-                </section>
-
-                {/* Notificações */}
-                <section className="space-y-2">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
-                    Notificações
-                  </h3>
-                  <NotificationSettings settings={data.notificationSettings} onUpdate={updateNotificationSettings} />
-                </section>
-
-                {/* Sessão */}
-                <section className="space-y-2">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
-                    Sessão
-                  </h3>
-                  <Button variant="outline" className="w-full justify-start h-12 rounded-xl text-muted-foreground" onClick={handleSignOut}>
-                    <ArrowLeft className="w-4 h-4 mr-2.5" /> Sair da conta
-                  </Button>
-                </section>
-
-                {/* Zona de risco */}
-                <section className="space-y-2 pt-2 border-t border-destructive/20">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-destructive px-1">
-                    Zona de risco
-                  </h3>
-                  <p className="text-xs text-muted-foreground px-1">
-                    Ações destrutivas. Não podem ser desfeitas.
-                  </p>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start h-12 rounded-xl border-destructive/40 text-destructive hover:text-destructive hover:bg-destructive/5"
-                    onClick={() => setShowResetDialog(true)}
-                  >
-                    <RotateCcw className="w-4 h-4 mr-2.5" /> Resetar plano
-                  </Button>
-                </section>
-              </div>
+              <SettingsHub
+                appData={effectiveAppData}
+                config={data.config}
+                monthRecords={data.monthRecords}
+                startDate={data.startDate}
+                financialProfile={data.financialProfile}
+                notificationSettings={data.notificationSettings}
+                onUpdateNotificationSettings={updateNotificationSettings}
+                planActions={{
+                  setMode: planActions.setMode,
+                  addPartner: planActions.addPartner,
+                  removePartner: planActions.removePartner,
+                  updatePrimaryProfile: planActions.updatePrimaryProfile,
+                  updatePartnerProfile: planActions.updatePartnerProfile,
+                }}
+                onOpenFinancialSetup={() => setShowFinancialSetup(true)}
+                onExport={exportImport.handleExport}
+                onTriggerImport={exportImport.triggerFilePicker}
+                onSignOut={handleSignOut}
+                onOpenReset={() => setShowResetDialog(true)}
+              />
             )}
           </div>
           </ErrorBoundary>
