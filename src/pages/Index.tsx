@@ -39,10 +39,10 @@ const DebtModule = lazy(() => import("@/components/plan/DebtModule").then(m => (
 const MonthlyTracker = lazy(() => import("@/components/plan/MonthlyTracker").then(m => ({ default: m.MonthlyTracker })));
 
 // ── Lazy: painéis "Perfil" e educação ──
+// NotificationSettings, SharePlan e PlanModeSelector são consumidos por
+// SettingsHub (eager) — não precisam de import lazy aqui.
 const InvestmentGuide = lazy(() => import("@/components/plan/InvestmentGuide").then(m => ({ default: m.InvestmentGuide })));
 const HowToUse = lazy(() => import("@/components/plan/HowToUse").then(m => ({ default: m.HowToUse })));
-const NotificationSettings = lazy(() => import("@/components/plan/NotificationSettings").then(m => ({ default: m.NotificationSettings })));
-const SharePlan = lazy(() => import("@/components/plan/SharePlan").then(m => ({ default: m.SharePlan })));
 const TrapDetector = lazy(() => import("@/components/plan/TrapDetector").then(m => ({ default: m.TrapDetector })));
 const FinancialGlossary = lazy(() => import("@/components/plan/FinancialGlossary").then(m => ({ default: m.FinancialGlossary })));
 const MiniLessons = lazy(() => import("@/components/plan/MiniLessons").then(m => ({ default: m.MiniLessons })));
@@ -52,7 +52,6 @@ const QuickDeposit = lazy(() => import("@/components/plan/QuickDeposit").then(m 
 const ImportDialog = lazy(() => import("@/components/plan/ImportDialog").then(m => ({ default: m.ImportDialog })));
 const DataMigrationDialog = lazy(() => import("@/components/auth/DataMigrationDialog").then(m => ({ default: m.DataMigrationDialog })));
 const BlobMigrationDialog = lazy(() => import("@/components/auth/BlobMigrationDialog").then(m => ({ default: m.BlobMigrationDialog })));
-import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
 import { PlanModeChip } from "@/components/plan/PlanModeChip";
 import { ResetPlanDialog } from "@/components/plan/ResetPlanDialog";
 import { LegalFooter } from "@/components/plan/LegalDialogs";
