@@ -497,43 +497,81 @@ const Index = () => {
             )}
             {sub === "ajuda" && <HowToUse />}
             {sub === "configuracoes" && (
-              <div className="space-y-4">
-                <PlanModeSelector
-                  appData={effectiveAppData}
-                  onSetMode={planActions.setMode}
-                  onAddPartner={planActions.addPartner}
-                  onRemovePartner={planActions.removePartner}
-                  onUpdatePrimaryProfile={planActions.updatePrimaryProfile}
-                  onUpdatePartnerProfile={planActions.updatePartnerProfile}
-                />
-                <SharePlan
-                  config={data.config}
-                  monthRecords={data.monthRecords}
-                  startDate={data.startDate}
-                  profile={data.financialProfile}
-                  onExportJSON={exportImport.handleExport}
-                  onImportClick={exportImport.triggerFilePicker}
-                />
-                <div className="space-y-2">
-                <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={() => setShowFinancialSetup(true)}>
-                  <Settings className="w-4 h-4 mr-2.5" /> Perfil financeiro
-                </Button>
-                <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={exportImport.handleExport}>
-                  <Download className="w-4 h-4 mr-2.5" /> Backup e exportação
-                </Button>
-                <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={exportImport.triggerFilePicker}>
-                  <Upload className="w-4 h-4 mr-2.5" /> Importar dados
-                </Button>
-                <RestoreBackupButton />
-                <NotificationSettings settings={data.notificationSettings} onUpdate={updateNotificationSettings} />
-                <Button variant="outline" className="w-full justify-start h-12 rounded-xl text-muted-foreground" onClick={handleSignOut}>
-                  <ArrowLeft className="w-4 h-4 mr-2.5" /> Sair da conta
-                </Button>
-                <Button variant="outline" className="w-full justify-start h-12 rounded-xl text-destructive hover:text-destructive"
-                  onClick={() => setShowResetDialog(true)}>
-                  <RotateCcw className="w-4 h-4 mr-2.5" /> Resetar plano
-                </Button>
-                </div>
+              <div className="space-y-6">
+                {/* Conta e plano */}
+                <section className="space-y-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+                    Conta e plano
+                  </h3>
+                  <PlanModeSelector
+                    appData={effectiveAppData}
+                    onSetMode={planActions.setMode}
+                    onAddPartner={planActions.addPartner}
+                    onRemovePartner={planActions.removePartner}
+                    onUpdatePrimaryProfile={planActions.updatePrimaryProfile}
+                    onUpdatePartnerProfile={planActions.updatePartnerProfile}
+                  />
+                  <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={() => setShowFinancialSetup(true)}>
+                    <Settings className="w-4 h-4 mr-2.5" /> Perfil financeiro
+                  </Button>
+                </section>
+
+                {/* Dados e backup */}
+                <section className="space-y-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+                    Dados e backup
+                  </h3>
+                  <SharePlan
+                    config={data.config}
+                    monthRecords={data.monthRecords}
+                    startDate={data.startDate}
+                    profile={data.financialProfile}
+                    onExportJSON={exportImport.handleExport}
+                    onImportClick={exportImport.triggerFilePicker}
+                  />
+                  <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={exportImport.handleExport}>
+                    <Download className="w-4 h-4 mr-2.5" /> Backup e exportação
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={exportImport.triggerFilePicker}>
+                    <Upload className="w-4 h-4 mr-2.5" /> Importar dados
+                  </Button>
+                  <RestoreBackupButton />
+                </section>
+
+                {/* Notificações */}
+                <section className="space-y-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+                    Notificações
+                  </h3>
+                  <NotificationSettings settings={data.notificationSettings} onUpdate={updateNotificationSettings} />
+                </section>
+
+                {/* Sessão */}
+                <section className="space-y-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+                    Sessão
+                  </h3>
+                  <Button variant="outline" className="w-full justify-start h-12 rounded-xl text-muted-foreground" onClick={handleSignOut}>
+                    <ArrowLeft className="w-4 h-4 mr-2.5" /> Sair da conta
+                  </Button>
+                </section>
+
+                {/* Zona de risco */}
+                <section className="space-y-2 pt-2 border-t border-destructive/20">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-destructive px-1">
+                    Zona de risco
+                  </h3>
+                  <p className="text-xs text-muted-foreground px-1">
+                    Ações destrutivas. Não podem ser desfeitas.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start h-12 rounded-xl border-destructive/40 text-destructive hover:text-destructive hover:bg-destructive/5"
+                    onClick={() => setShowResetDialog(true)}
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2.5" /> Resetar plano
+                  </Button>
+                </section>
               </div>
             )}
           </div>
