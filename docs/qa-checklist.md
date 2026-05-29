@@ -238,3 +238,58 @@ Em cada caso abaixo, a tela deve mostrar título + descrição + CTA claro
       "Disciplina", "Ativos", "Configurações", "Backup e exportação".
 - [ ] Nenhum botão usa termos casuais ("Bora!", "Vamos lá") nem técnicos
       crus ("RPC falhou", "Postgres error").
+
+## 18. Sprint P2 — Qualidade estrutural e type safety
+
+### 18.1 Scripts e CI
+- [ ] `npm ci` instala sem warning de nome legado (`vite_react_shadcn_ts`).
+      `package.json#name` deve ser `plano-do-milhao`.
+- [ ] `npm run typecheck` roda `tsc -p tsconfig.app.json --noEmit` sem erros.
+- [ ] `npm run ci` executa lint → test → typecheck → build em sequência e
+      passa fim-a-fim.
+- [ ] `npm run lint` continua com 0 erros (warnings de fast-refresh em
+      `ui/*` são pré-existentes e aceitáveis).
+- [ ] `npm test` continua passando todos os testes (≥142).
+- [ ] `npm run build` continua passando.
+
+### 18.2 Modularização da Home (UnifiedHome)
+- [ ] `UnifiedHome.tsx` está abaixo de ~470 linhas.
+- [ ] `MonthlyCockpit`, `IndicatorCard`, `MiniMetric`,
+      `countCompletedMonthsThisYear` e `buildPrescriptiveInsight` vivem em
+      `src/components/plan/home/MonthlyCockpit.tsx`.
+- [ ] `EmptyHomeState` e o tipo `ActivationStep` vivem em
+      `src/components/plan/home/EmptyHomeState.tsx`.
+- [ ] Layout da Home permanece idêntico: cockpit, resumo executivo,
+      marcos, indicadores, ativos cadastrados, checklist e atalhos.
+- [ ] Lógica financeira não foi tocada (mesmas chamadas a `core.*`,
+      `getCurrentMonthDeposited`, `generateNudges`, `findMonthsToCrossing`).
+
+### 18.3 Modularização do shell (Index)
+- [ ] `Mais → Configurações` é renderizado por
+      `src/pages/index/SettingsHub.tsx` e mantém as 5 seções
+      (Conta e plano, Dados e backup, Notificações, Sessão, Zona de risco).
+- [ ] Botões de Backup, Importar, Restaurar, Perfil financeiro, Sair e
+      Resetar continuam funcionando exatamente como antes.
+- [ ] Modais e dialogs continuam carregando sob demanda
+      (QuickDeposit, ImportDialog, DataMigrationDialog, BlobMigrationDialog).
+- [ ] Persistência crítica (QuickDeposit RPC, ConsentGate, reset, sincronização)
+      não foi alterada por esta sprint.
+
+### 18.4 Navegação preservada
+- [ ] As 5 seções (Início, Execução, Patrimônio, Projeção, Mais) continuam
+      visíveis e funcionais no BottomNav e no AppHeader.
+- [ ] `TAB_ALIASES` continua resolvendo deep links legados
+      (`tracker`, `historico`, `patrimonio`, `dados`, etc.) — verificado
+      em `useAppNavigation.test.ts`.
+- [ ] Próxima Melhor Ação continua navegando para `mensal` e `ativos`
+      (sem regressão em `monthlySummary.test.ts`).
+
+### 18.5 Type safety gradual
+- [ ] Nenhum `any` novo foi introduzido em
+      `disciplineScore.ts`, `monthlySummary.ts`, `projectionService.ts`,
+      `financialAssumptions.ts`, `useTrackingActions.ts`.
+- [ ] `getActivationSteps` em `UnifiedHome` tem retorno tipado como
+      `ActivationStep[]`.
+- [ ] `tsconfig.app.json` mantém `strict: false` propositalmente — a
+      ativação global fica para uma próxima sprint depois que o gradient
+      de tipos cobrir hooks de domínio.
