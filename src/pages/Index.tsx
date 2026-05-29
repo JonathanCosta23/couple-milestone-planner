@@ -54,10 +54,10 @@ const DataMigrationDialog = lazy(() => import("@/components/auth/DataMigrationDi
 const BlobMigrationDialog = lazy(() => import("@/components/auth/BlobMigrationDialog").then(m => ({ default: m.BlobMigrationDialog })));
 import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
 import { PlanModeChip } from "@/components/plan/PlanModeChip";
-import { RestoreBackupButton } from "@/components/plan/RestoreBackupButton";
 import { ResetPlanDialog } from "@/components/plan/ResetPlanDialog";
 import { LegalFooter } from "@/components/plan/LegalDialogs";
 import { ConsentGate } from "@/components/auth/ConsentGate";
+import { SettingsHub } from "@/pages/index/SettingsHub";
 
 import { EMOTIONAL_GOAL_LABELS, PlanConfig } from "@/lib/types";
 import { useFinancialCore } from "@/hooks/useFinancialCore";
@@ -78,7 +78,7 @@ import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { useExportImport } from "@/hooks/useExportImport";
 import { AppHeader } from "@/components/plan/AppHeader";
 import { Button } from "@/components/ui/button";
-import { Download, Upload, RotateCcw, Settings, ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { ErrorBoundary } from "@/components/system/ErrorBoundary";
 import { OfflineBanner } from "@/components/system/OfflineBanner";
