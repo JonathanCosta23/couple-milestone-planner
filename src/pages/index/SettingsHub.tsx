@@ -12,7 +12,9 @@ import { SharePlan } from "@/components/plan/SharePlan";
 import { NotificationSettings } from "@/components/plan/NotificationSettings";
 import { RestoreBackupButton } from "@/components/plan/RestoreBackupButton";
 import type { AppData } from "@/lib/models";
-import type { PlanConfig, MonthRecord, NotificationSettings as NotificationSettingsType } from "@/lib/types";
+import type { PlanConfig, MonthRecord, PlanData } from "@/lib/types";
+
+type NotificationSettingsType = PlanData["notificationSettings"];
 
 export interface SettingsHubProps {
   appData: AppData;
