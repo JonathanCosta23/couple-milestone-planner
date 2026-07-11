@@ -143,7 +143,11 @@ var list_monthly_tracking_default = defineTool3({
     }
     const { data, error } = await supabaseForUser3(ctx).from("monthly_tracking").select("month_key, year, month, planned_total, actual_total, shortfall, status, notes").eq("user_id", ctx.getUserId()).order("month_key", { ascending: false }).limit(limit ?? 12);
     if (error) {
-      return { content: [{ type: "text", text: error.message }], isError: true };
+      console.error("mcp.list_monthly_tracking.query_failed", error);
+      return {
+        content: [{ type: "text", text: "N\xE3o foi poss\xEDvel carregar o hist\xF3rico mensal. Tente novamente." }],
+        isError: true
+      };
     }
     const months = data ?? [];
     const payload = { count: months.length, months };

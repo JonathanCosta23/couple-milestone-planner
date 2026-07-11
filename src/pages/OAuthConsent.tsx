@@ -7,6 +7,12 @@ import { AuthPage } from "@/components/auth/AuthPage";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, ShieldCheck } from "lucide-react";
+import { logger } from "@/lib/logger";
+
+const GENERIC_LOAD_ERROR =
+  "Não foi possível carregar esta solicitação de autorização. Tente novamente.";
+const GENERIC_DECIDE_ERROR =
+  "Não foi possível concluir esta autorização. Tente novamente.";
 
 type OAuthClientLike = { name?: string; client_name?: string; redirect_uri?: string };
 type AuthorizationDetails = {
@@ -58,7 +64,8 @@ export default function OAuthConsent() {
       const { data, error } = await oauthApi().getAuthorizationDetails(authorizationId);
       if (!active) return;
       if (error) {
-        setError(error.message);
+        logger.warn("oauth.consent.get_details_failed", { authorizationId }, error);
+        setError(GENERIC_LOAD_ERROR);
         setLoading(false);
         return;
       }
@@ -81,8 +88,13 @@ export default function OAuthConsent() {
       ? await oauthApi().approveAuthorization(authorizationId)
       : await oauthApi().denyAuthorization(authorizationId);
     if (error) {
+      logger.warn(
+        approve ? "oauth.consent.approve_failed" : "oauth.consent.deny_failed",
+        { authorizationId },
+        error,
+      );
       setBusy(false);
-      setError(error.message);
+      setError(GENERIC_DECIDE_ERROR);
       return;
     }
     const target = data?.redirect_url ?? data?.redirect_to;

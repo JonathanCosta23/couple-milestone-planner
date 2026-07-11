@@ -41,7 +41,11 @@ export default defineTool({
       .limit(limit ?? 12);
 
     if (error) {
-      return { content: [{ type: "text", text: error.message }], isError: true };
+      console.error("mcp.list_monthly_tracking.query_failed", error);
+      return {
+        content: [{ type: "text", text: "Não foi possível carregar o histórico mensal. Tente novamente." }],
+        isError: true,
+      };
     }
 
     const months = data ?? [];
