@@ -45,6 +45,7 @@ const HowToUse = lazy(() => import("@/components/plan/HowToUse").then(m => ({ de
 const TrapDetector = lazy(() => import("@/components/plan/TrapDetector").then(m => ({ default: m.TrapDetector })));
 const FinancialGlossary = lazy(() => import("@/components/plan/FinancialGlossary").then(m => ({ default: m.FinancialGlossary })));
 const MiniLessons = lazy(() => import("@/components/plan/MiniLessons").then(m => ({ default: m.MiniLessons })));
+const KnowledgeLibrary = lazy(() => import("@/components/plan/KnowledgeLibrary").then(m => ({ default: m.KnowledgeLibrary })));
 
 // ── Lazy: modais e dialogs (só montam quando abertos) ──
 const QuickDeposit = lazy(() => import("@/components/plan/QuickDeposit").then(m => ({ default: m.QuickDeposit })));
@@ -486,7 +487,12 @@ const Index = () => {
           <ErrorBoundary area="mais" title="Não foi possível carregar esta área">
           <div className="space-y-4">
             <SubNav items={maisSubs} active={sub} onChange={setMaisSub} />
-            {sub === "aprender" && <MiniLessons />}
+            {sub === "aprender" && (
+              <div className="space-y-6">
+                <KnowledgeLibrary />
+                <MiniLessons />
+              </div>
+            )}
             {sub === "glossario" && <FinancialGlossary />}
             {sub === "armadilhas" && <TrapDetector />}
             {sub === "investir" && <InvestmentGuide />}
