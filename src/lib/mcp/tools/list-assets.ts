@@ -14,20 +14,24 @@ function supabaseForUser(ctx: ToolContext) {
 
 export default defineTool({
   name: "list_assets",
-  title: "List investments",
+  title: "Listar investimentos",
   description:
-    "List the signed-in user's active investments (assets) with type, institution, invested amount, current amount, bucket, FGC coverage and liquidity, plus totals.",
+    "Lista os investimentos ativos do usuário autenticado (tipo, instituição, valor aplicado, valor atual, bucket, FGC e liquidez) com totais. Somente leitura.",
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_input, ctx) => {
     if (!ctx.isAuthenticated()) {
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      return {
+        content: [{ type: "text", text: "Autenticação necessária." }],
+        structuredContent: { code: "not_authenticated" },
+        isError: true,
+      };
     }
 
     const { data, error } = await supabaseForUser(ctx)
       .from("assets")
       .select(
-        "id, asset_type, asset_subtype, ticker_or_name, institution, conglomerate, bucket, has_fgc, has_sovereign_guarantee, liquidity_type, invested_amount, current_amount, maturity_date",
+        "asset_type, asset_subtype, ticker_or_name, institution, conglomerate, bucket, has_fgc, has_sovereign_guarantee, liquidity_type, invested_amount, current_amount, maturity_date",
       )
       .eq("user_id", ctx.getUserId())
       .eq("is_active", true)
@@ -37,6 +41,7 @@ export default defineTool({
       console.error("mcp.list_assets.query_failed", error);
       return {
         content: [{ type: "text", text: "Não foi possível carregar os investimentos. Tente novamente." }],
+        structuredContent: { code: "read_failed" },
         isError: true,
       };
     }
@@ -46,8 +51,11 @@ export default defineTool({
     const total_current = assets.reduce((sum, a) => sum + Number(a.current_amount ?? 0), 0);
 
     const payload = { count: assets.length, total_invested, total_current, assets };
+    const summaryText =
+      `${assets.length} investimento(s) ativo(s). Aplicado: R$ ${total_invested.toLocaleString("pt-BR")}` +
+      ` · Atual: R$ ${total_current.toLocaleString("pt-BR")}.`;
     return {
-      content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
+      content: [{ type: "text", text: summaryText }],
       structuredContent: payload,
     };
   },

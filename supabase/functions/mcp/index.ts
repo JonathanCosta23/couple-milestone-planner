@@ -20,41 +20,48 @@ function supabaseForUser(ctx) {
 }
 var get_plan_overview_default = defineTool({
   name: "get_plan_overview",
-  title: "Get plan overview",
-  description: "Return the signed-in user's current financial plan: mode (individual or couple), goal amount, timeframe, monthly contribution, and the active participants.",
+  title: "Vis\xE3o geral do plano",
+  description: "Retorna o plano financeiro atual do usu\xE1rio autenticado: modo (individual ou casal), meta, prazo, aporte mensal e participantes ativos. Somente leitura.",
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_input, ctx) => {
     if (!ctx.isAuthenticated()) {
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      return {
+        content: [{ type: "text", text: "Autentica\xE7\xE3o necess\xE1ria." }],
+        structuredContent: { code: "not_authenticated" },
+        isError: true
+      };
     }
     const client = supabaseForUser(ctx);
     const userId = ctx.getUserId();
     const { data: plan, error: planError } = await client.from("plans").select(
-      "id, mode, goal_amount, goal_years, goal_purpose, initial_amount, monthly_contribution, onboarding_complete"
+      "mode, goal_amount, goal_years, goal_purpose, initial_amount, monthly_contribution, onboarding_complete"
     ).eq("user_id", userId).order("created_at", { ascending: true }).limit(1).maybeSingle();
     if (planError) {
       console.error("mcp.get_plan_overview.plan_query_failed", planError);
       return {
         content: [{ type: "text", text: "N\xE3o foi poss\xEDvel carregar o plano. Tente novamente." }],
+        structuredContent: { code: "read_failed" },
         isError: true
       };
     }
     if (!plan) {
       return {
-        content: [{ type: "text", text: "No plan configured yet." }],
-        structuredContent: { plan: null, members: [] }
+        content: [{ type: "text", text: "Nenhum plano configurado ainda." }],
+        structuredContent: { code: "no_plan" }
       };
     }
-    const { data: members, error: membersError } = await client.from("plan_members").select("id, name, role, is_primary, age").eq("plan_id", plan.id).eq("is_active", true).order("is_primary", { ascending: false });
+    const { data: planIdRow } = await client.from("plan_members").select("plan_id").eq("user_id", userId).limit(1).maybeSingle();
+    const { data: members, error: membersError } = await client.from("plan_members").select("name, role, is_primary, age").eq("plan_id", planIdRow?.plan_id ?? "").eq("is_active", true).order("is_primary", { ascending: false });
     if (membersError) {
       console.error("mcp.get_plan_overview.members_query_failed", membersError);
       return {
         content: [{ type: "text", text: "N\xE3o foi poss\xEDvel carregar os participantes do plano. Tente novamente." }],
+        structuredContent: { code: "read_failed" },
         isError: true
       };
     }
-    const summary = {
+    const structured = {
       mode: plan.mode,
       goal_amount: plan.goal_amount,
       goal_years: plan.goal_years,
@@ -64,9 +71,11 @@ var get_plan_overview_default = defineTool({
       onboarding_complete: plan.onboarding_complete,
       members: members ?? []
     };
+    const memberNames = (members ?? []).map((m) => m.name).filter(Boolean).join(", ");
+    const summaryText = `Plano ${plan.mode === "casal" ? "de casal" : "individual"} \u2014 meta R$ ${Number(plan.goal_amount ?? 0).toLocaleString("pt-BR")} em ${plan.goal_years ?? "?"} anos, aporte mensal R$ ${Number(plan.monthly_contribution ?? 0).toLocaleString("pt-BR")}` + (memberNames ? `. Participantes: ${memberNames}.` : ".");
     return {
-      content: [{ type: "text", text: JSON.stringify(summary, null, 2) }],
-      structuredContent: summary
+      content: [{ type: "text", text: summaryText }],
+      structuredContent: structured
     };
   }
 });
@@ -86,21 +95,26 @@ function supabaseForUser2(ctx) {
 }
 var list_assets_default = defineTool2({
   name: "list_assets",
-  title: "List investments",
-  description: "List the signed-in user's active investments (assets) with type, institution, invested amount, current amount, bucket, FGC coverage and liquidity, plus totals.",
+  title: "Listar investimentos",
+  description: "Lista os investimentos ativos do usu\xE1rio autenticado (tipo, institui\xE7\xE3o, valor aplicado, valor atual, bucket, FGC e liquidez) com totais. Somente leitura.",
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_input, ctx) => {
     if (!ctx.isAuthenticated()) {
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      return {
+        content: [{ type: "text", text: "Autentica\xE7\xE3o necess\xE1ria." }],
+        structuredContent: { code: "not_authenticated" },
+        isError: true
+      };
     }
     const { data, error } = await supabaseForUser2(ctx).from("assets").select(
-      "id, asset_type, asset_subtype, ticker_or_name, institution, conglomerate, bucket, has_fgc, has_sovereign_guarantee, liquidity_type, invested_amount, current_amount, maturity_date"
+      "asset_type, asset_subtype, ticker_or_name, institution, conglomerate, bucket, has_fgc, has_sovereign_guarantee, liquidity_type, invested_amount, current_amount, maturity_date"
     ).eq("user_id", ctx.getUserId()).eq("is_active", true).order("current_amount", { ascending: false });
     if (error) {
       console.error("mcp.list_assets.query_failed", error);
       return {
         content: [{ type: "text", text: "N\xE3o foi poss\xEDvel carregar os investimentos. Tente novamente." }],
+        structuredContent: { code: "read_failed" },
         isError: true
       };
     }
@@ -108,8 +122,9 @@ var list_assets_default = defineTool2({
     const total_invested = assets.reduce((sum, a) => sum + Number(a.invested_amount ?? 0), 0);
     const total_current = assets.reduce((sum, a) => sum + Number(a.current_amount ?? 0), 0);
     const payload = { count: assets.length, total_invested, total_current, assets };
+    const summaryText = `${assets.length} investimento(s) ativo(s). Aplicado: R$ ${total_invested.toLocaleString("pt-BR")} \xB7 Atual: R$ ${total_current.toLocaleString("pt-BR")}.`;
     return {
-      content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
+      content: [{ type: "text", text: summaryText }],
       structuredContent: payload
     };
   }
@@ -131,28 +146,34 @@ function supabaseForUser3(ctx) {
 }
 var list_monthly_tracking_default = defineTool3({
   name: "list_monthly_tracking",
-  title: "List monthly tracking",
-  description: "Return the most recent months of the signed-in user's monthly deposit tracking: month, planned total, actual total, shortfall, and status.",
+  title: "Listar aportes mensais",
+  description: "Retorna os meses mais recentes do acompanhamento de aportes do usu\xE1rio autenticado (m\xEAs, planejado, realizado, d\xE9ficit e status). Somente leitura.",
   inputSchema: {
-    limit: z.number().int().min(1).max(60).optional().describe("How many recent months to return. Defaults to 12.")
+    limit: z.number().int().min(1).max(60).optional().describe("Quantos meses recentes retornar (1 a 60). Padr\xE3o: 12.")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ limit }, ctx) => {
     if (!ctx.isAuthenticated()) {
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      return {
+        content: [{ type: "text", text: "Autentica\xE7\xE3o necess\xE1ria." }],
+        structuredContent: { code: "not_authenticated" },
+        isError: true
+      };
     }
     const { data, error } = await supabaseForUser3(ctx).from("monthly_tracking").select("month_key, year, month, planned_total, actual_total, shortfall, status, notes").eq("user_id", ctx.getUserId()).order("month_key", { ascending: false }).limit(limit ?? 12);
     if (error) {
       console.error("mcp.list_monthly_tracking.query_failed", error);
       return {
         content: [{ type: "text", text: "N\xE3o foi poss\xEDvel carregar o hist\xF3rico mensal. Tente novamente." }],
+        structuredContent: { code: "read_failed" },
         isError: true
       };
     }
     const months = data ?? [];
     const payload = { count: months.length, months };
+    const summaryText = `${months.length} m\xEAs(es) de acompanhamento retornado(s).`;
     return {
-      content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
+      content: [{ type: "text", text: summaryText }],
       structuredContent: payload
     };
   }

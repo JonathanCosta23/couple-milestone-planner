@@ -13,6 +13,10 @@ const GENERIC_LOAD_ERROR =
   "Não foi possível carregar esta solicitação de autorização. Tente novamente.";
 const GENERIC_DECIDE_ERROR =
   "Não foi possível concluir esta autorização. Tente novamente.";
+const GENERIC_INVALID_AUTHZ =
+  "Solicitação de autorização inválida. Volte ao aplicativo que iniciou a conexão e tente novamente.";
+const GENERIC_MISSING_REDIRECT =
+  "Não foi possível concluir esta autorização. Tente novamente.";
 
 type OAuthClientLike = { name?: string; client_name?: string; redirect_uri?: string };
 type AuthorizationDetails = {
@@ -55,7 +59,7 @@ export default function OAuthConsent() {
       return;
     }
     if (!authorizationId) {
-      setError("Requisição de autorização inválida (authorization_id ausente).");
+      setError(GENERIC_INVALID_AUTHZ);
       setLoading(false);
       return;
     }
@@ -100,7 +104,8 @@ export default function OAuthConsent() {
     const target = data?.redirect_url ?? data?.redirect_to;
     if (!target) {
       setBusy(false);
-      setError("Servidor de autorização não retornou uma URL de redirecionamento.");
+      logger.warn("oauth.consent.missing_redirect", { authorizationId });
+      setError(GENERIC_MISSING_REDIRECT);
       return;
     }
     window.location.href = target;
@@ -182,12 +187,9 @@ export default function OAuthConsent() {
             <div className="text-muted-foreground text-xs">Conta</div>
             <div className="font-medium">{user.email}</div>
           </div>
-          {details?.client?.redirect_uri ? (
-            <div className="rounded-md border border-border bg-muted/40 p-3 text-xs break-all">
-              <div className="text-muted-foreground mb-1">Redireciona para</div>
-              <div className="font-mono">{details.client.redirect_uri}</div>
-            </div>
-          ) : null}
+          {/* Redirect URI omitido intencionalmente: informação técnica sem valor
+              para o usuário final e potencialmente confusa. O nome do cliente já
+              identifica quem está solicitando acesso. */}
           {scopeList.length > 0 ? (
             <div className="text-sm">
               <div className="text-muted-foreground text-xs mb-1">Permissões solicitadas</div>

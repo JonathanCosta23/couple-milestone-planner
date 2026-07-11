@@ -293,3 +293,17 @@ Em cada caso abaixo, a tela deve mostrar título + descrição + CTA claro
 - [ ] `tsconfig.app.json` mantém `strict: false` propositalmente — a
       ativação global fica para uma próxima sprint depois que o gradient
       de tipos cobrir hooks de domínio.
+## 19. Segurança MCP e OAuth (sprint de fechamento)
+- [ ] `.env` está no `.gitignore` e não versionado; `.env.example` contém apenas nomes.
+- [ ] `legal_consents`: apenas SELECT e INSERT para `authenticated`; sem DELETE/UPDATE. Service_role mantém acesso.
+- [ ] ConsentGate segue registrando os 3 consentimentos (usa `ignoreDuplicates`).
+- [ ] MCP tools (`get_plan_overview`, `list_assets`, `list_monthly_tracking`)
+      são somente leitura (`readOnlyHint: true`), com títulos em português.
+- [ ] MCP não retorna `id`, `plan_id`, `user_id`, `member_id` nem UUIDs internos.
+- [ ] MCP não expõe `error.message` bruto: mensagens seguras + `structuredContent.code`
+      (`not_authenticated`, `no_plan`, `read_failed`); detalhes só em `console.error`.
+- [ ] `list_monthly_tracking.limit` valida faixa 1..60.
+- [ ] `/connect` exige autenticação, tem `noindex,nofollow`, declara escopo
+      somente leitura, dados acessíveis e revogação.
+- [ ] `OAuthConsent`: mensagens genéricas, sem redirect URI técnico, `noindex,nofollow`.
+- [ ] `npm run ci` (lint + test + typecheck + build) passa fim-a-fim.
