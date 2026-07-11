@@ -14,14 +14,18 @@ function supabaseForUser(ctx: ToolContext) {
 
 export default defineTool({
   name: "get_plan_overview",
-  title: "Get plan overview",
+  title: "Visão geral do plano",
   description:
-    "Return the signed-in user's current financial plan: mode (individual or couple), goal amount, timeframe, monthly contribution, and the active participants.",
+    "Retorna o plano financeiro atual do usuário autenticado: modo (individual ou casal), meta, prazo, aporte mensal e participantes ativos. Somente leitura.",
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_input, ctx) => {
     if (!ctx.isAuthenticated()) {
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      return {
+        content: [{ type: "text", text: "Autenticação necessária." }],
+        structuredContent: { code: "not_authenticated" },
+        isError: true,
+      };
     }
     const client = supabaseForUser(ctx);
     const userId = ctx.getUserId();
@@ -29,7 +33,7 @@ export default defineTool({
     const { data: plan, error: planError } = await client
       .from("plans")
       .select(
-        "id, mode, goal_amount, goal_years, goal_purpose, initial_amount, monthly_contribution, onboarding_complete",
+        "mode, goal_amount, goal_years, goal_purpose, initial_amount, monthly_contribution, onboarding_complete",
       )
       .eq("user_id", userId)
       .order("created_at", { ascending: true })
@@ -40,20 +44,30 @@ export default defineTool({
       console.error("mcp.get_plan_overview.plan_query_failed", planError);
       return {
         content: [{ type: "text", text: "Não foi possível carregar o plano. Tente novamente." }],
+        structuredContent: { code: "read_failed" },
         isError: true,
       };
     }
     if (!plan) {
       return {
-        content: [{ type: "text", text: "No plan configured yet." }],
-        structuredContent: { plan: null, members: [] },
+        content: [{ type: "text", text: "Nenhum plano configurado ainda." }],
+        structuredContent: { code: "no_plan" },
       };
     }
 
+    // Fetch active members separately using plan_id resolved via RLS-safe query
+    // (we intentionally do NOT return plan_id to MCP consumers).
+    const { data: planIdRow } = await client
+      .from("plan_members")
+      .select("plan_id")
+      .eq("user_id", userId)
+      .limit(1)
+      .maybeSingle();
+
     const { data: members, error: membersError } = await client
       .from("plan_members")
-      .select("id, name, role, is_primary, age")
-      .eq("plan_id", plan.id)
+      .select("name, role, is_primary, age")
+      .eq("plan_id", planIdRow?.plan_id ?? "")
       .eq("is_active", true)
       .order("is_primary", { ascending: false });
 
@@ -61,11 +75,12 @@ export default defineTool({
       console.error("mcp.get_plan_overview.members_query_failed", membersError);
       return {
         content: [{ type: "text", text: "Não foi possível carregar os participantes do plano. Tente novamente." }],
+        structuredContent: { code: "read_failed" },
         isError: true,
       };
     }
 
-    const summary = {
+    const structured = {
       mode: plan.mode,
       goal_amount: plan.goal_amount,
       goal_years: plan.goal_years,
@@ -76,9 +91,17 @@ export default defineTool({
       members: members ?? [],
     };
 
+    const memberNames = (members ?? []).map((m) => m.name).filter(Boolean).join(", ");
+    const summaryText =
+      `Plano ${plan.mode === "casal" ? "de casal" : "individual"} — meta ` +
+      `R$ ${Number(plan.goal_amount ?? 0).toLocaleString("pt-BR")} em ` +
+      `${plan.goal_years ?? "?"} anos, aporte mensal R$ ` +
+      `${Number(plan.monthly_contribution ?? 0).toLocaleString("pt-BR")}` +
+      (memberNames ? `. Participantes: ${memberNames}.` : ".");
+
     return {
-      content: [{ type: "text", text: JSON.stringify(summary, null, 2) }],
-      structuredContent: summary,
+      content: [{ type: "text", text: summaryText }],
+      structuredContent: structured,
     };
   },
 });
