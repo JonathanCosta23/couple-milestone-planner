@@ -1,11 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 import { defineTool, type ToolContext } from "@lovable.dev/mcp-js";
 import { z } from "zod";
+import { getRuntimeEnv } from "./_env";
 
 function supabaseForUser(ctx: ToolContext) {
   return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
+    getRuntimeEnv("SUPABASE_URL"),
+    getRuntimeEnv("SUPABASE_PUBLISHABLE_KEY") || getRuntimeEnv("SUPABASE_ANON_KEY"),
     {
       global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
       auth: { persistSession: false, autoRefreshToken: false },

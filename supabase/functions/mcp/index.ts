@@ -8,10 +8,26 @@ import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.21.0-rc.4";
 // src/lib/mcp/tools/get-plan-overview.ts
 import { createClient } from "npm:@supabase/supabase-js@^2.110.2";
 import { defineTool } from "npm:@lovable.dev/mcp-js@0.21.0-rc.4";
+
+// src/lib/mcp/tools/_env.ts
+function getRuntimeEnv(name) {
+  const g = globalThis;
+  const denoGet = g?.Deno?.env?.get;
+  if (typeof denoGet === "function") {
+    return denoGet.call(g.Deno.env, name) ?? "";
+  }
+  const procEnv = g?.process?.env;
+  if (procEnv && typeof procEnv === "object") {
+    return procEnv[name] ?? "";
+  }
+  return "";
+}
+
+// src/lib/mcp/tools/get-plan-overview.ts
 function supabaseForUser(ctx) {
   return createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_PUBLISHABLE_KEY,
+    getRuntimeEnv("SUPABASE_URL"),
+    getRuntimeEnv("SUPABASE_PUBLISHABLE_KEY") || getRuntimeEnv("SUPABASE_ANON_KEY"),
     {
       global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
       auth: { persistSession: false, autoRefreshToken: false }
@@ -94,8 +110,8 @@ import { createClient as createClient2 } from "npm:@supabase/supabase-js@^2.110.
 import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.21.0-rc.4";
 function supabaseForUser2(ctx) {
   return createClient2(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_PUBLISHABLE_KEY,
+    getRuntimeEnv("SUPABASE_URL"),
+    getRuntimeEnv("SUPABASE_PUBLISHABLE_KEY") || getRuntimeEnv("SUPABASE_ANON_KEY"),
     {
       global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
       auth: { persistSession: false, autoRefreshToken: false }
@@ -145,8 +161,8 @@ import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.21.0-rc.4";
 import { z } from "npm:zod@^3.25.76";
 function supabaseForUser3(ctx) {
   return createClient3(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_PUBLISHABLE_KEY,
+    getRuntimeEnv("SUPABASE_URL"),
+    getRuntimeEnv("SUPABASE_PUBLISHABLE_KEY") || getRuntimeEnv("SUPABASE_ANON_KEY"),
     {
       global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
       auth: { persistSession: false, autoRefreshToken: false }
