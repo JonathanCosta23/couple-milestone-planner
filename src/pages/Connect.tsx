@@ -2,13 +2,16 @@ import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, Copy, Plug } from "lucide-react";
+import { Check, Copy, Plug, ShieldCheck, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { AuthPage } from "@/components/auth/AuthPage";
 
 const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? "";
 const mcpUrl = `https://${projectRef}.supabase.co/functions/v1/mcp`;
 
 export default function Connect() {
   const [copied, setCopied] = useState(false);
+  const { user, loading: authLoading } = useAuth();
 
   async function copyUrl() {
     try {
@@ -20,6 +23,35 @@ export default function Connect() {
     }
   }
 
+  if (authLoading) {
+    return (
+      <main className="min-h-screen grid place-items-center bg-background">
+        <Helmet>
+          <title>Conectar assistente de IA · Plano do Milhão</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </main>
+    );
+  }
+
+  if (!user) {
+    return (
+      <main className="min-h-screen bg-background">
+        <Helmet>
+          <title>Conectar assistente de IA · Plano do Milhão</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
+        <div className="mx-auto max-w-md pt-6 px-4 pb-2">
+          <p className="text-sm text-muted-foreground text-center">
+            Entre na sua conta para configurar a integração com um assistente de IA.
+          </p>
+        </div>
+        <AuthPage />
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-background px-4 py-10 sm:py-14">
       <Helmet>
@@ -28,7 +60,7 @@ export default function Connect() {
           name="description"
           content="Conecte o ChatGPT ou o Claude ao Plano do Milhão para conversar com seu plano financeiro usando o servidor MCP do app."
         />
-        <link rel="canonical" href="https://couple-milestone-planner.lovable.app/connect" />
+        <meta name="robots" content="noindex, nofollow" />
         <meta property="og:title" content="Conectar assistente de IA · Plano do Milhão" />
         <meta
           property="og:description"
@@ -51,6 +83,40 @@ export default function Connect() {
             as suas permissões.
           </p>
         </header>
+
+        <Card className="border-primary/30">
+          <CardHeader className="space-y-2">
+            <div className="flex items-center gap-2 text-primary">
+              <ShieldCheck className="h-5 w-5" />
+              <CardTitle className="text-base">Integração somente leitura</CardTitle>
+            </div>
+            <CardDescription>
+              O assistente conectado vê apenas os seus dados e <strong>não cria, altera ou apaga</strong> nada.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
+                Dados acessíveis
+              </div>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Seu plano atual e a meta financeira</li>
+                <li>Participantes ativos do plano</li>
+                <li>Ativos e investimentos cadastrados</li>
+                <li>Histórico mensal de aportes</li>
+              </ul>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Aviso educacional: o Plano do Milhão é uma ferramenta de educação e planejamento
+              financeiro. Respostas geradas por assistentes de IA não são recomendação
+              personalizada de investimento.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Você pode <strong>revogar o acesso</strong> a qualquer momento nas configurações de
+              conectores do ChatGPT ou do Claude, ou saindo da sua conta aqui no app.
+            </p>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
