@@ -6,11 +6,12 @@
  * de risco). Sem alteração de comportamento.
  */
 import { Button } from "@/components/ui/button";
-import { Download, Upload, RotateCcw, Settings, ArrowLeft, Plug } from "lucide-react";
+import { Download, Upload, RotateCcw, Settings, ArrowLeft } from "lucide-react";
 import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
 import { SharePlan } from "@/components/plan/SharePlan";
 import { NotificationSettings } from "@/components/plan/NotificationSettings";
 import { RestoreBackupButton } from "@/components/plan/RestoreBackupButton";
+import { McpConnectionPanel } from "@/components/integrations/McpConnectionPanel";
 import type { AppData } from "@/lib/models";
 import type { PlanConfig, MonthRecord, PlanData } from "@/lib/types";
 
@@ -95,12 +96,7 @@ export function SettingsHub({
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
           Integrações
         </h3>
-        <a
-          href="/connect"
-          className="flex items-center h-12 rounded-xl border border-input bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-        >
-          <Plug className="w-4 h-4 mr-2.5" /> Conectar ChatGPT ou Claude
-        </a>
+        <McpConnectionPanel onSignOut={onSignOut} />
       </section>
 
       <section className="space-y-2">
