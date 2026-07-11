@@ -14,6 +14,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 const GuiaPlanejamentoFinanceiro = lazy(() => import("./pages/GuiaPlanejamentoFinanceiro"));
+const Connect = lazy(() => import("./pages/Connect"));
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
                 <Route path="/guia-planejamento-financeiro" element={<GuiaPlanejamentoFinanceiro />} />
+                <Route path="/connect" element={<Connect />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>

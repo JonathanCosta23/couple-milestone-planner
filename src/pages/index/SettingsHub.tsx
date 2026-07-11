@@ -6,7 +6,7 @@
  * de risco). Sem alteração de comportamento.
  */
 import { Button } from "@/components/ui/button";
-import { Download, Upload, RotateCcw, Settings, ArrowLeft } from "lucide-react";
+import { Download, Upload, RotateCcw, Settings, ArrowLeft, Plug } from "lucide-react";
 import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
 import { SharePlan } from "@/components/plan/SharePlan";
 import { NotificationSettings } from "@/components/plan/NotificationSettings";
@@ -89,6 +89,18 @@ export function SettingsHub({
           Notificações
         </h3>
         <NotificationSettings settings={notificationSettings} onUpdate={onUpdateNotificationSettings} />
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+          Integrações
+        </h3>
+        <a
+          href="/connect"
+          className="flex items-center h-12 rounded-xl border border-input bg-background px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+        >
+          <Plug className="w-4 h-4 mr-2.5" /> Conectar ChatGPT ou Claude
+        </a>
       </section>
 
       <section className="space-y-2">
