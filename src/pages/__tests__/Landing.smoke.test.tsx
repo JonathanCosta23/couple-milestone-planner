@@ -47,8 +47,8 @@ describe("Landing page", () => {
     // Educational disclaimer explicit.
     expect(screen.getByText(/não constitui recomendação de investimento/i)).toBeInTheDocument();
 
-    // MCP section explains read-only.
-    expect(screen.getByText(/somente leitura/i)).toBeInTheDocument();
+    // MCP section explains read-only (multiple mentions are expected).
+    expect(screen.getAllByText(/somente leitura/i).length).toBeGreaterThan(0);
 
     // Legal footer is present.
     expect(screen.getByTestId("legal-footer")).toBeInTheDocument();
