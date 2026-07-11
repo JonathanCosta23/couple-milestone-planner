@@ -130,7 +130,9 @@ export function AuthPage({ onClose, onSuccess, mode: initialMode = "login", show
         )}
 
         <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold text-gradient">Plano do Milhão</h1>
+          <h1 className="text-2xl font-bold text-gradient">
+            Plano do Milhão — Planejamento Financeiro
+          </h1>
           <p className="text-sm text-muted-foreground">
             {mode === "forgot"
               ? "Recupere o acesso à sua conta"
@@ -229,6 +231,7 @@ export function AuthPage({ onClose, onSuccess, mode: initialMode = "login", show
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}

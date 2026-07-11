@@ -110,7 +110,7 @@ export function Wizard({ onComplete }: WizardProps) {
       <Card className="glass-card-strong p-6 animate-fade-in-up">
         {step === 0 && (
           <div className="space-y-5">
-            <h2 className="text-xl font-bold">Qual sua meta?</h2>
+            <h1 className="text-xl font-bold">Qual sua meta?</h1>
             <div className="grid gap-4">
               <div>
                 <Label htmlFor="initial">
@@ -182,7 +182,7 @@ export function Wizard({ onComplete }: WizardProps) {
 
         {step === 1 && (
           <div className="space-y-5">
-            <h2 className="text-xl font-bold">Quanto investir por mês</h2>
+            <h1 className="text-xl font-bold">Quanto investir por mês</h1>
             {config.contributors.map((c, idx) => (
               <div key={idx} className="p-4 rounded-xl bg-muted/50 space-y-3 relative">
                 {config.contributors.length > 1 && (
@@ -268,7 +268,7 @@ export function Wizard({ onComplete }: WizardProps) {
 
         {step === 2 && (
           <div className="space-y-5">
-            <h2 className="text-xl font-bold">Confira e comece</h2>
+            <h1 className="text-xl font-bold">Confira e comece</h1>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between py-2 border-b border-border/50">
                 <span className="text-muted-foreground">Valor inicial</span>
