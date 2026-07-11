@@ -57,6 +57,25 @@ interface WriterResult<T> {
   error: string | null;
 }
 
+type PlanUpdatePayload = {
+  mode?: CanonicalPlanMode;
+  goal_amount?: number;
+  initial_amount?: number;
+  monthly_contribution?: number;
+  goal_years?: number;
+  goal_months?: number;
+  goal_purpose?: string | null;
+  goal_purpose_custom?: string | null;
+  wizard_complete?: boolean;
+  onboarding_complete?: boolean;
+};
+
+type MemberUpdatePayload = {
+  name?: string;
+  age?: number | null;
+  avatar_color?: string | null;
+};
+
 const ensureUser = (userId: string | undefined): string | null => userId ?? null;
 
 export function usePlanWriter() {
@@ -232,7 +251,7 @@ export function usePlanWriter() {
       const uid = ensureUser(user?.id);
       if (!uid) return { data: null, error: "Usuário não autenticado." };
 
-      const payload: Record<string, unknown> = {};
+      const payload: PlanUpdatePayload = {};
       if (patch.mode !== undefined) payload.mode = patch.mode;
       if (patch.goalAmount !== undefined) payload.goal_amount = patch.goalAmount;
       if (patch.initialAmount !== undefined) payload.initial_amount = patch.initialAmount;
@@ -385,7 +404,7 @@ export function usePlanWriter() {
       const uid = ensureUser(user?.id);
       if (!uid) return { data: null, error: "Usuário não autenticado." };
 
-      const payload: Record<string, unknown> = {};
+      const payload: MemberUpdatePayload = {};
       if (patch.name !== undefined) payload.name = patch.name;
       if (patch.age !== undefined) payload.age = patch.age;
       if (patch.avatarColor !== undefined) payload.avatar_color = patch.avatarColor;
