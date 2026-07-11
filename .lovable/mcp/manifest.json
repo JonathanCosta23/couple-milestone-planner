@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.1",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://mppggukimaifwhuydwcq.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "plano-do-milhao-mcp",
+      "version": "0.1.0",
+      "title": "Plano do Milhão"
+    },
+    "tools": [
+      {
+        "name": "get_plan_overview",
+        "title": "Get plan overview",
+        "description": "Return the signed-in user's current financial plan: mode (individual or couple), goal amount, timeframe, monthly contribution, and the active participants.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_assets",
+        "title": "List investments",
+        "description": "List the signed-in user's active investments (assets) with type, institution, invested amount, current amount, bucket, FGC coverage and liquidity, plus totals.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_monthly_tracking",
+        "title": "List monthly tracking",
+        "description": "Return the most recent months of the signed-in user's monthly deposit tracking: month, planned total, actual total, shortfall, and status.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 60,
+              "description": "How many recent months to return. Defaults to 12."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
