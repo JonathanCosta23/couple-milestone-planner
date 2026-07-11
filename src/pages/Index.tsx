@@ -10,7 +10,6 @@ import { UnifiedHome } from "@/components/plan/UnifiedHome";
 import { BottomNav, NavSection } from "@/components/plan/BottomNav";
 import { SubNav } from "@/components/plan/SubNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { AuthPage } from "@/components/auth/AuthPage";
 import { Dashboard } from "@/components/plan/Dashboard";
 import { MilestoneAlert } from "@/components/plan/MilestoneAlert";
 import { PanelSkeleton } from "@/components/plan/PanelSkeleton";
@@ -79,6 +78,7 @@ import { AppHeader } from "@/components/plan/AppHeader";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { Navigate } from "react-router-dom";
 import { ErrorBoundary } from "@/components/system/ErrorBoundary";
 import { OfflineBanner } from "@/components/system/OfflineBanner";
 
@@ -287,7 +287,9 @@ const Index = () => {
     );
   }
   if (!user) {
-    return <AuthPage />;
+    // Sem sessão: envia à Landing pública. A Landing dispara login/signup em
+    // páginas completas; nunca renderizamos AuthPage como modal.
+    return <Navigate to="/" replace />;
   }
 
   // ── Onboarding ──
