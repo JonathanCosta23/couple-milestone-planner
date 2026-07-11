@@ -108,6 +108,7 @@ const PROJECAO_SUBS = [
 const MAIS_SUBS_BASE = [
   { id: "aprender", label: "Educação", icon: "📚" },
   { id: "glossario", label: "Glossário", icon: "📖" },
+  { id: "calculadoras", label: "Calculadoras", icon: "🧮" },
   { id: "armadilhas", label: "Radar", icon: "🛡️" },
   { id: "investir", label: "Investir", icon: "📈" },
   { id: "saude", label: "Saúde", icon: "🏥" },
@@ -494,6 +495,9 @@ const Index = () => {
               </div>
             )}
             {sub === "glossario" && <FinancialGlossary />}
+            {sub === "calculadoras" && (
+              <CalculatorsPanel appData={effectiveAppData} metrics={core.metrics} />
+            )}
             {sub === "armadilhas" && <TrapDetector />}
             {sub === "investir" && <InvestmentGuide />}
             {sub === "saude" && (
