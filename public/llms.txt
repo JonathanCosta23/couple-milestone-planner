@@ -1,0 +1,13 @@
+# Plano do Milhão
+
+> Aplicativo brasileiro de planejamento financeiro pessoal e patrimonial que ajuda pessoas e casais a organizar renda, gastos, dívidas, reserva de emergência, aportes e patrimônio para construir riqueza de forma responsável.
+
+O app diferencia patrimônio nominal, líquido (pós-impostos) e real (ajustado pela inflação). É uma ferramenta educacional — não faz recomendação individualizada de investimento. Suporta plano individual e plano casal, com governança patrimonial, jornada financeira em fases, radar de risco e simulador de cenários.
+
+## Pages
+
+- [Página inicial](/): Login, onboarding e cockpit do plano — home estratégica com meta mensal, próximo passo, gargalos e proteção.
+
+## Optional
+
+- [Redefinir senha](/reset-password): Fluxo de recuperação de senha após clique no e-mail enviado pelo app.
