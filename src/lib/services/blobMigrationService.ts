@@ -17,6 +17,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { AppData, Income, Expense, Debt } from "@/lib/models";
 import type { PlanMemberRow } from "@/hooks/usePlan";
+import { toFriendlyError } from "@/lib/errors/friendlyError";
+import { logger } from "@/lib/logger";
 
 export interface BlobMigrationSummary {
   incomes: number;
@@ -154,8 +156,10 @@ export async function migrateBlobToTables(
       incomeToRow(inc, { userId, planId, memberId: resolveMember(inc.profileId) }),
     );
     const { error, data } = await supabase.from("income").insert(rows as never).select("id");
-    if (error) summary.errors.push(`Renda: ${error.message}`);
-    else summary.incomes = data?.length ?? 0;
+    if (error) {
+      logger.error("blobMigration.income.insert", { message: error.message, code: error.code });
+      summary.errors.push(`Renda: ${toFriendlyError(error)}`);
+    } else summary.incomes = data?.length ?? 0;
   }
 
   // 2. Expenses
@@ -167,8 +171,10 @@ export async function migrateBlobToTables(
       expenseToRow(exp, { userId, planId, memberId: resolveMember(exp.responsibleProfileId) }),
     );
     const { error, data } = await supabase.from("expenses").insert(rows as never).select("id");
-    if (error) summary.errors.push(`Gastos: ${error.message}`);
-    else summary.expenses = data?.length ?? 0;
+    if (error) {
+      logger.error("blobMigration.expenses.insert", { message: error.message, code: error.code });
+      summary.errors.push(`Gastos: ${toFriendlyError(error)}`);
+    } else summary.expenses = data?.length ?? 0;
   }
 
   // 3. Debts
@@ -180,8 +186,10 @@ export async function migrateBlobToTables(
       debtToRow(debt, { userId, planId, memberId: resolveMember(debt.profileId) }),
     );
     const { error, data } = await supabase.from("debts").insert(rows as never).select("id");
-    if (error) summary.errors.push(`Dívidas: ${error.message}`);
-    else summary.debts = data?.length ?? 0;
+    if (error) {
+      logger.error("blobMigration.debts.insert", { message: error.message, code: error.code });
+      summary.errors.push(`Dívidas: ${toFriendlyError(error)}`);
+    } else summary.debts = data?.length ?? 0;
   }
 
   return summary;
