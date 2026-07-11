@@ -251,7 +251,7 @@ export function usePlanWriter() {
       const uid = ensureUser(user?.id);
       if (!uid) return { data: null, error: "Usuário não autenticado." };
 
-      const payload: Record<string, unknown> = {};
+      const payload: PlanUpdatePayload = {};
       if (patch.mode !== undefined) payload.mode = patch.mode;
       if (patch.goalAmount !== undefined) payload.goal_amount = patch.goalAmount;
       if (patch.initialAmount !== undefined) payload.initial_amount = patch.initialAmount;
@@ -404,7 +404,7 @@ export function usePlanWriter() {
       const uid = ensureUser(user?.id);
       if (!uid) return { data: null, error: "Usuário não autenticado." };
 
-      const payload: Record<string, unknown> = {};
+      const payload: MemberUpdatePayload = {};
       if (patch.name !== undefined) payload.name = patch.name;
       if (patch.age !== undefined) payload.age = patch.age;
       if (patch.avatarColor !== undefined) payload.avatar_color = patch.avatarColor;
