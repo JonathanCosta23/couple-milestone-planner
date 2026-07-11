@@ -15,7 +15,13 @@ function Tip({ text }: { text: string }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <HelpCircle className="w-4 h-4 text-muted-foreground inline ml-1 cursor-help" />
+        <button
+          type="button"
+          aria-label={`Ajuda: ${text}`}
+          className="inline-flex items-center justify-center ml-1 cursor-help"
+        >
+          <HelpCircle className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
+        </button>
       </TooltipTrigger>
       <TooltipContent className="max-w-xs text-sm">{text}</TooltipContent>
     </Tooltip>
@@ -110,7 +116,7 @@ export function Wizard({ onComplete }: WizardProps) {
       <Card className="glass-card-strong p-6 animate-fade-in-up">
         {step === 0 && (
           <div className="space-y-5">
-            <h1 className="text-xl font-bold">Qual sua meta?</h1>
+            <h2 className="text-xl font-bold">Qual sua meta?</h2>
             <div className="grid gap-4">
               <div>
                 <Label htmlFor="initial">
@@ -182,7 +188,7 @@ export function Wizard({ onComplete }: WizardProps) {
 
         {step === 1 && (
           <div className="space-y-5">
-            <h1 className="text-xl font-bold">Quanto investir por mês</h1>
+            <h2 className="text-xl font-bold">Quanto investir por mês</h2>
             {config.contributors.map((c, idx) => (
               <div key={idx} className="p-4 rounded-xl bg-muted/50 space-y-3 relative">
                 {config.contributors.length > 1 && (
@@ -268,7 +274,7 @@ export function Wizard({ onComplete }: WizardProps) {
 
         {step === 2 && (
           <div className="space-y-5">
-            <h1 className="text-xl font-bold">Confira e comece</h1>
+            <h2 className="text-xl font-bold">Confira e comece</h2>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between py-2 border-b border-border/50">
                 <span className="text-muted-foreground">Valor inicial</span>
