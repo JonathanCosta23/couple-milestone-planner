@@ -50,8 +50,19 @@ export default defineTool({
     }
     if (!plan) {
       return {
-        content: [{ type: "text", text: "Nenhum plano configurado ainda." }],
-        structuredContent: { code: "no_plan" },
+        content: [
+          {
+            type: "text",
+            text:
+              "Nenhum plano financeiro foi encontrado para esta conta. Verifique se você conectou a mesma conta usada no Plano do Milhão. Se conectou a conta errada, desvincule o conector no ChatGPT/Claude e conecte novamente com a conta correta.",
+          },
+        ],
+        structuredContent: {
+          code: "no_plan",
+          hint: "wrong_or_new_account",
+          message:
+            "Nenhum plano encontrado para o usuário autenticado. Provavelmente é uma conta diferente da usada no app, ou o plano ainda não foi criado.",
+        },
       };
     }
 

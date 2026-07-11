@@ -307,3 +307,34 @@ Em cada caso abaixo, a tela deve mostrar título + descrição + CTA claro
       somente leitura, dados acessíveis e revogação.
 - [ ] `OAuthConsent`: mensagens genéricas, sem redirect URI técnico, `noindex,nofollow`.
 - [ ] `npm run ci` (lint + test + typecheck + build) passa fim-a-fim.
+
+## 20. Landing pública, autenticação em página cheia e MCP desvincular
+### 20.1 Landing (`/`)
+- [ ] Visitante deslogado vê Landing (Hero + seções, CTAs para `/signup` e `/login`).
+- [ ] Login/Signup **não** aparecem como pop-up nem modal.
+- [ ] Landing contém aviso educacional ("não constitui recomendação de investimento").
+- [ ] Landing menciona MCP como somente leitura.
+- [ ] Rodapé mantém Termos, Privacidade e Aviso Educacional.
+- [ ] Usuário logado ao acessar `/` cai direto no cockpit (não vê Landing).
+- [ ] Deep link em rota protegida sem sessão redireciona para `/` (Landing).
+### 20.2 Autenticação (`/login`, `/signup`, `/forgot-password`)
+- [ ] Cada rota é uma tela completa, alinhada visualmente ao app.
+- [ ] Erros do Supabase são traduzidos; nenhuma mensagem crua vaza (RLS/JWT/PostgREST/permission/boom).
+- [ ] Botões de Google e Apple funcionam via `lovable.auth.signInWithOAuth`.
+- [ ] "Esqueci a senha" leva à página `/forgot-password`, que envia link e mostra confirmação neutra.
+- [ ] Usuário logado que acessa `/login` ou `/signup` é redirecionado para `/`.
+- [ ] `ConsentGate` continua obrigatório após login quando faltam os 3 aceites.
+- [ ] `ConsentGate` NÃO mostra IDs técnicos (`terms_v1`, `privacy_v1`, `educational_disclaimer_v1`).
+### 20.3 MCP — painel em Mais → Integrações
+- [ ] `McpConnectionPanel` mostra endpoint MCP, botão copiar, escopo somente leitura e dados acessíveis.
+- [ ] Painel explica que a integração não cria/altera/apaga dados.
+- [ ] Painel mostra e-mail da conta atual e alerta sobre conector conectado à conta errada.
+- [ ] Botão "Limpar sessão neste navegador" limpa storage MCP local + faz signOut + orienta revogar no ChatGPT/Claude.
+- [ ] `/connect` mantém `noindex,nofollow` e explica leitura, dados acessíveis, revogação e aviso educacional.
+### 20.4 MCP — conta sem plano
+- [ ] `get_plan_overview` retorna mensagem clara ("Nenhum plano financeiro foi encontrado para esta conta…") com `structuredContent.code = "no_plan"` e `hint = "wrong_or_new_account"`.
+- [ ] Assistente nunca recebe payload vazio silencioso quando falta plano.
+- [ ] Nenhuma tool MCP retorna `error.message`, SQL, RLS, JWT, "boom" ou termos técnicos.
+### 20.5 Mobile
+- [ ] Landing, `/login`, `/signup`, `/forgot-password` e painel MCP respondem bem em mobile (viewport ≤ 400px).
+- [ ] Botões primários ocupam largura total no mobile e mantêm altura ≥ 44px.

@@ -94,6 +94,20 @@ describe("MCP tools — auth guard", () => {
 });
 
 describe("MCP tools — error hygiene", () => {
+  it("get_plan_overview returns friendly no_plan hint when user has no plan", async () => {
+    planResult = { data: null, error: null };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const res: any = await getPlanOverview.handler({}, authedCtx as any);
+    expect(res.isError).toBeFalsy();
+    expect(res.structuredContent.code).toBe("no_plan");
+    expect(res.structuredContent.hint).toBe("wrong_or_new_account");
+    const text = res.content[0].text as string;
+    expect(text).toMatch(/nenhum plano/i);
+    expect(text).toMatch(/desvincule|conta correta|conta errada/i);
+    // Never leak SQL/RLS/JWT/PostgREST terms.
+    expect(text).not.toMatch(/rls|constraint|permission denied|jwt|postgrest|boom/i);
+  });
+
   it("get_plan_overview never leaks raw supabase error", async () => {
     planResult = { data: null, error: { message: "permission denied for table plans", code: "42501" } };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
