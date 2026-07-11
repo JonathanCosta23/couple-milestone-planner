@@ -37,7 +37,11 @@ export default defineTool({
       .maybeSingle();
 
     if (planError) {
-      return { content: [{ type: "text", text: planError.message }], isError: true };
+      console.error("mcp.get_plan_overview.plan_query_failed", planError);
+      return {
+        content: [{ type: "text", text: "Não foi possível carregar o plano. Tente novamente." }],
+        isError: true,
+      };
     }
     if (!plan) {
       return {
@@ -54,7 +58,11 @@ export default defineTool({
       .order("is_primary", { ascending: false });
 
     if (membersError) {
-      return { content: [{ type: "text", text: membersError.message }], isError: true };
+      console.error("mcp.get_plan_overview.members_query_failed", membersError);
+      return {
+        content: [{ type: "text", text: "Não foi possível carregar os participantes do plano. Tente novamente." }],
+        isError: true,
+      };
     }
 
     const summary = {

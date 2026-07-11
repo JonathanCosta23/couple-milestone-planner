@@ -34,7 +34,11 @@ var get_plan_overview_default = defineTool({
       "id, mode, goal_amount, goal_years, goal_purpose, initial_amount, monthly_contribution, onboarding_complete"
     ).eq("user_id", userId).order("created_at", { ascending: true }).limit(1).maybeSingle();
     if (planError) {
-      return { content: [{ type: "text", text: planError.message }], isError: true };
+      console.error("mcp.get_plan_overview.plan_query_failed", planError);
+      return {
+        content: [{ type: "text", text: "N\xE3o foi poss\xEDvel carregar o plano. Tente novamente." }],
+        isError: true
+      };
     }
     if (!plan) {
       return {
@@ -44,7 +48,11 @@ var get_plan_overview_default = defineTool({
     }
     const { data: members, error: membersError } = await client.from("plan_members").select("id, name, role, is_primary, age").eq("plan_id", plan.id).eq("is_active", true).order("is_primary", { ascending: false });
     if (membersError) {
-      return { content: [{ type: "text", text: membersError.message }], isError: true };
+      console.error("mcp.get_plan_overview.members_query_failed", membersError);
+      return {
+        content: [{ type: "text", text: "N\xE3o foi poss\xEDvel carregar os participantes do plano. Tente novamente." }],
+        isError: true
+      };
     }
     const summary = {
       mode: plan.mode,
