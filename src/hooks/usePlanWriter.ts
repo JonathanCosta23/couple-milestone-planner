@@ -57,6 +57,25 @@ interface WriterResult<T> {
   error: string | null;
 }
 
+type PlanUpdatePayload = {
+  mode?: CanonicalPlanMode;
+  goal_amount?: number;
+  initial_amount?: number;
+  monthly_contribution?: number;
+  goal_years?: number;
+  goal_months?: number;
+  goal_purpose?: string | null;
+  goal_purpose_custom?: string | null;
+  wizard_complete?: boolean;
+  onboarding_complete?: boolean;
+};
+
+type MemberUpdatePayload = {
+  name?: string;
+  age?: number | null;
+  avatar_color?: string | null;
+};
+
 const ensureUser = (userId: string | undefined): string | null => userId ?? null;
 
 export function usePlanWriter() {
