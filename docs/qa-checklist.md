@@ -409,3 +409,25 @@ Em cada caso abaixo, a tela deve mostrar título + descrição + CTA claro
 ### 20.5 Mobile
 - [ ] Landing, `/login`, `/signup`, `/forgot-password` e painel MCP respondem bem em mobile (viewport ≤ 400px).
 - [ ] Botões primários ocupam largura total no mobile e mantêm altura ≥ 44px.
+
+## 21. Calculadora CDI (Sprint 3)
+### 21.1 Fluxo básico
+- [ ] Projeção → Calculadora CDI carrega sem erros.
+- [ ] Modo Simples é o padrão e pede apenas: valor, % do CDI, CDI a.a., prazo, tributação.
+- [ ] Modo Detalhado expõe datas, aportes, custos, inflação e IOF.
+- [ ] Resultado mostra bruto, custos, IOF, IR, líquido, valor real (quando informado).
+- [ ] "Entender o cálculo" abre memória com fórmulas, versões e fontes.
+### 21.2 Cenários
+- [ ] Comparador aceita 90%, 100%, 110% e customizado; mesmo principal/prazo/tributação em todos.
+- [ ] Comparação nunca usa "melhor investimento", "recomendado" ou "compre".
+- [ ] Comparação identifica "maior/menor resultado líquido nesta simulação" apenas.
+### 21.3 Regras versionadas
+- [ ] IR regressivo (22,5% / 20% / 17,5% / 15%) selecionado pelo prazo real, com versão exibida.
+- [ ] IOF regressivo aplicado sobre rendimento nos primeiros 30 dias, zero após.
+- [ ] Produto isento nunca sofre IR ou IOF.
+- [ ] Se as tabelas do banco falharem, fallback local é usado sem quebrar a UI.
+### 21.4 Segurança e linguagem
+- [ ] Nenhuma tela promete retorno, segurança ou classifica CDI futuro como conhecido.
+- [ ] Modo simples marca claramente o resultado como estimativa.
+- [ ] Nenhuma taxa CDI é presumida: usuário sempre informa.
+- [ ] Fórmulas não ficam dentro dos componentes React; ficam em `src/features/cdi/services`.
