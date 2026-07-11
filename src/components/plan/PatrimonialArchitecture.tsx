@@ -6,6 +6,7 @@ import type { FinancialCoreState } from "@/hooks/useFinancialCore";
 import { calculateBucketDistribution } from "@/lib/financialEngine";
 import { useMemo } from "react";
 import { Shield, AlertTriangle, ArrowRight, Lock, Droplets, Building2, Target } from "lucide-react";
+import { FgcOverview } from "@/features/fgc/components/FgcOverview";
 
 interface Props {
   appData: AppData;
@@ -138,6 +139,8 @@ export function PatrimonialArchitecture({ appData, config, monthRecords, startDa
           <BucketCard key={bucket.bucket} bucket={bucket} />
         ))}
       </div>
+
+      <FgcOverview appData={appData} />
     </div>
   );
 }

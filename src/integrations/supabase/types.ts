@@ -314,6 +314,291 @@ export type Database = {
           },
         ]
       }
+      fgc_guarantee_events: {
+        Row: {
+          conglomerate_id: string | null
+          created_at: string
+          event_date: string
+          gross_credit_amount: number
+          guaranteed_amount_received: number
+          holder_member_id: string | null
+          id: string
+          institution_id: string | null
+          notes: string | null
+          source_type: string
+          tax_withheld: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          conglomerate_id?: string | null
+          created_at?: string
+          event_date: string
+          gross_credit_amount?: number
+          guaranteed_amount_received?: number
+          holder_member_id?: string | null
+          id?: string
+          institution_id?: string | null
+          notes?: string | null
+          source_type?: string
+          tax_withheld?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          conglomerate_id?: string | null
+          created_at?: string
+          event_date?: string
+          gross_credit_amount?: number
+          guaranteed_amount_received?: number
+          holder_member_id?: string | null
+          id?: string
+          institution_id?: string | null
+          notes?: string | null
+          source_type?: string
+          tax_withheld?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fgc_guarantee_events_conglomerate_id_fkey"
+            columns: ["conglomerate_id"]
+            isOneToOne: false
+            referencedRelation: "financial_conglomerates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fgc_guarantee_events_holder_member_id_fkey"
+            columns: ["holder_member_id"]
+            isOneToOne: false
+            referencedRelation: "plan_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fgc_guarantee_events_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "financial_institutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fgc_product_catalog: {
+        Row: {
+          active: boolean
+          conditions: string | null
+          coverage_status: string
+          created_at: string
+          effective_date: string
+          id: string
+          last_verified_at: string
+          product_code: string
+          product_name: string
+          review_status: string
+          source_name: string
+          source_url: string | null
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          active?: boolean
+          conditions?: string | null
+          coverage_status: string
+          created_at?: string
+          effective_date: string
+          id?: string
+          last_verified_at?: string
+          product_code: string
+          product_name: string
+          review_status?: string
+          source_name: string
+          source_url?: string | null
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          active?: boolean
+          conditions?: string | null
+          coverage_status?: string
+          created_at?: string
+          effective_date?: string
+          id?: string
+          last_verified_at?: string
+          product_code?: string
+          product_name?: string
+          review_status?: string
+          source_name?: string
+          source_url?: string | null
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
+      fgc_regulatory_rules: {
+        Row: {
+          active: boolean
+          created_at: string
+          currency: string | null
+          description: string
+          effective_date: string
+          id: string
+          last_verified_at: string
+          numeric_value: number | null
+          review_status: string
+          rule_key: string
+          source_name: string
+          source_url: string | null
+          updated_at: string
+          version: string
+          window_years: number | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          currency?: string | null
+          description: string
+          effective_date: string
+          id?: string
+          last_verified_at?: string
+          numeric_value?: number | null
+          review_status?: string
+          rule_key: string
+          source_name: string
+          source_url?: string | null
+          updated_at?: string
+          version?: string
+          window_years?: number | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          currency?: string | null
+          description?: string
+          effective_date?: string
+          id?: string
+          last_verified_at?: string
+          numeric_value?: number | null
+          review_status?: string
+          rule_key?: string
+          source_name?: string
+          source_url?: string | null
+          updated_at?: string
+          version?: string
+          window_years?: number | null
+        }
+        Relationships: []
+      }
+      financial_conglomerates: {
+        Row: {
+          active: boolean
+          created_at: string
+          effective_date: string | null
+          external_reference: string | null
+          id: string
+          last_verified_at: string | null
+          official_name: string
+          review_status: string
+          source_name: string | null
+          source_url: string | null
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          effective_date?: string | null
+          external_reference?: string | null
+          id?: string
+          last_verified_at?: string | null
+          official_name: string
+          review_status?: string
+          source_name?: string | null
+          source_url?: string | null
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          effective_date?: string | null
+          external_reference?: string | null
+          id?: string
+          last_verified_at?: string | null
+          official_name?: string
+          review_status?: string
+          source_name?: string | null
+          source_url?: string | null
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
+      financial_institutions: {
+        Row: {
+          active: boolean
+          association_type: string | null
+          conglomerate_id: string | null
+          created_at: string
+          document_reference: string | null
+          effective_date: string | null
+          fgc_association_status: string
+          id: string
+          last_verified_at: string | null
+          legal_name: string
+          review_status: string
+          source_name: string | null
+          source_url: string | null
+          trade_name: string | null
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          active?: boolean
+          association_type?: string | null
+          conglomerate_id?: string | null
+          created_at?: string
+          document_reference?: string | null
+          effective_date?: string | null
+          fgc_association_status?: string
+          id?: string
+          last_verified_at?: string | null
+          legal_name: string
+          review_status?: string
+          source_name?: string | null
+          source_url?: string | null
+          trade_name?: string | null
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          active?: boolean
+          association_type?: string | null
+          conglomerate_id?: string | null
+          created_at?: string
+          document_reference?: string | null
+          effective_date?: string | null
+          fgc_association_status?: string
+          id?: string
+          last_verified_at?: string | null
+          legal_name?: string
+          review_status?: string
+          source_name?: string | null
+          source_url?: string | null
+          trade_name?: string | null
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_institutions_conglomerate_id_fkey"
+            columns: ["conglomerate_id"]
+            isOneToOne: false
+            referencedRelation: "financial_conglomerates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       income: {
         Row: {
           amount: number
