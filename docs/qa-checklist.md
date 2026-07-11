@@ -6,6 +6,46 @@ Marque ✅ / ❌ no PR ou na issue de release.
 
 > Comandos oficiais de CI: `npm ci && npm run lint && npm test && npm run build`.
 
+## Calculadoras fundamentais (Sprint 2)
+
+- [ ] **Mais → Calculadoras** existe como sub-tab (não altera BottomNav).
+- [ ] Modo **Simples** está ativo por padrão; alternar para **Detalhado**
+      expõe percentuais, cenários e ativos elegíveis.
+- [ ] **Orçamento (individual)**: usa renda líquida, essenciais, não essenciais,
+      dívidas e aportes do usuário. Dívidas **não** entram em construção
+      patrimonial.
+- [ ] **Orçamento (casal)**: dados consolidados do plano com nomes reais dos
+      participantes; nenhum "Pessoa 1/2".
+- [ ] **Renda irregular / zero**: calculadora não quebra, marca
+      "Dados incompletos".
+- [ ] **Despesas acima da renda**: exibe "Estrutura pressionada" sem culpa.
+- [ ] **Dívida cara** (`toxicDebtCount > 0`): próxima ação fundamental
+      prioriza análise da dívida.
+- [ ] **Reserva 3/6/9/12 meses** aparecem no comparador, resultado principal
+      usa despesas essenciais × meses.
+- [ ] **Ativos elegíveis** só somam liquidez diária/Tesouro Selic/poupança;
+      ações, FIIs, imóveis, cripto e vencimentos distantes não entram.
+- [ ] Ativos sem classificação aparecem como "sem classificação" com aviso.
+- [ ] Nenhum resultado usa "totalmente protegido", "renda garantida",
+      "aposentadoria garantida" ou "retorno seguro".
+- [ ] **Cenários 200 / 250 / 333** aparecem ordenados por conservadorismo,
+      com meta, gap e renda de referência a partir do patrimônio atual.
+- [ ] **Taxa personalizada** aparece apenas no modo detalhado.
+- [ ] Disclaimer da independência financeira é exibido junto ao resultado.
+- [ ] **Memória de cálculo** (Entender o cálculo) abre em painel expansível
+      em cada calculadora, mostrando fórmula, dados, premissas, limitações,
+      fonte e disclaimer.
+- [ ] **Home** exibe no máximo uma "Próxima ação fundamental" — não vira
+      página de calculadoras.
+- [ ] Persistência de preferências (modo, percentuais, meses, renda
+      desejada) sobrevive a reload local; **logout** limpa storage do
+      dispositivo (localStorage-only nesta sprint).
+- [ ] **Reset do plano** não deixa memória de cálculo com dados antigos.
+- [ ] Mobile: cards abrem com toque único, campos numéricos com teclado
+      apropriado, sem overflow horizontal.
+- [ ] Acessibilidade: botões Simples/Detalhado e "Entender o cálculo"
+      alcançáveis por teclado; sem vermelho para desvios pequenos.
+
 ## Base de conhecimento educacional (Sprint Fundação)
 
 - [ ] Em **Mais → Aprender**, a "Biblioteca de conhecimento" carrega tópicos
