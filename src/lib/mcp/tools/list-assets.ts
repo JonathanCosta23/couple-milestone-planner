@@ -34,7 +34,11 @@ export default defineTool({
       .order("current_amount", { ascending: false });
 
     if (error) {
-      return { content: [{ type: "text", text: error.message }], isError: true };
+      console.error("mcp.list_assets.query_failed", error);
+      return {
+        content: [{ type: "text", text: "Não foi possível carregar os investimentos. Tente novamente." }],
+        isError: true,
+      };
     }
 
     const assets = data ?? [];

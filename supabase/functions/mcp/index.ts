@@ -34,7 +34,11 @@ var get_plan_overview_default = defineTool({
       "id, mode, goal_amount, goal_years, goal_purpose, initial_amount, monthly_contribution, onboarding_complete"
     ).eq("user_id", userId).order("created_at", { ascending: true }).limit(1).maybeSingle();
     if (planError) {
-      return { content: [{ type: "text", text: planError.message }], isError: true };
+      console.error("mcp.get_plan_overview.plan_query_failed", planError);
+      return {
+        content: [{ type: "text", text: "N\xE3o foi poss\xEDvel carregar o plano. Tente novamente." }],
+        isError: true
+      };
     }
     if (!plan) {
       return {
@@ -44,7 +48,11 @@ var get_plan_overview_default = defineTool({
     }
     const { data: members, error: membersError } = await client.from("plan_members").select("id, name, role, is_primary, age").eq("plan_id", plan.id).eq("is_active", true).order("is_primary", { ascending: false });
     if (membersError) {
-      return { content: [{ type: "text", text: membersError.message }], isError: true };
+      console.error("mcp.get_plan_overview.members_query_failed", membersError);
+      return {
+        content: [{ type: "text", text: "N\xE3o foi poss\xEDvel carregar os participantes do plano. Tente novamente." }],
+        isError: true
+      };
     }
     const summary = {
       mode: plan.mode,
@@ -90,7 +98,11 @@ var list_assets_default = defineTool2({
       "id, asset_type, asset_subtype, ticker_or_name, institution, conglomerate, bucket, has_fgc, has_sovereign_guarantee, liquidity_type, invested_amount, current_amount, maturity_date"
     ).eq("user_id", ctx.getUserId()).eq("is_active", true).order("current_amount", { ascending: false });
     if (error) {
-      return { content: [{ type: "text", text: error.message }], isError: true };
+      console.error("mcp.list_assets.query_failed", error);
+      return {
+        content: [{ type: "text", text: "N\xE3o foi poss\xEDvel carregar os investimentos. Tente novamente." }],
+        isError: true
+      };
     }
     const assets = data ?? [];
     const total_invested = assets.reduce((sum, a) => sum + Number(a.invested_amount ?? 0), 0);
@@ -131,7 +143,11 @@ var list_monthly_tracking_default = defineTool3({
     }
     const { data, error } = await supabaseForUser3(ctx).from("monthly_tracking").select("month_key, year, month, planned_total, actual_total, shortfall, status, notes").eq("user_id", ctx.getUserId()).order("month_key", { ascending: false }).limit(limit ?? 12);
     if (error) {
-      return { content: [{ type: "text", text: error.message }], isError: true };
+      console.error("mcp.list_monthly_tracking.query_failed", error);
+      return {
+        content: [{ type: "text", text: "N\xE3o foi poss\xEDvel carregar o hist\xF3rico mensal. Tente novamente." }],
+        isError: true
+      };
     }
     const months = data ?? [];
     const payload = { count: months.length, months };
