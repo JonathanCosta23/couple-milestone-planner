@@ -105,7 +105,10 @@ export function AppHeader({
           {/* User menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
+              <button
+                aria-label={`Abrir menu do usuário (${fullName})`}
+                className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold"
+              >
                 {initial}
               </button>
             </DropdownMenuTrigger>

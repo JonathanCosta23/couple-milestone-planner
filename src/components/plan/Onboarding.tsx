@@ -43,7 +43,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
         <div className="text-5xl pt-2">{screen.emoji}</div>
 
         <div className="space-y-3">
-          <h2 className="text-xl font-bold leading-snug">{screen.title}</h2>
+          <h1 className="text-xl font-bold leading-snug">{screen.title}</h1>
           <p className="text-sm text-muted-foreground leading-relaxed max-w-[280px] mx-auto">{screen.description}</p>
           <p className="text-xs text-primary font-medium">{screen.highlight}</p>
         </div>

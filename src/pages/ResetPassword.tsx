@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,7 +44,7 @@ export default function ResetPassword() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <main className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="p-8 text-center space-y-4">
             <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto" />
@@ -51,15 +52,39 @@ export default function ResetPassword() {
             <p className="text-sm text-muted-foreground">Redirecionando para o app...</p>
           </CardContent>
         </Card>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <>
+      <Helmet>
+        <title>Redefinir senha · Plano do Milhão</title>
+        <meta
+          name="description"
+          content="Defina uma nova senha para acessar seu plano financeiro no Plano do Milhão."
+        />
+        <meta name="robots" content="noindex, follow" />
+        <link
+          rel="canonical"
+          href="https://couple-milestone-planner.lovable.app/reset-password"
+        />
+        <meta property="og:title" content="Redefinir senha · Plano do Milhão" />
+        <meta
+          property="og:description"
+          content="Defina uma nova senha para acessar sua conta no Plano do Milhão."
+        />
+        <meta
+          property="og:url"
+          content="https://couple-milestone-planner.lovable.app/reset-password"
+        />
+      </Helmet>
+      <main className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold text-gradient">Plano do Milhão</h1>
+          <h1 className="text-2xl font-bold text-gradient">
+            Plano do Milhão — Redefinir senha
+          </h1>
           <p className="text-sm text-muted-foreground">Defina sua nova senha</p>
         </div>
 
@@ -85,6 +110,7 @@ export default function ResetPassword() {
                     minLength={8}
                   />
                   <button type="button" onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -115,6 +141,7 @@ export default function ResetPassword() {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </main>
+    </>
   );
 }
