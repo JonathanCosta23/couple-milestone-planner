@@ -34,8 +34,8 @@
       },
       {
         "name": "list_assets",
-        "title": "List investments",
-        "description": "List the signed-in user's active investments (assets) with type, institution, invested amount, current amount, bucket, FGC coverage and liquidity, plus totals.",
+        "title": "Listar investimentos",
+        "description": "Lista os investimentos ativos do usuário autenticado (tipo, instituição, valor aplicado, valor atual, bucket, FGC e liquidez) com totais. Somente leitura.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,

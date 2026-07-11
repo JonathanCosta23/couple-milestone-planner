@@ -95,21 +95,26 @@ function supabaseForUser2(ctx) {
 }
 var list_assets_default = defineTool2({
   name: "list_assets",
-  title: "List investments",
-  description: "List the signed-in user's active investments (assets) with type, institution, invested amount, current amount, bucket, FGC coverage and liquidity, plus totals.",
+  title: "Listar investimentos",
+  description: "Lista os investimentos ativos do usu\xE1rio autenticado (tipo, institui\xE7\xE3o, valor aplicado, valor atual, bucket, FGC e liquidez) com totais. Somente leitura.",
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_input, ctx) => {
     if (!ctx.isAuthenticated()) {
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      return {
+        content: [{ type: "text", text: "Autentica\xE7\xE3o necess\xE1ria." }],
+        structuredContent: { code: "not_authenticated" },
+        isError: true
+      };
     }
     const { data, error } = await supabaseForUser2(ctx).from("assets").select(
-      "id, asset_type, asset_subtype, ticker_or_name, institution, conglomerate, bucket, has_fgc, has_sovereign_guarantee, liquidity_type, invested_amount, current_amount, maturity_date"
+      "asset_type, asset_subtype, ticker_or_name, institution, conglomerate, bucket, has_fgc, has_sovereign_guarantee, liquidity_type, invested_amount, current_amount, maturity_date"
     ).eq("user_id", ctx.getUserId()).eq("is_active", true).order("current_amount", { ascending: false });
     if (error) {
       console.error("mcp.list_assets.query_failed", error);
       return {
         content: [{ type: "text", text: "N\xE3o foi poss\xEDvel carregar os investimentos. Tente novamente." }],
+        structuredContent: { code: "read_failed" },
         isError: true
       };
     }
@@ -117,8 +122,9 @@ var list_assets_default = defineTool2({
     const total_invested = assets.reduce((sum, a) => sum + Number(a.invested_amount ?? 0), 0);
     const total_current = assets.reduce((sum, a) => sum + Number(a.current_amount ?? 0), 0);
     const payload = { count: assets.length, total_invested, total_current, assets };
+    const summaryText = `${assets.length} investimento(s) ativo(s). Aplicado: R$ ${total_invested.toLocaleString("pt-BR")} \xB7 Atual: R$ ${total_current.toLocaleString("pt-BR")}.`;
     return {
-      content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
+      content: [{ type: "text", text: summaryText }],
       structuredContent: payload
     };
   }
