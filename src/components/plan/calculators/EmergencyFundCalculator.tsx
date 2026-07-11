@@ -40,8 +40,10 @@ export function EmergencyFundCalculator({ appData, metrics, mode, months, onMont
 
   const eligibility = useMemo(
     () => computeEligibleReserve(appData.investments.map((i) => ({
-      type: i.type, currentBalance: i.currentBalance, liquidity: i.liquidity as string | undefined,
-      maturityDate: (i as { maturityDate?: string }).maturityDate, active: i.active,
+      type: i.type,
+      currentBalance: i.currentBalance,
+      maturityDate: i.maturityDate,
+      active: i.active,
     }))),
     [appData.investments],
   );
