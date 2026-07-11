@@ -47,8 +47,17 @@ var get_plan_overview_default = defineTool({
     }
     if (!plan) {
       return {
-        content: [{ type: "text", text: "Nenhum plano configurado ainda." }],
-        structuredContent: { code: "no_plan" }
+        content: [
+          {
+            type: "text",
+            text: "Nenhum plano financeiro foi encontrado para esta conta. Verifique se voc\xEA conectou a mesma conta usada no Plano do Milh\xE3o. Se conectou a conta errada, desvincule o conector no ChatGPT/Claude e conecte novamente com a conta correta."
+          }
+        ],
+        structuredContent: {
+          code: "no_plan",
+          hint: "wrong_or_new_account",
+          message: "Nenhum plano encontrado para o usu\xE1rio autenticado. Provavelmente \xE9 uma conta diferente da usada no app, ou o plano ainda n\xE3o foi criado."
+        }
       };
     }
     const { data: planIdRow } = await client.from("plan_members").select("plan_id").eq("user_id", userId).limit(1).maybeSingle();
