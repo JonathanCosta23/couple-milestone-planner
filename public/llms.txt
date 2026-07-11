@@ -7,6 +7,7 @@ O app diferencia patrimônio nominal, líquido (pós-impostos) e real (ajustado 
 ## Pages
 
 - [Página inicial](/): Login, onboarding e cockpit do plano — home estratégica com meta mensal, próximo passo, gargalos e proteção.
+- [Guia de planejamento financeiro pessoal](/guia-planejamento-financeiro): Guia passo a passo cobrindo fluxo de caixa, reserva de emergência e alocação de patrimônio.
 
 ## Optional
 
