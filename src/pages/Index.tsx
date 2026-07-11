@@ -31,6 +31,9 @@ const ConcentrationMap = lazy(() => import("@/components/plan/ConcentrationMap")
 const CoupleGovernance = lazy(() => import("@/components/plan/CoupleGovernance").then(m => ({ default: m.CoupleGovernance })));
 const BehavioralPanel = lazy(() => import("@/components/plan/BehavioralPanel").then(m => ({ default: m.BehavioralPanel })));
 
+// ── Lazy: Calculadora CDI (feature module) ──
+const CdiCalculator = lazy(() => import("@/features/cdi/components/CdiCalculator").then(m => ({ default: m.CdiCalculator })));
+
 // ── Lazy: painéis "Histórico" ──
 const IncomePanel = lazy(() => import("@/components/plan/IncomePanel").then(m => ({ default: m.IncomePanel })));
 const ExpensePanel = lazy(() => import("@/components/plan/ExpensePanel").then(m => ({ default: m.ExpensePanel })));
@@ -475,6 +478,9 @@ const Index = () => {
             )}
             {sub === "simulador" && (
               <AdvancedSimulator appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
+            )}
+            {sub === "cdi" && (
+              <CdiCalculator />
             )}
             {sub === "jornada" && (
               <JourneyPhases appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
