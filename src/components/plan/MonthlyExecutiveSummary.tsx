@@ -80,7 +80,7 @@ export function MonthlyExecutiveSummary({
           <p className="text-[10px] sm:text-xs uppercase tracking-wider font-bold text-muted-foreground">
             Resumo do mês
           </p>
-          <p className="text-base lg:text-lg font-semibold capitalize">{summary.monthLabel}</p>
+          <h2 className="text-base lg:text-lg font-semibold capitalize">{summary.monthLabel}</h2>
         </div>
         <div className={`flex items-center gap-1.5 text-xs font-medium ${status.tone}`}>
           <StatusIcon className="w-4 h-4" />
@@ -129,9 +129,9 @@ export function MonthlyExecutiveSummary({
       <div className="flex items-center justify-between gap-3 rounded-xl bg-muted/30 p-3">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
-            <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
+            <h3 className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
               Disciplina de execução
-            </p>
+            </h3>
             {/* Popover funciona em toque (mobile) e clique (desktop), ao
                 contrário do Tooltip que só responde a hover. */}
             <Popover>

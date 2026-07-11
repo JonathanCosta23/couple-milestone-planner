@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AuthPage } from "@/components/auth/AuthPage";
@@ -135,6 +136,21 @@ export default function OAuthConsent() {
 
   return (
     <main className="min-h-screen grid place-items-center bg-background p-6">
+      <Helmet>
+        <title>Autorizar conexão · Plano do Milhão</title>
+        <meta
+          name="description"
+          content="Revise e aprove o acesso de um aplicativo externo à sua conta do Plano do Milhão."
+        />
+        <meta name="robots" content="noindex, nofollow" />
+        <link rel="canonical" href="https://couple-milestone-planner.lovable.app/.lovable/oauth/consent" />
+        <meta property="og:title" content="Autorizar conexão · Plano do Milhão" />
+        <meta
+          property="og:description"
+          content="Página de consentimento OAuth para conectar um aplicativo externo ao Plano do Milhão."
+        />
+        <meta property="og:url" content="https://couple-milestone-planner.lovable.app/.lovable/oauth/consent" />
+      </Helmet>
       <Card className="max-w-md w-full">
         <CardHeader className="space-y-2">
           <div className="flex items-center gap-2 text-primary">

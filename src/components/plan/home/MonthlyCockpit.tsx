@@ -83,7 +83,7 @@ export function MonthlyCockpit({
           <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-bold">
             Cockpit · {monthKeyToFullLabel(currentKey)}
           </p>
-          <p className="text-base lg:text-lg font-semibold mt-0.5">Missão do mês</p>
+          <h2 className="text-base lg:text-lg font-semibold mt-0.5">Missão do mês</h2>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           {streak > 0 && (
@@ -130,9 +130,9 @@ export function MonthlyCockpit({
 
       {isCouple && validMembers.length > 1 && (
         <div className="space-y-2 mb-4">
-          <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-bold">
+          <h3 className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-bold">
             Progresso por participante
-          </p>
+          </h3>
           {validMembers.map((m, idx) => (
             <div key={`${m.name}-${idx}`} className="space-y-1">
               <div className="flex items-center justify-between text-xs">
