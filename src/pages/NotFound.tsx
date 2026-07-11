@@ -19,7 +19,7 @@ const NotFound = () => {
           content="Esta página não existe no Plano do Milhão. Volte para o início e continue seu planejamento financeiro."
         />
         <meta name="robots" content="noindex, follow" />
-        <link rel="canonical" href="https://couple-milestone-planner.lovable.app/" />
+        <link rel="canonical" href="https://couple-milestone-planner.lovable.app/404" />
         <meta property="og:title" content="Página não encontrada · Plano do Milhão" />
         <meta property="og:url" content="https://couple-milestone-planner.lovable.app/404" />
       </Helmet>

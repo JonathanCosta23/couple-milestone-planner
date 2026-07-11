@@ -64,7 +64,9 @@ export function AppHeader({
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border/40">
       <div className="flex items-center justify-between h-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
         <div className="flex flex-col min-w-0 leading-tight">
-          <h1 className="text-sm font-bold text-gradient lg:text-base truncate">Plano do Milhão</h1>
+          <h1 className="text-sm font-bold text-gradient lg:text-base truncate">
+            Plano do Milhão — Planejamento Financeiro
+          </h1>
           <p className="hidden sm:block text-[10px] text-muted-foreground truncate">
             {SECTION_LABELS[navSection]} · {SECTION_SUBTITLES[navSection]}
           </p>
