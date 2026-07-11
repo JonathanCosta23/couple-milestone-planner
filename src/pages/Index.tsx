@@ -46,6 +46,7 @@ const TrapDetector = lazy(() => import("@/components/plan/TrapDetector").then(m 
 const FinancialGlossary = lazy(() => import("@/components/plan/FinancialGlossary").then(m => ({ default: m.FinancialGlossary })));
 const MiniLessons = lazy(() => import("@/components/plan/MiniLessons").then(m => ({ default: m.MiniLessons })));
 const KnowledgeLibrary = lazy(() => import("@/components/plan/KnowledgeLibrary").then(m => ({ default: m.KnowledgeLibrary })));
+const CalculatorsPanel = lazy(() => import("@/components/plan/calculators/CalculatorsPanel").then(m => ({ default: m.CalculatorsPanel })));
 
 // ── Lazy: modais e dialogs (só montam quando abertos) ──
 const QuickDeposit = lazy(() => import("@/components/plan/QuickDeposit").then(m => ({ default: m.QuickDeposit })));
