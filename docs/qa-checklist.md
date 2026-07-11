@@ -431,3 +431,40 @@ Em cada caso abaixo, a tela deve mostrar título + descrição + CTA claro
 - [ ] Modo simples marca claramente o resultado como estimativa.
 - [ ] Nenhuma taxa CDI é presumida: usuário sempre informa.
 - [ ] Fórmulas não ficam dentro dos componentes React; ficam em `src/features/cdi/services`.
+
+## 22. Motor de Proteção FGC (Sprint 4)
+### 22.1 Classificação de produtos
+- [ ] CDB, RDB, LCI, LCA, LCD, LC, LH e poupança aparecem como potencialmente cobertos apenas quando a instituição está verificada.
+- [ ] Tesouro Direto, fundos, debêntures, CRI, CRA, LF, LIG, ações, ETFs, FII e cripto são exibidos como não cobertos pela garantia ordinária.
+- [ ] DPGE é sinalizado como garantia especial (revisão), sem ser somado ao total ordinário.
+- [ ] Produto sem tipo mapeado aparece como "necessita revisão".
+### 22.2 Instituição e conglomerado
+- [ ] Instituição digitada livremente aparece como "não verificada" até haver correspondência normalizada.
+- [ ] Ativos de instituições diferentes do mesmo conglomerado somam para o limite.
+- [ ] Instituições em conglomerados distintos não somam.
+- [ ] "Instituição não verificada" e "Conglomerado não identificado" nunca entram em "protegido confirmado".
+### 22.3 Limite, margem e excesso
+- [ ] Regra oficial (R$ 250.000) vem versionada da base ou do fallback local com data e fonte visíveis.
+- [ ] Margem prudencial 0% / 5% / 10% recalcula o limite operacional e exibe disclaimer "não altera o limite oficial".
+- [ ] Saldo abaixo, igual e acima do limite oficial produzem excedente correto.
+- [ ] Saldo dentro do limite oficial mas acima do operacional aparece em "acima da margem prudencial".
+### 22.4 Titularidade e conta conjunta
+- [ ] Modo individual mostra apenas o titular ativo.
+- [ ] Modo casal calcula limites por titular sem somar como conjunto.
+- [ ] Conta conjunta divide o saldo entre os titulares informados.
+- [ ] Titular desconhecido não é agregado como coberto.
+### 22.5 Janela de 4 anos
+- [ ] Sem histórico declarado o teto agregado aparece como "histórico não informado" e não presume disponibilidade.
+- [ ] Evento fora da janela é ignorado.
+- [ ] Perto de R$ 1 milhão dispara "near_limit"; acima dispara "possibly_exhausted".
+- [ ] RLS impede acesso a eventos de garantia de outro usuário.
+### 22.6 Distribuição educacional
+- [ ] Simulador nunca cita banco pelo nome comercial; usa "Conglomerado A/B/C" ou nomes já cadastrados pelo usuário.
+- [ ] Disclaimers de margem, distribuição e projeção aparecem visíveis.
+- [ ] Simulador não executa transação nem sugere resgate.
+### 22.7 UX e compliance
+- [ ] Modo Simples mostra no máximo 3 cards (Proteção potencial, Excesso, Dados para revisar).
+- [ ] Modo Detalhado exibe tabela por titular/conglomerado com uso e excesso.
+- [ ] Fonte oficial (FGC), data de vigência e versão aparecem em cada painel.
+- [ ] Termos proibidos ("risco zero", "totalmente seguro", "sem risco", "100% seguro") não aparecem em nenhuma copy do módulo.
+- [ ] Home permanece simples; nenhuma nova aba principal foi criada.
