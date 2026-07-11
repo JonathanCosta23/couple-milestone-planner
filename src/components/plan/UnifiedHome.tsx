@@ -7,6 +7,7 @@ import { PlanConfig, MonthRecord, formatBRL, formatBRLCompact, getCurrentMonthKe
 import { getCurrentMonthDeposited } from "@/lib/calculator";
 import { generateNudges } from "@/lib/behavioralEngine";
 import { ContextualEducation } from "./ContextualEducation";
+import { FundamentalNextActionCard } from "./FundamentalNextActionCard";
 import { MonthlyExecutiveSummary } from "./MonthlyExecutiveSummary";
 import { MilestoneProgress } from "./MilestoneProgress";
 import {
@@ -421,6 +422,17 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
 
       {/* ── Educação contextual ── */}
       <ContextualEducation appData={appData} config={config} monthRecords={monthRecords} startDate={startDate} context="home" maxSuggestions={1} />
+
+      {/* ── Próxima ação fundamental (dívida > orçamento > reserva > plano) ── */}
+      <FundamentalNextActionCard
+        ctx={{
+          metrics,
+          hasBudgetData: metrics.totalIncome > 0 && metrics.essentialExpenses > 0,
+          reserveMonths: metrics.reserveMonths,
+          reserveTargetMonths: metrics.reserveGoalMonths,
+        }}
+        onNavigate={(tab) => onNavigateToTab(tab)}
+      />
 
       {/* ── Atalhos ── */}
       <div className="pt-1">

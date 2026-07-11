@@ -46,6 +46,7 @@ const TrapDetector = lazy(() => import("@/components/plan/TrapDetector").then(m 
 const FinancialGlossary = lazy(() => import("@/components/plan/FinancialGlossary").then(m => ({ default: m.FinancialGlossary })));
 const MiniLessons = lazy(() => import("@/components/plan/MiniLessons").then(m => ({ default: m.MiniLessons })));
 const KnowledgeLibrary = lazy(() => import("@/components/plan/KnowledgeLibrary").then(m => ({ default: m.KnowledgeLibrary })));
+const CalculatorsPanel = lazy(() => import("@/components/plan/calculators/CalculatorsPanel").then(m => ({ default: m.CalculatorsPanel })));
 
 // ── Lazy: modais e dialogs (só montam quando abertos) ──
 const QuickDeposit = lazy(() => import("@/components/plan/QuickDeposit").then(m => ({ default: m.QuickDeposit })));
@@ -108,6 +109,7 @@ const PROJECAO_SUBS = [
 const MAIS_SUBS_BASE = [
   { id: "aprender", label: "Educação", icon: "📚" },
   { id: "glossario", label: "Glossário", icon: "📖" },
+  { id: "calculadoras", label: "Calculadoras", icon: "🧮" },
   { id: "armadilhas", label: "Radar", icon: "🛡️" },
   { id: "investir", label: "Investir", icon: "📈" },
   { id: "saude", label: "Saúde", icon: "🏥" },
@@ -494,6 +496,9 @@ const Index = () => {
               </div>
             )}
             {sub === "glossario" && <FinancialGlossary />}
+            {sub === "calculadoras" && (
+              <CalculatorsPanel appData={effectiveAppData} metrics={core.metrics} />
+            )}
             {sub === "armadilhas" && <TrapDetector />}
             {sub === "investir" && <InvestmentGuide />}
             {sub === "saude" && (
