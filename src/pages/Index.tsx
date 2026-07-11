@@ -103,6 +103,7 @@ const PATRIMONIO_SUBS_BASE = [
 const PROJECAO_SUBS = [
   { id: "projecao", label: "Projeção", icon: "📈" },
   { id: "simulador", label: "Simular", icon: "📊" },
+  { id: "cdi", label: "Calculadora CDI", icon: "🧮" },
   { id: "jornada", label: "Jornada", icon: "🗺️" },
 ];
 
