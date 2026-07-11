@@ -427,6 +427,60 @@ export type Database = {
           },
         ]
       }
+      iof_rules: {
+        Row: {
+          active: boolean
+          calculation_base: string
+          created_at: string
+          effective_date: string
+          expires_at: string | null
+          holding_day: number
+          id: string
+          jurisdiction: string
+          last_verified_at: string | null
+          product_category: string
+          rate: number
+          source_name: string | null
+          source_url: string | null
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          active?: boolean
+          calculation_base?: string
+          created_at?: string
+          effective_date: string
+          expires_at?: string | null
+          holding_day: number
+          id?: string
+          jurisdiction?: string
+          last_verified_at?: string | null
+          product_category?: string
+          rate: number
+          source_name?: string | null
+          source_url?: string | null
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          active?: boolean
+          calculation_base?: string
+          created_at?: string
+          effective_date?: string
+          expires_at?: string | null
+          holding_day?: number
+          id?: string
+          jurisdiction?: string
+          last_verified_at?: string | null
+          product_category?: string
+          rate?: number
+          source_name?: string | null
+          source_url?: string | null
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
       knowledge_articles: {
         Row: {
           active: boolean
@@ -1102,6 +1156,69 @@ export type Database = {
           timezone?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      tax_rules: {
+        Row: {
+          active: boolean
+          calculation_base: string
+          created_at: string
+          effective_date: string
+          expires_at: string | null
+          id: string
+          jurisdiction: string
+          last_verified_at: string | null
+          max_days: number | null
+          min_days: number
+          notes: string | null
+          product_category: string
+          rate: number
+          source_name: string | null
+          source_url: string | null
+          tax_type: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          active?: boolean
+          calculation_base?: string
+          created_at?: string
+          effective_date: string
+          expires_at?: string | null
+          id?: string
+          jurisdiction?: string
+          last_verified_at?: string | null
+          max_days?: number | null
+          min_days: number
+          notes?: string | null
+          product_category: string
+          rate: number
+          source_name?: string | null
+          source_url?: string | null
+          tax_type: string
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          active?: boolean
+          calculation_base?: string
+          created_at?: string
+          effective_date?: string
+          expires_at?: string | null
+          id?: string
+          jurisdiction?: string
+          last_verified_at?: string | null
+          max_days?: number | null
+          min_days?: number
+          notes?: string | null
+          product_category?: string
+          rate?: number
+          source_name?: string | null
+          source_url?: string | null
+          tax_type?: string
+          updated_at?: string
+          version?: string
         }
         Relationships: []
       }
