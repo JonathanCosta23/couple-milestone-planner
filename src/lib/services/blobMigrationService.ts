@@ -157,7 +157,7 @@ export async function migrateBlobToTables(
     );
     const { error, data } = await supabase.from("income").insert(rows as never).select("id");
     if (error) {
-      logger.error("blobMigration.income.insert", error);
+      logger.error("blobMigration.income.insert", { message: error.message, code: error.code });
       summary.errors.push(`Renda: ${toFriendlyError(error)}`);
     } else summary.incomes = data?.length ?? 0;
   }
@@ -172,7 +172,7 @@ export async function migrateBlobToTables(
     );
     const { error, data } = await supabase.from("expenses").insert(rows as never).select("id");
     if (error) {
-      logger.error("blobMigration.expenses.insert", error);
+      logger.error("blobMigration.expenses.insert", { message: error.message, code: error.code });
       summary.errors.push(`Gastos: ${toFriendlyError(error)}`);
     } else summary.expenses = data?.length ?? 0;
   }
@@ -187,7 +187,7 @@ export async function migrateBlobToTables(
     );
     const { error, data } = await supabase.from("debts").insert(rows as never).select("id");
     if (error) {
-      logger.error("blobMigration.debts.insert", error);
+      logger.error("blobMigration.debts.insert", { message: error.message, code: error.code });
       summary.errors.push(`Dívidas: ${toFriendlyError(error)}`);
     } else summary.debts = data?.length ?? 0;
   }
