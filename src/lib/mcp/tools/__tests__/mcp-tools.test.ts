@@ -87,7 +87,7 @@ describe("MCP tools — auth guard", () => {
   });
   it("list_monthly_tracking requires authentication", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const res: any = await listMonthlyTracking.handler({}, anonCtx as any);
+    const res: any = await listMonthlyTracking.handler({ limit: undefined } as any, anonCtx as any);
     expect(res.isError).toBe(true);
     expect(res.structuredContent.code).toBe("not_authenticated");
   });
