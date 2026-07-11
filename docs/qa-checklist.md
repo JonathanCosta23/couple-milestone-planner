@@ -6,6 +6,37 @@ Marque ✅ / ❌ no PR ou na issue de release.
 
 > Comandos oficiais de CI: `npm ci && npm run lint && npm test && npm run build`.
 
+## Base de conhecimento educacional (Sprint Fundação)
+
+- [ ] Em **Mais → Aprender**, a "Biblioteca de conhecimento" carrega tópicos
+      ativos da base `knowledge_topics` (sem excesso de cards).
+- [ ] Abrir um tópico exibe o artigo com **Modo simples** ativo por padrão
+      (o que é, por que importa, exemplo, próxima ação).
+- [ ] Alternar para **Modo detalhado** mostra conceito, premissas, limitações,
+      erro comum e "quando não usar" — sem contradizer o modo simples.
+- [ ] Cada artigo mostra **versão**, **jurisdição** e, quando existir,
+      **última revisão** com data em pt-BR.
+- [ ] Artigo **sem fontes** aparece com aviso "Conteúdo em revisão", mesmo
+      quando o `review_status` estiver marcado como verificado.
+- [ ] Regra regulatória só é publicada com `effective_date`,
+      `last_verified_at` e `source_url` preenchidos.
+- [ ] Todo artigo carrega o disclaimer educacional
+      ("Conteúdo educacional. Não constitui recomendação de investimento.").
+- [ ] Nenhum conteúdo publicado usa termos proibidos: `compre`, `venda`,
+      `retorno garantido`, `oportunidade garantida`, `investimento seguro`,
+      `melhor ação para você`, `carteira ideal`.
+- [ ] Progresso do usuário (`user_learning_progress`) é salvo por tópico e
+      **isolado por usuário** (RLS): outra conta não vê nem altera.
+- [ ] Conteúdos inativos (`active = false`) não aparecem na biblioteca.
+- [ ] Home exibe **no máximo uma** aula recomendada (ContextualEducation
+      `maxSuggestions={1}` em UnifiedHome).
+- [ ] Navegação principal (BottomNav / header desktop) **não muda**: nenhuma
+      nova seção foi adicionada nesta sprint.
+- [ ] Mobile: cards da biblioteca abrem/fecham com toque único, área tocável
+      confortável, texto legível sem zoom.
+- [ ] Acessibilidade: botões de modo (simples/detalhado) e expandir tópico
+      são alcançáveis por teclado e possuem contraste adequado.
+
 ## Mapa de navegação (Sprint Arquitetura de Produto)
 
 Navegação principal reorganizada em 5 seções enxutas:

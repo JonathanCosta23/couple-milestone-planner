@@ -427,6 +427,289 @@ export type Database = {
           },
         ]
       }
+      knowledge_articles: {
+        Row: {
+          active: boolean
+          content: Json
+          created_at: string
+          difficulty: string
+          educational_disclaimer: string
+          effective_date: string | null
+          estimated_minutes: number
+          id: string
+          jurisdiction: string
+          last_verified_at: string | null
+          review_status: string
+          summary: string
+          title: string
+          topic_id: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          active?: boolean
+          content?: Json
+          created_at?: string
+          difficulty?: string
+          educational_disclaimer?: string
+          effective_date?: string | null
+          estimated_minutes?: number
+          id?: string
+          jurisdiction?: string
+          last_verified_at?: string | null
+          review_status?: string
+          summary: string
+          title: string
+          topic_id: string
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          active?: boolean
+          content?: Json
+          created_at?: string
+          difficulty?: string
+          educational_disclaimer?: string
+          effective_date?: string | null
+          estimated_minutes?: number
+          id?: string
+          jurisdiction?: string
+          last_verified_at?: string | null
+          review_status?: string
+          summary?: string
+          title?: string
+          topic_id?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_articles_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_formulas: {
+        Row: {
+          active: boolean
+          assumptions: string
+          created_at: string
+          example: string | null
+          expression: string
+          id: string
+          input_definition: Json
+          limitations: string
+          purpose: string
+          slug: string
+          title: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          active?: boolean
+          assumptions: string
+          created_at?: string
+          example?: string | null
+          expression: string
+          id?: string
+          input_definition?: Json
+          limitations: string
+          purpose: string
+          slug: string
+          title: string
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          active?: boolean
+          assumptions?: string
+          created_at?: string
+          example?: string | null
+          expression?: string
+          id?: string
+          input_definition?: Json
+          limitations?: string
+          purpose?: string
+          slug?: string
+          title?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
+      knowledge_regulatory_rules: {
+        Row: {
+          active: boolean
+          category: string
+          created_at: string
+          effective_date: string
+          id: string
+          jurisdiction: string
+          last_verified_at: string
+          rule_content: string
+          rule_name: string
+          source_url: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          active?: boolean
+          category: string
+          created_at?: string
+          effective_date: string
+          id?: string
+          jurisdiction?: string
+          last_verified_at: string
+          rule_content: string
+          rule_name: string
+          source_url: string
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          effective_date?: string
+          id?: string
+          jurisdiction?: string
+          last_verified_at?: string
+          rule_content?: string
+          rule_name?: string
+          source_url?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
+      knowledge_sources: {
+        Row: {
+          accessed_at: string
+          article_id: string
+          created_at: string
+          id: string
+          is_primary_source: boolean
+          publication_date: string | null
+          source_name: string
+          source_type: string
+          source_url: string | null
+        }
+        Insert: {
+          accessed_at?: string
+          article_id: string
+          created_at?: string
+          id?: string
+          is_primary_source?: boolean
+          publication_date?: string | null
+          source_name: string
+          source_type?: string
+          source_url?: string | null
+        }
+        Update: {
+          accessed_at?: string
+          article_id?: string
+          created_at?: string
+          id?: string
+          is_primary_source?: boolean
+          publication_date?: string | null
+          source_name?: string
+          source_type?: string
+          source_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_sources_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_strategies: {
+        Row: {
+          active: boolean
+          common_mistakes: string
+          created_at: string
+          description: string
+          educational_only: boolean
+          id: string
+          risks: string
+          slug: string
+          suitable_context: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          common_mistakes: string
+          created_at?: string
+          description: string
+          educational_only?: boolean
+          id?: string
+          risks: string
+          slug: string
+          suitable_context: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          common_mistakes?: string
+          created_at?: string
+          description?: string
+          educational_only?: boolean
+          id?: string
+          risks?: string
+          slug?: string
+          suitable_context?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      knowledge_topics: {
+        Row: {
+          active: boolean
+          category: string
+          created_at: string
+          description: string | null
+          difficulty: string
+          id: string
+          slug: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category: string
+          created_at?: string
+          description?: string | null
+          difficulty?: string
+          id?: string
+          slug: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          description?: string | null
+          difficulty?: string
+          id?: string
+          slug?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       legal_consents: {
         Row: {
           accepted_at: string
@@ -851,6 +1134,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_learning_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          last_viewed_at: string
+          progress_percentage: number
+          status: string
+          topic_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          last_viewed_at?: string
+          progress_percentage?: number
+          status?: string
+          topic_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          last_viewed_at?: string
+          progress_percentage?: number
+          status?: string
+          topic_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_learning_progress_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_topics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
