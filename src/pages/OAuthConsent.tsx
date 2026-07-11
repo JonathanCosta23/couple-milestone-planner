@@ -157,7 +157,9 @@ export default function OAuthConsent() {
             <ShieldCheck className="h-5 w-5" />
             <span className="text-xs uppercase tracking-wide font-medium">Autorização</span>
           </div>
-          <CardTitle>Conectar {clientName} à sua conta</CardTitle>
+          <CardTitle asChild>
+            <h1>Conectar {clientName} à sua conta</h1>
+          </CardTitle>
           <CardDescription>
             Isso permite que {clientName} acesse o Plano do Milhão como você. As regras de acesso do
             app continuam valendo — a conexão vê apenas os seus dados.
