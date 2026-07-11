@@ -98,7 +98,11 @@ var list_assets_default = defineTool2({
       "id, asset_type, asset_subtype, ticker_or_name, institution, conglomerate, bucket, has_fgc, has_sovereign_guarantee, liquidity_type, invested_amount, current_amount, maturity_date"
     ).eq("user_id", ctx.getUserId()).eq("is_active", true).order("current_amount", { ascending: false });
     if (error) {
-      return { content: [{ type: "text", text: error.message }], isError: true };
+      console.error("mcp.list_assets.query_failed", error);
+      return {
+        content: [{ type: "text", text: "N\xE3o foi poss\xEDvel carregar os investimentos. Tente novamente." }],
+        isError: true
+      };
     }
     const assets = data ?? [];
     const total_invested = assets.reduce((sum, a) => sum + Number(a.invested_amount ?? 0), 0);
