@@ -50,8 +50,8 @@
       },
       {
         "name": "list_monthly_tracking",
-        "title": "List monthly tracking",
-        "description": "Return the most recent months of the signed-in user's monthly deposit tracking: month, planned total, actual total, shortfall, and status.",
+        "title": "Listar aportes mensais",
+        "description": "Retorna os meses mais recentes do acompanhamento de aportes do usuário autenticado (mês, planejado, realizado, déficit e status). Somente leitura.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -64,7 +64,7 @@
               "type": "integer",
               "minimum": 1,
               "maximum": 60,
-              "description": "How many recent months to return. Defaults to 12."
+              "description": "Quantos meses recentes retornar (1 a 60). Padrão: 12."
             }
           },
           "additionalProperties": false,

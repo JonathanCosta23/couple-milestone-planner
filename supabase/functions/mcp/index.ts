@@ -146,28 +146,34 @@ function supabaseForUser3(ctx) {
 }
 var list_monthly_tracking_default = defineTool3({
   name: "list_monthly_tracking",
-  title: "List monthly tracking",
-  description: "Return the most recent months of the signed-in user's monthly deposit tracking: month, planned total, actual total, shortfall, and status.",
+  title: "Listar aportes mensais",
+  description: "Retorna os meses mais recentes do acompanhamento de aportes do usu\xE1rio autenticado (m\xEAs, planejado, realizado, d\xE9ficit e status). Somente leitura.",
   inputSchema: {
-    limit: z.number().int().min(1).max(60).optional().describe("How many recent months to return. Defaults to 12.")
+    limit: z.number().int().min(1).max(60).optional().describe("Quantos meses recentes retornar (1 a 60). Padr\xE3o: 12.")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ limit }, ctx) => {
     if (!ctx.isAuthenticated()) {
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      return {
+        content: [{ type: "text", text: "Autentica\xE7\xE3o necess\xE1ria." }],
+        structuredContent: { code: "not_authenticated" },
+        isError: true
+      };
     }
     const { data, error } = await supabaseForUser3(ctx).from("monthly_tracking").select("month_key, year, month, planned_total, actual_total, shortfall, status, notes").eq("user_id", ctx.getUserId()).order("month_key", { ascending: false }).limit(limit ?? 12);
     if (error) {
       console.error("mcp.list_monthly_tracking.query_failed", error);
       return {
         content: [{ type: "text", text: "N\xE3o foi poss\xEDvel carregar o hist\xF3rico mensal. Tente novamente." }],
+        structuredContent: { code: "read_failed" },
         isError: true
       };
     }
     const months = data ?? [];
     const payload = { count: months.length, months };
+    const summaryText = `${months.length} m\xEAs(es) de acompanhamento retornado(s).`;
     return {
-      content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
+      content: [{ type: "text", text: summaryText }],
       structuredContent: payload
     };
   }

@@ -15,9 +15,9 @@ function supabaseForUser(ctx: ToolContext) {
 
 export default defineTool({
   name: "list_monthly_tracking",
-  title: "List monthly tracking",
+  title: "Listar aportes mensais",
   description:
-    "Return the most recent months of the signed-in user's monthly deposit tracking: month, planned total, actual total, shortfall, and status.",
+    "Retorna os meses mais recentes do acompanhamento de aportes do usuário autenticado (mês, planejado, realizado, déficit e status). Somente leitura.",
   inputSchema: {
     limit: z
       .number()
@@ -25,12 +25,16 @@ export default defineTool({
       .min(1)
       .max(60)
       .optional()
-      .describe("How many recent months to return. Defaults to 12."),
+      .describe("Quantos meses recentes retornar (1 a 60). Padrão: 12."),
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ limit }, ctx) => {
     if (!ctx.isAuthenticated()) {
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      return {
+        content: [{ type: "text", text: "Autenticação necessária." }],
+        structuredContent: { code: "not_authenticated" },
+        isError: true,
+      };
     }
 
     const { data, error } = await supabaseForUser(ctx)
@@ -44,14 +48,16 @@ export default defineTool({
       console.error("mcp.list_monthly_tracking.query_failed", error);
       return {
         content: [{ type: "text", text: "Não foi possível carregar o histórico mensal. Tente novamente." }],
+        structuredContent: { code: "read_failed" },
         isError: true,
       };
     }
 
     const months = data ?? [];
     const payload = { count: months.length, months };
+    const summaryText = `${months.length} mês(es) de acompanhamento retornado(s).`;
     return {
-      content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
+      content: [{ type: "text", text: summaryText }],
       structuredContent: payload,
     };
   },
