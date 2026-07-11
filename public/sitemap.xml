@@ -11,6 +11,31 @@
     <priority>0.3</priority>
   </url>
   <url>
+    <loc>https://couple-milestone-planner.lovable.app/login</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  <url>
+    <loc>https://couple-milestone-planner.lovable.app/signup</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://couple-milestone-planner.lovable.app/criar-conta</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  <url>
+    <loc>https://couple-milestone-planner.lovable.app/forgot-password</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  <url>
+    <loc>https://couple-milestone-planner.lovable.app/recuperar-senha</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  <url>
     <loc>https://couple-milestone-planner.lovable.app/guia-planejamento-financeiro</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
