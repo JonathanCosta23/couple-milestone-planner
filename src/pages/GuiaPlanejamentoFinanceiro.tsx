@@ -19,7 +19,7 @@ export default function GuiaPlanejamentoFinanceiro() {
   return (
     <>
       <Helmet>
-        <title>Planejamento financeiro pessoal: o guia definitivo · Plano do Milhão</title>
+        <title>Guia de Planejamento Financeiro Pessoal · Plano do Milhão</title>
         <meta
           name="description"
           content="Guia passo a passo de planejamento financeiro pessoal: organize seu fluxo de caixa, monte a reserva de emergência e distribua seu patrimônio com segurança."

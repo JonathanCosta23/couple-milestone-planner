@@ -24,7 +24,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Helmet>
-        <title>Plano do Milhão — Cockpit financeiro para sua meta patrimonial</title>
+        <title>Plano do Milhão — Cockpit para sua meta patrimonial</title>
         <meta
           name="description"
           content="Transforme sua meta patrimonial em uma rotina mensal clara, segura e mensurável. Aportes, patrimônio, projeções e disciplina em um cockpit privado."
@@ -32,7 +32,7 @@ export default function Landing() {
         <link rel="canonical" href="https://couple-milestone-planner.lovable.app/" />
         <meta
           property="og:title"
-          content="Plano do Milhão — Cockpit financeiro para sua meta patrimonial"
+          content="Plano do Milhão — Cockpit para sua meta patrimonial"
         />
         <meta
           property="og:description"
@@ -58,6 +58,7 @@ export default function Landing() {
         </div>
       </header>
 
+      <main>
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div
@@ -237,6 +238,7 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
+      </main>
       <footer className="border-t border-border/40">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8 space-y-4 text-center">
           <p className="text-xs text-muted-foreground max-w-2xl mx-auto">
