@@ -165,9 +165,8 @@ export function getContributionTotals(config: PlanConfig, monthRecords: MonthRec
   return totals.map((t) => ({ ...t, percentage: grandTotal > 0 ? t.total / grandTotal : 0 }));
 }
 
-export function getCurrentMonthDeposited(config: PlanConfig, monthRecords: MonthRecord[]) {
-  const currentKey = getCurrentMonthKey();
-  const record = monthRecords.find((r) => r.monthKey === currentKey);
+export function getCurrentMonthDeposited(config: PlanConfig, monthRecords: MonthRecord[], referenceMonthKey: string = getCurrentMonthKey()) {
+  const record = monthRecords.find((r) => r.monthKey === referenceMonthKey);
   const planned = config.contributors.reduce((s, c) => s + c.plannedSelic + c.plannedCDB, 0);
   const perPerson = config.contributors.map((c, i) => {
     const d = getDeposit(record, i);

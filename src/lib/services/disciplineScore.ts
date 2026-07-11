@@ -62,7 +62,7 @@ export function calculateDisciplineScore(
   referenceMonthKey: string = getCurrentMonthKey(),
 ): DisciplineScore {
   const planned = sumPlanned(config);
-  const current = getCurrentMonthDeposited(config, monthRecords);
+  const current = getCurrentMonthDeposited(config, monthRecords, referenceMonthKey);
 
   // 1) Execução do mês corrente (0..100).
   const currentMonthScore = planned > 0
