@@ -1841,12 +1841,16 @@ export type Database = {
           action_category: string
           action_key: string
           completed_at: string | null
+          condition_signature: string | null
+          condition_version: string
           created_at: string
           dismissed_reason: string | null
+          dismissed_until: string | null
           engine_version: string
           first_seen_at: string
           id: string
           last_seen_at: string
+          last_validated_at: string | null
           plan_id: string
           snoozed_until: string | null
           status: string
@@ -1857,12 +1861,16 @@ export type Database = {
           action_category: string
           action_key: string
           completed_at?: string | null
+          condition_signature?: string | null
+          condition_version?: string
           created_at?: string
           dismissed_reason?: string | null
+          dismissed_until?: string | null
           engine_version?: string
           first_seen_at?: string
           id?: string
           last_seen_at?: string
+          last_validated_at?: string | null
           plan_id: string
           snoozed_until?: string | null
           status?: string
@@ -1873,12 +1881,16 @@ export type Database = {
           action_category?: string
           action_key?: string
           completed_at?: string | null
+          condition_signature?: string | null
+          condition_version?: string
           created_at?: string
           dismissed_reason?: string | null
+          dismissed_until?: string | null
           engine_version?: string
           first_seen_at?: string
           id?: string
           last_seen_at?: string
+          last_validated_at?: string | null
           plan_id?: string
           snoozed_until?: string | null
           status?: string
