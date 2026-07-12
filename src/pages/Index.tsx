@@ -371,6 +371,7 @@ const Index = () => {
               onNavigateToTab={handleNavigateToTab}
               onOpenQuickDeposit={() => setShowQuickDeposit(true)}
               core={core}
+              hasCoreDataLoaded={lifecycle.status === "ready" && !lifecycle.error}
               topSlot={
                 <PlanModeChip
                   appData={effectiveAppData}

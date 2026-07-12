@@ -446,16 +446,10 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
       {/* ── Educação contextual ── */}
       <ContextualEducation appData={appData} config={config} monthRecords={monthRecords} startDate={startDate} context="home" maxSuggestions={1} />
 
-      {/* ── Próxima ação fundamental (dívida > orçamento > reserva > plano) ── */}
-      <FundamentalNextActionCard
-        ctx={{
-          metrics,
-          hasBudgetData: metrics.totalIncome > 0 && metrics.essentialExpenses > 0,
-          reserveMonths: metrics.reserveMonths,
-          reserveTargetMonths: metrics.reserveGoalMonths,
-        }}
-        onNavigate={(tab) => onNavigateToTab(tab)}
-      />
+      {/* Removido: FundamentalNextActionCard.
+          A Home agora tem UM único motor de próxima ação (NextActionCard acima),
+          alimentado por features/next-action. Regras úteis da lógica antiga
+          seguem disponíveis como candidatos daquele motor. */}
 
       {/* ── Atalhos ── */}
       <div className="pt-1">
