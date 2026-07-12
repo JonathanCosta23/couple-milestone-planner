@@ -1776,7 +1776,7 @@ export type Database = {
           engine_version: string
           event_type: string
           id: string
-          plan_id: string | null
+          plan_id: string
           user_id: string
         }
         Insert: {
@@ -1786,7 +1786,7 @@ export type Database = {
           engine_version?: string
           event_type: string
           id?: string
-          plan_id?: string | null
+          plan_id: string
           user_id: string
         }
         Update: {
@@ -1796,7 +1796,7 @@ export type Database = {
           engine_version?: string
           event_type?: string
           id?: string
-          plan_id?: string | null
+          plan_id?: string
           user_id?: string
         }
         Relationships: [
@@ -1820,7 +1820,7 @@ export type Database = {
           first_seen_at: string
           id: string
           last_seen_at: string
-          plan_id: string | null
+          plan_id: string
           snoozed_until: string | null
           status: string
           updated_at: string
@@ -1836,7 +1836,7 @@ export type Database = {
           first_seen_at?: string
           id?: string
           last_seen_at?: string
-          plan_id?: string | null
+          plan_id: string
           snoozed_until?: string | null
           status?: string
           updated_at?: string
@@ -1852,7 +1852,7 @@ export type Database = {
           first_seen_at?: string
           id?: string
           last_seen_at?: string
-          plan_id?: string | null
+          plan_id?: string
           snoozed_until?: string | null
           status?: string
           updated_at?: string
@@ -1995,6 +1995,7 @@ export type Database = {
         }
         Returns: Json
       }
+      user_can_access_plan: { Args: { _plan_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
