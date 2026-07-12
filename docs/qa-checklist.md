@@ -468,3 +468,18 @@ Em cada caso abaixo, a tela deve mostrar título + descrição + CTA claro
 - [ ] Fonte oficial (FGC), data de vigência e versão aparecem em cada painel.
 - [ ] Termos proibidos ("risco zero", "totalmente seguro", "sem risco", "100% seguro") não aparecem em nenhuma copy do módulo.
 - [ ] Home permanece simples; nenhuma nova aba principal foi criada.
+
+## 23. Sprint 5 — Escolas, Investidores e Fichas Educacionais
+
+- [ ] Em Mais > Aprender, o painel "Escolas, investidores e fichas de ativos" carrega abaixo da biblioteca de conhecimento.
+- [ ] As seis escolas aparecem: Dividendos, Value Investing, Qualidade, Ciclos, Concentradas, Macro.
+- [ ] Cada escola mostra pergunta central, conceitos-chave, riscos e limitações.
+- [ ] Perfis de investidores mostram princípios documentados, limitações, controvérsias e fontes.
+- [ ] Nenhum perfil afirma carteira atual sem fonte recente; posições históricas indicam a data e a ressalva.
+- [ ] Fichas de ativos mostram modelo de negócio, riscos, tese, antítese, indicadores, período e fontes.
+- [ ] Ficha marcada como stale ou unverified exibe o badge correspondente.
+- [ ] Ficha da Axia Energia aparece marcada como pendente de validação oficial do ticker.
+- [ ] Comparação entre fichas não gera ranking; períodos diferentes ficam sinalizados como "não comparáveis".
+- [ ] Disclaimer educacional aparece em todos os detalhes; termos "compre", "venda", "preço-alvo" não aparecem em copy.
+- [ ] Home permanece simples; nenhuma nova aba principal foi criada.
+- [ ] Usuário anônimo sem sessão não consegue ler os catálogos (RLS restringe a autenticados).

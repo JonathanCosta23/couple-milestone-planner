@@ -50,6 +50,7 @@ const FinancialGlossary = lazy(() => import("@/components/plan/FinancialGlossary
 const MiniLessons = lazy(() => import("@/components/plan/MiniLessons").then(m => ({ default: m.MiniLessons })));
 const KnowledgeLibrary = lazy(() => import("@/components/plan/KnowledgeLibrary").then(m => ({ default: m.KnowledgeLibrary })));
 const CalculatorsPanel = lazy(() => import("@/components/plan/calculators/CalculatorsPanel").then(m => ({ default: m.CalculatorsPanel })));
+const EducationHub = lazy(() => import("@/features/education/components/EducationHub").then(m => ({ default: m.EducationHub })));
 
 // ── Lazy: modais e dialogs (só montam quando abertos) ──
 const QuickDeposit = lazy(() => import("@/components/plan/QuickDeposit").then(m => ({ default: m.QuickDeposit })));
@@ -499,6 +500,7 @@ const Index = () => {
             {sub === "aprender" && (
               <div className="space-y-6">
                 <KnowledgeLibrary />
+                <EducationHub />
                 <MiniLessons />
               </div>
             )}
