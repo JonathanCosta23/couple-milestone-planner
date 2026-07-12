@@ -969,9 +969,11 @@ export type Database = {
           expression: string
           id: string
           input_definition: Json
+          last_verified_at: string | null
           limitations: string
           publication_status: string
           purpose: string
+          review_status: string
           slug: string
           title: string
           updated_at: string
@@ -985,9 +987,11 @@ export type Database = {
           expression: string
           id?: string
           input_definition?: Json
+          last_verified_at?: string | null
           limitations: string
           publication_status?: string
           purpose: string
+          review_status?: string
           slug: string
           title: string
           updated_at?: string
@@ -1001,9 +1005,11 @@ export type Database = {
           expression?: string
           id?: string
           input_definition?: Json
+          last_verified_at?: string | null
           limitations?: string
           publication_status?: string
           purpose?: string
+          review_status?: string
           slug?: string
           title?: string
           updated_at?: string
@@ -1165,6 +1171,7 @@ export type Database = {
           jurisdiction: string
           last_verified_at: string
           publication_status: string
+          review_status: string
           rule_content: string
           rule_name: string
           source_url: string
@@ -1180,6 +1187,7 @@ export type Database = {
           jurisdiction?: string
           last_verified_at: string
           publication_status?: string
+          review_status?: string
           rule_content: string
           rule_name: string
           source_url: string
@@ -1195,6 +1203,7 @@ export type Database = {
           jurisdiction?: string
           last_verified_at?: string
           publication_status?: string
+          review_status?: string
           rule_content?: string
           rule_name?: string
           source_url?: string
@@ -1966,6 +1975,10 @@ export type Database = {
     }
     Functions: {
       reset_user_plan_data: { Args: never; Returns: Json }
+      topic_has_published_content: {
+        Args: { _topic_id: string }
+        Returns: boolean
+      }
       upsert_month_with_members: {
         Args: {
           p_completed?: boolean

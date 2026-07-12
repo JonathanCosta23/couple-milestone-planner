@@ -8,13 +8,15 @@ import { NBA_ENGINE_VERSION, type UserActionState, type UserActionStatus } from 
 
 export async function loadActionStates(
   userId: string,
-  planId: string | null,
+  planId: string,
 ): Promise<Map<string, UserActionState>> {
   const map = new Map<string, UserActionState>();
   if (!userId || !planId) return map;
-  let query = supabase.from("user_action_state").select("*").eq("user_id", userId);
-  if (planId) query = query.eq("plan_id", planId);
-  const { data, error } = await query;
+  const { data, error } = await supabase
+    .from("user_action_state")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("plan_id", planId);
   if (error || !data) return map;
   data.forEach((row) => {
     map.set(row.action_key, {
@@ -32,7 +34,7 @@ export async function loadActionStates(
 
 export interface UpsertActionInput {
   userId: string;
-  planId: string | null;
+  planId: string;
   actionKey: string;
   actionCategory: string;
   status: UserActionStatus;
@@ -41,10 +43,6 @@ export interface UpsertActionInput {
 }
 
 export async function upsertActionState(input: UpsertActionInput) {
-  if (!input.planId) {
-    // Sem plano ativo não persiste — motor exibe ação apenas em memória.
-    return { data: null, error: null } as const;
-  }
   const now = new Date().toISOString();
   const payload = {
     user_id: input.userId,
@@ -74,7 +72,7 @@ export type NextActionEventType =
 
 export async function logActionEvent(input: {
   userId: string;
-  planId: string | null;
+  planId: string;
   actionKey: string;
   actionCategory: string;
   eventType: NextActionEventType;

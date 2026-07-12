@@ -82,6 +82,9 @@ export interface KnowledgeFormula {
   limitations: string;
   example: string | null;
   version: string;
+  publication_status: string;
+  review_status: ReviewStatus;
+  last_verified_at: string | null;
 }
 
 export interface KnowledgeRegulatoryRule {
@@ -94,6 +97,8 @@ export interface KnowledgeRegulatoryRule {
   last_verified_at: string;
   source_url: string;
   version: string;
+  publication_status: string;
+  review_status: ReviewStatus;
 }
 
 /** Termos proibidos em conteúdo educacional (case-insensitive, word-boundary). */
@@ -201,11 +206,31 @@ export async function listSourcesByArticle(articleId: string): Promise<Knowledge
 export async function getFormulaBySlug(slug: string): Promise<KnowledgeFormula | null> {
   const { data, error } = await supabase
     .from("knowledge_formulas")
-    .select("id, slug, title, purpose, expression, input_definition, assumptions, limitations, example, version")
+    .select(
+      "id, slug, title, purpose, expression, input_definition, assumptions, limitations, example, version, publication_status, review_status, last_verified_at",
+    )
     .eq("slug", slug)
     .eq("active", true)
     .eq("publication_status", "published")
+    .eq("review_status", "verified")
     .maybeSingle();
   if (error) throw error;
-  return (data as KnowledgeFormula) ?? null;
+  return (data as KnowledgeFormula | null) ?? null;
+}
+
+export async function listPublishedRegulatoryRules(
+  category?: string,
+): Promise<KnowledgeRegulatoryRule[]> {
+  let query = supabase
+    .from("knowledge_regulatory_rules")
+    .select(
+      "id, jurisdiction, category, rule_name, rule_content, effective_date, last_verified_at, source_url, version, publication_status, review_status",
+    )
+    .eq("active", true)
+    .eq("publication_status", "published")
+    .eq("review_status", "verified");
+  if (category) query = query.eq("category", category);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as KnowledgeRegulatoryRule[];
 }
