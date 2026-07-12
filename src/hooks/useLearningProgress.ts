@@ -76,7 +76,19 @@ export function useLearningProgress(userId: string | undefined) {
         },
         { onConflict: "user_id,topic_id" },
       );
-      if (error) logger.warn("learning.upsert.fail", { userId, topicId }, error.message);
+      if (error) {
+        // Reverte estado otimista para não deixar progresso falso na UI.
+        setByTopic((prev) => {
+          const next = { ...prev };
+          if (current) next[topicId] = current;
+          else delete next[topicId];
+          return next;
+        });
+        logger.warn("learning.upsert.fail", { userId, topicId }, error.message);
+        throw new Error(
+          "Não foi possível salvar seu progresso neste tópico agora. Tente novamente em instantes.",
+        );
+      }
     },
     [userId, byTopic],
   );
