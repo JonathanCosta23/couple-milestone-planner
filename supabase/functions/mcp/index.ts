@@ -10,17 +10,20 @@ import { createClient } from "npm:@supabase/supabase-js@^2.110.2";
 import { defineTool } from "npm:@lovable.dev/mcp-js@0.21.0-rc.4";
 
 // src/lib/mcp/tools/_env.ts
-function getRuntimeEnv(name) {
-  const g = globalThis;
-  const denoGet = g?.Deno?.env?.get;
+function readRuntimeEnv(runtime, name) {
+  const denoGet = runtime.Deno?.env?.get;
   if (typeof denoGet === "function") {
-    return denoGet.call(g.Deno.env, name) ?? "";
+    return denoGet.call(runtime.Deno.env, name) ?? "";
   }
-  const procEnv = g?.process?.env;
-  if (procEnv && typeof procEnv === "object") {
-    return procEnv[name] ?? "";
+  const processEnv = runtime.process?.env;
+  if (processEnv && typeof processEnv === "object") {
+    return processEnv[name] ?? "";
   }
   return "";
+}
+function getRuntimeEnv(name) {
+  const runtime = globalThis;
+  return readRuntimeEnv(runtime, name);
 }
 
 // src/lib/mcp/tools/get-plan-overview.ts
