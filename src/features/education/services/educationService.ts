@@ -298,6 +298,8 @@ export async function listInvestmentSchools(): Promise<InvestmentSchool[]> {
     .from("knowledge_investment_schools")
     .select("*")
     .eq("active", true)
+    .eq("publication_status", "published")
+    .eq("review_status", "verified")
     .order("sort_order", { ascending: true });
   if (error) throw error;
   return (data ?? []).map((row) => ({
@@ -314,6 +316,8 @@ export async function getInvestmentSchoolBySlug(slug: string): Promise<Investmen
     .select("*")
     .eq("slug", slug)
     .eq("active", true)
+    .eq("publication_status", "published")
+    .eq("review_status", "verified")
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
@@ -330,6 +334,8 @@ export async function listInvestorReferences(): Promise<InvestorReference[]> {
     .from("knowledge_investor_references")
     .select("*")
     .eq("active", true)
+    .eq("publication_status", "published")
+    .eq("review_status", "verified")
     .order("full_name", { ascending: true });
   if (error) throw error;
   return (data ?? []).map((row) => ({
@@ -350,6 +356,8 @@ export async function getInvestorReferenceBySlug(slug: string): Promise<Investor
     .select("*")
     .eq("slug", slug)
     .eq("active", true)
+    .eq("publication_status", "published")
+    .eq("review_status", "verified")
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
@@ -370,6 +378,8 @@ export async function listAssetEducationCases(): Promise<AssetEducationCase[]> {
     .from("knowledge_asset_cases")
     .select("*")
     .eq("active", true)
+    .eq("publication_status", "published")
+    .eq("review_status", "verified")
     .order("company_name", { ascending: true });
   if (error) throw error;
   return (data ?? []).map(mapAssetCase);
@@ -381,6 +391,8 @@ export async function getAssetEducationCaseByTicker(ticker: string): Promise<Ass
     .select("*")
     .eq("ticker", ticker)
     .eq("active", true)
+    .eq("publication_status", "published")
+    .eq("review_status", "verified")
     .maybeSingle();
   if (error) throw error;
   return data ? mapAssetCase(data) : null;
