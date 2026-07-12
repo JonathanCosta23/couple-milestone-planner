@@ -41,12 +41,13 @@ export function useNextBestAction(params: Params) {
 
   useEffect(() => {
     let cancelled = false;
-    if (!params.userId) {
+    if (!params.userId || !params.planId) {
       setStoredStates(new Map());
       setLoaded(true);
       return;
     }
-    loadActionStates(params.userId, params.planId).then((m) => {
+    const planId = params.planId;
+    loadActionStates(params.userId, planId).then((m) => {
       if (!cancelled) {
         setStoredStates(m);
         setLoaded(true);
@@ -116,7 +117,7 @@ export function useNextBestAction(params: Params) {
 
   const logEvent = useCallback(
     (eventType: NextActionEventType) => {
-      if (!params.userId || !action) return;
+      if (!params.userId || !params.planId || !action) return;
       logActionEvent({
         userId: params.userId,
         planId: params.planId,
@@ -130,10 +131,11 @@ export function useNextBestAction(params: Params) {
 
   const updateStatus = useCallback(
     async (status: UserActionStatus, opts?: { snoozedUntil?: string | null; reason?: string | null }) => {
-      if (!params.userId || !action) return;
+      if (!params.userId || !params.planId || !action) return;
+      const planId = params.planId;
       await upsertActionState({
         userId: params.userId,
-        planId: params.planId,
+        planId,
         actionKey: action.actionKey,
         actionCategory: action.category,
         status,
@@ -159,7 +161,7 @@ export function useNextBestAction(params: Params) {
         : "action_invalidated";
       logActionEvent({
         userId: params.userId,
-        planId: params.planId,
+        planId,
         actionKey: action.actionKey,
         actionCategory: action.category,
         eventType: evt,
