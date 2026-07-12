@@ -4,7 +4,12 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
-import { NBA_ENGINE_VERSION, type UserActionState, type UserActionStatus } from "../types/nextAction";
+import {
+  NBA_ENGINE_VERSION,
+  NBA_SIGNATURE_VERSION,
+  type UserActionState,
+  type UserActionStatus,
+} from "../types/nextAction";
 
 export async function loadActionStates(
   userId: string,
@@ -23,10 +28,14 @@ export async function loadActionStates(
       actionKey: row.action_key,
       status: row.status as UserActionStatus,
       snoozedUntil: row.snoozed_until,
+      dismissedUntil: row.dismissed_until,
       dismissedReason: row.dismissed_reason,
       completedAt: row.completed_at,
       firstSeenAt: row.first_seen_at,
       lastSeenAt: row.last_seen_at,
+      conditionSignature: row.condition_signature,
+      conditionVersion: row.condition_version,
+      lastValidatedAt: row.last_validated_at,
     });
   });
   return map;
@@ -39,7 +48,9 @@ export interface UpsertActionInput {
   actionCategory: string;
   status: UserActionStatus;
   snoozedUntil?: string | null;
+  dismissedUntil?: string | null;
   dismissedReason?: string | null;
+  conditionSignature?: string | null;
 }
 
 export async function upsertActionState(input: UpsertActionInput) {
@@ -51,14 +62,61 @@ export async function upsertActionState(input: UpsertActionInput) {
     action_category: input.actionCategory,
     status: input.status,
     snoozed_until: input.snoozedUntil ?? null,
+    dismissed_until: input.dismissedUntil ?? null,
     dismissed_reason: input.dismissedReason ?? null,
     completed_at: input.status === "completed" ? now : null,
     last_seen_at: now,
     engine_version: NBA_ENGINE_VERSION,
+    condition_signature: input.conditionSignature ?? null,
+    condition_version: NBA_SIGNATURE_VERSION,
+    last_validated_at: now,
   };
   return supabase
     .from("user_action_state")
     .upsert(payload, { onConflict: "user_id,plan_id,action_key" });
+}
+
+/**
+ * Marca que a ação foi efetivamente exibida ao usuário.
+ *
+ * - `first_seen_at` só é gravado se ainda não existir registro
+ *   (garantido pelo default do banco na primeira inserção).
+ * - `last_seen_at` é atualizado APENAS quando esta função é chamada,
+ *   nunca em fluxos de mudança de status.
+ * - `condition_signature` e `last_validated_at` são atualizados aqui
+ *   para refletir que a condição atual foi validada e exibida.
+ * - Não altera `status`, `snoozed_until`, `dismissed_until` nem `completed_at`.
+ * - Idempotência de evento é responsabilidade do chamador (hook).
+ */
+export async function markActionShown(input: {
+  userId: string;
+  planId: string;
+  actionKey: string;
+  actionCategory: string;
+  conditionSignature: string;
+}) {
+  if (!input.userId || !input.planId) return;
+  const now = new Date().toISOString();
+  // Upsert mínimo: preserva status/snooze/dismiss existentes. `first_seen_at`
+  // usa default do banco na inserção e é preservado nas atualizações porque
+  // não fazemos parte do payload.
+  return supabase
+    .from("user_action_state")
+    .upsert(
+      {
+        user_id: input.userId,
+        plan_id: input.planId,
+        action_key: input.actionKey,
+        action_category: input.actionCategory,
+        status: "active",
+        last_seen_at: now,
+        engine_version: NBA_ENGINE_VERSION,
+        condition_signature: input.conditionSignature,
+        condition_version: NBA_SIGNATURE_VERSION,
+        last_validated_at: now,
+      },
+      { onConflict: "user_id,plan_id,action_key", ignoreDuplicates: false },
+    );
 }
 
 export type NextActionEventType =
