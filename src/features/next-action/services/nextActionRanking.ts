@@ -15,6 +15,10 @@ import {
   type RankedResult,
   type UserActionState,
 } from "../types/nextAction";
+import {
+  buildConditionSignature,
+  isStoredStateApplicableToCandidate,
+} from "./nextActionSignature";
 
 export function isEligible(
   candidate: NextActionCandidate,
@@ -23,6 +27,13 @@ export function isEligible(
 ): boolean {
   const state = storedStates.get(candidate.actionKey);
   if (!state) return true;
+  // Se o estado persistido não se aplica mais (versão/assinatura mudou),
+  // ele é considerado invalidado — o candidato volta a ser elegível
+  // e o histórico do registro anterior é preservado no banco.
+  const currentSignature = buildConditionSignature(candidate);
+  if (!isStoredStateApplicableToCandidate(state, currentSignature)) {
+    return true;
+  }
   if (state.status === "completed" || state.status === "dismissed" || state.status === "not_applicable") {
     return false;
   }
