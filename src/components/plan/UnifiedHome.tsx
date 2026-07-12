@@ -8,6 +8,10 @@ import { getCurrentMonthDeposited } from "@/lib/calculator";
 import { generateNudges } from "@/lib/behavioralEngine";
 import { ContextualEducation } from "./ContextualEducation";
 import { FundamentalNextActionCard } from "./FundamentalNextActionCard";
+import { NextActionCard } from "@/features/next-action/components/NextActionCard";
+import { useNextBestAction } from "@/features/next-action/hooks/useNextBestAction";
+import { useAuth } from "@/hooks/useAuth";
+import { usePlan } from "@/hooks/usePlan";
 import { MonthlyExecutiveSummary } from "./MonthlyExecutiveSummary";
 import { MilestoneProgress } from "./MilestoneProgress";
 import {
