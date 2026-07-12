@@ -63,6 +63,19 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
   const [titularFilter, setTitularFilter] = useState<string>("all");
   const { metrics, insights, allocation, projection } = core;
 
+  // Motor de Próxima Melhor Ação (Sprint 6) — determinístico, com persistência.
+  const { user } = useAuth();
+  const { plan: cloudPlan } = usePlan();
+  const nba = useNextBestAction({
+    userId: user?.id ?? null,
+    planId: cloudPlan?.id ?? null,
+    metrics,
+    appData,
+    config,
+    monthRecords,
+    hasCoreDataLoaded: true,
+  });
+
   const currentMonth = useMemo(() => getCurrentMonthDeposited(config, monthRecords), [config, monthRecords]);
   const nudges = useMemo(() => generateNudges(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
 
