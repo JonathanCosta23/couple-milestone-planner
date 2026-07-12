@@ -181,6 +181,8 @@ export async function listArticlesByTopic(topicId: string): Promise<KnowledgeArt
     )
     .eq("topic_id", topicId)
     .eq("active", true)
+    .eq("publication_status", "published")
+    .eq("review_status", "verified")
     .order("difficulty", { ascending: true });
   if (error) throw error;
   return (data ?? []) as unknown as KnowledgeArticle[];
@@ -202,6 +204,7 @@ export async function getFormulaBySlug(slug: string): Promise<KnowledgeFormula |
     .select("id, slug, title, purpose, expression, input_definition, assumptions, limitations, example, version")
     .eq("slug", slug)
     .eq("active", true)
+    .eq("publication_status", "published")
     .maybeSingle();
   if (error) throw error;
   return (data as KnowledgeFormula) ?? null;
