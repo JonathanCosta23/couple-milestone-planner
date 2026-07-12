@@ -180,6 +180,18 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
         onNavigateToTab={onNavigateToTab}
       />
 
+      {/* ── Motor determinístico de Próxima Melhor Ação (Sprint 6) ── */}
+      {nba.action && (
+        <NextActionCard
+          action={nba.action}
+          onNavigate={onNavigateToTab}
+          onComplete={nba.complete}
+          onSnooze={nba.snoozeUntil}
+          onDismiss={nba.dismiss}
+          onOpened={() => nba.logEvent("action_opened")}
+        />
+      )}
+
       {/* ── Marcos patrimoniais (orientado a progresso) ── */}
       <MilestoneProgress
         currentWealth={metrics.grossWealth}
