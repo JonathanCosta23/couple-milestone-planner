@@ -77,8 +77,7 @@ export function calculateIof(taxableYield: number, rate: number): number {
 export async function fetchTaxRules(): Promise<TaxRule[]> {
   try {
     const { data, error } = await supabase
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .from("tax_rules" as any)
+      .from("tax_rules")
       .select("*")
       .eq("active", true);
     if (error) throw error;
@@ -92,8 +91,7 @@ export async function fetchTaxRules(): Promise<TaxRule[]> {
 export async function fetchIofRules(): Promise<IofRule[]> {
   try {
     const { data, error } = await supabase
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .from("iof_rules" as any)
+      .from("iof_rules")
       .select("*")
       .eq("active", true);
     if (error) throw error;
