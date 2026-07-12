@@ -1,8 +1,15 @@
 import { describe, it, expect, vi } from "vitest";
-import { readRuntimeEnv, type RuntimeGlobal } from "../_env";
+import { readRuntimeEnv, type RuntimeGlobal, type RuntimeDeno, type RuntimeProcess } from "../_env";
 
-function makeRuntime(overrides: Partial<RuntimeGlobal> = {}): RuntimeGlobal {
-  return { ...(overrides as object) } as RuntimeGlobal;
+interface FakeRuntime {
+  Deno?: RuntimeDeno;
+  process?: RuntimeProcess;
+}
+
+function makeRuntime(overrides: FakeRuntime = {}): RuntimeGlobal {
+  // Cast through unknown because Node's ambient `Process` type is broader than
+  // the subset we depend on; tests only need the `env` shape.
+  return overrides as unknown as RuntimeGlobal;
 }
 
 describe("readRuntimeEnv", () => {
