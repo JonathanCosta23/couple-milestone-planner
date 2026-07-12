@@ -7,7 +7,6 @@ import { PlanConfig, MonthRecord, formatBRL, formatBRLCompact, getCurrentMonthKe
 import { getCurrentMonthDeposited } from "@/lib/calculator";
 import { generateNudges } from "@/lib/behavioralEngine";
 import { ContextualEducation } from "./ContextualEducation";
-import { FundamentalNextActionCard } from "./FundamentalNextActionCard";
 import { NextActionCard } from "@/features/next-action/components/NextActionCard";
 import { useNextBestAction } from "@/features/next-action/hooks/useNextBestAction";
 import { useAuth } from "@/hooks/useAuth";
@@ -34,9 +33,11 @@ interface Props {
   config: PlanConfig;
   monthRecords: MonthRecord[];
   startDate: string;
-  onNavigateToTab: (tab: string) => void;
+  onNavigateToTab: (tab: string, sub?: string) => void;
   onOpenQuickDeposit: () => void;
   core: FinancialCoreState;
+  /** Estado real de carregamento vindo do useDataLifecycle. */
+  hasCoreDataLoaded?: boolean;
   /** Slot opcional renderizado no topo da Home (ex.: PlanModeChip). */
   topSlot?: React.ReactNode;
 }
@@ -57,7 +58,7 @@ function getActivationSteps(appData: AppData, config: PlanConfig, monthRecords: 
   ];
 }
 
-export function UnifiedHome({ appData, config, monthRecords, startDate, onNavigateToTab, onOpenQuickDeposit, core, topSlot }: Props) {
+export function UnifiedHome({ appData, config, monthRecords, startDate, onNavigateToTab, onOpenQuickDeposit, core, hasCoreDataLoaded = true, topSlot }: Props) {
   const currentKey = getCurrentMonthKey();
   const [showFinancials, setShowFinancials] = useState(false);
   const [titularFilter, setTitularFilter] = useState<string>("all");
@@ -73,7 +74,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
     appData,
     config,
     monthRecords,
-    hasCoreDataLoaded: true,
+    hasCoreDataLoaded,
   });
 
   const currentMonth = useMemo(() => getCurrentMonthDeposited(config, monthRecords), [config, monthRecords]);
@@ -169,16 +170,9 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
       />
 
       {/* ── Resumo Mensal Executivo + Próxima Melhor Ação ── */}
-      <MonthlyExecutiveSummary
-        config={config}
-        monthRecords={monthRecords}
-        nextActionContext={{
-          nextMilestoneValue,
-          nextMilestoneMonths: monthsToNextMilestone,
-        }}
-        onOpenQuickDeposit={onOpenQuickDeposit}
-        onNavigateToTab={onNavigateToTab}
-      />
+      {/* Resumo mensal executivo — apenas resumo + score, sem CTA concorrente.
+          O único CTA da Home é o NextActionCard abaixo. */}
+      <MonthlyExecutiveSummary config={config} monthRecords={monthRecords} />
 
       {/* ── Motor determinístico de Próxima Melhor Ação (Sprint 6) ── */}
       {nba.action && (
