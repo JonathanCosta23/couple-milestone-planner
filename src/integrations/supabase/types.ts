@@ -778,6 +778,7 @@ export type Database = {
           id: string
           jurisdiction: string
           last_verified_at: string | null
+          publication_status: string
           review_status: string
           summary: string
           title: string
@@ -796,6 +797,7 @@ export type Database = {
           id?: string
           jurisdiction?: string
           last_verified_at?: string | null
+          publication_status?: string
           review_status?: string
           summary: string
           title: string
@@ -814,6 +816,7 @@ export type Database = {
           id?: string
           jurisdiction?: string
           last_verified_at?: string | null
+          publication_status?: string
           review_status?: string
           summary?: string
           title?: string
@@ -855,9 +858,10 @@ export type Database = {
           id: string
           indicators_to_watch: Json
           key_risks: Json
-          last_verified_at: string
+          last_verified_at: string | null
           negative_thesis: Json
           positive_thesis: Json
+          publication_status: string
           regulatory_exposure: string | null
           reporting_period: string | null
           revenue_drivers: Json
@@ -895,9 +899,10 @@ export type Database = {
           id?: string
           indicators_to_watch?: Json
           key_risks?: Json
-          last_verified_at?: string
+          last_verified_at?: string | null
           negative_thesis?: Json
           positive_thesis?: Json
+          publication_status?: string
           regulatory_exposure?: string | null
           reporting_period?: string | null
           revenue_drivers?: Json
@@ -935,9 +940,10 @@ export type Database = {
           id?: string
           indicators_to_watch?: Json
           key_risks?: Json
-          last_verified_at?: string
+          last_verified_at?: string | null
           negative_thesis?: Json
           positive_thesis?: Json
+          publication_status?: string
           regulatory_exposure?: string | null
           reporting_period?: string | null
           revenue_drivers?: Json
@@ -964,6 +970,7 @@ export type Database = {
           id: string
           input_definition: Json
           limitations: string
+          publication_status: string
           purpose: string
           slug: string
           title: string
@@ -979,6 +986,7 @@ export type Database = {
           id?: string
           input_definition?: Json
           limitations: string
+          publication_status?: string
           purpose: string
           slug: string
           title: string
@@ -994,6 +1002,7 @@ export type Database = {
           id?: string
           input_definition?: Json
           limitations?: string
+          publication_status?: string
           purpose?: string
           slug?: string
           title?: string
@@ -1012,9 +1021,10 @@ export type Database = {
           id: string
           jurisdiction: string
           key_risks: Json
-          last_verified_at: string
+          last_verified_at: string | null
           limitations: Json
           name: string
+          publication_status: string
           review_status: string
           slug: string
           sort_order: number
@@ -1033,9 +1043,10 @@ export type Database = {
           id?: string
           jurisdiction?: string
           key_risks?: Json
-          last_verified_at?: string
+          last_verified_at?: string | null
           limitations?: Json
           name: string
+          publication_status?: string
           review_status?: string
           slug: string
           sort_order?: number
@@ -1054,9 +1065,10 @@ export type Database = {
           id?: string
           jurisdiction?: string
           key_risks?: Json
-          last_verified_at?: string
+          last_verified_at?: string | null
           limitations?: Json
           name?: string
+          publication_status?: string
           review_status?: string
           slug?: string
           sort_order?: number
@@ -1081,9 +1093,10 @@ export type Database = {
           historical_context: string
           historical_positions: Json
           id: string
-          last_verified_at: string
+          last_verified_at: string | null
           lessons: Json
           limitations: Json
+          publication_status: string
           review_status: string
           short_bio: string
           slug: string
@@ -1104,9 +1117,10 @@ export type Database = {
           historical_context: string
           historical_positions?: Json
           id?: string
-          last_verified_at?: string
+          last_verified_at?: string | null
           lessons?: Json
           limitations?: Json
+          publication_status?: string
           review_status?: string
           short_bio: string
           slug: string
@@ -1127,9 +1141,10 @@ export type Database = {
           historical_context?: string
           historical_positions?: Json
           id?: string
-          last_verified_at?: string
+          last_verified_at?: string | null
           lessons?: Json
           limitations?: Json
+          publication_status?: string
           review_status?: string
           short_bio?: string
           slug?: string
@@ -1149,6 +1164,7 @@ export type Database = {
           id: string
           jurisdiction: string
           last_verified_at: string
+          publication_status: string
           rule_content: string
           rule_name: string
           source_url: string
@@ -1163,6 +1179,7 @@ export type Database = {
           id?: string
           jurisdiction?: string
           last_verified_at: string
+          publication_status?: string
           rule_content: string
           rule_name: string
           source_url: string
@@ -1177,6 +1194,7 @@ export type Database = {
           id?: string
           jurisdiction?: string
           last_verified_at?: string
+          publication_status?: string
           rule_content?: string
           rule_name?: string
           source_url?: string
