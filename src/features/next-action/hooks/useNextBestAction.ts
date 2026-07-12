@@ -3,14 +3,20 @@
  * NÃO recalcula métricas financeiras; consome as métricas já derivadas do core.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { computeNextBestAction } from "../services/nextActionEngine";
 import {
   loadActionStates,
   logActionEvent,
+  markActionShown,
   upsertActionState,
   type NextActionEventType,
 } from "../services/nextActionPersistence";
+import {
+  buildConditionSignature,
+  isStoredStateApplicableToCandidate,
+} from "../services/nextActionSignature";
+import { generateAllCandidates } from "../services/nextActionCandidates";
 import type {
   NextActionContext,
   NextBestAction,
@@ -115,6 +121,61 @@ export function useNextBestAction(params: Params) {
 
   const action: NextBestAction | null = useMemo(() => computeNextBestAction(ctx), [ctx]);
 
+  /** Assinatura da ação atual (independente do relógio). */
+  const currentSignature = useMemo(() => {
+    if (!action) return null;
+    // Refaz a busca do candidato correspondente para acessar signatureInputs.
+    const candidate = generateAllCandidates(ctx).find((c) => c.actionKey === action.actionKey);
+    return candidate ? buildConditionSignature(candidate) : null;
+  }, [action, ctx]);
+
+  /** Idempotência do action_shown: um evento por (actionKey, signature) por sessão. */
+  const shownRef = useRef<string | null>(null);
+
+  /** Detecta e registra invalidação quando a assinatura persistida diverge. */
+  const invalidatedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!params.userId || !params.planId || !action || !currentSignature) return;
+    const stored = storedStates.get(action.actionKey);
+    if (!stored) return;
+    if (isStoredStateApplicableToCandidate(stored, currentSignature)) return;
+    const key = `${action.actionKey}|${stored.conditionSignature ?? "∅"}`;
+    if (invalidatedRef.current.has(key)) return;
+    invalidatedRef.current.add(key);
+    logActionEvent({
+      userId: params.userId,
+      planId: params.planId,
+      actionKey: action.actionKey,
+      actionCategory: action.category,
+      eventType: "action_invalidated",
+    });
+  }, [params.userId, params.planId, action, currentSignature, storedStates]);
+
+  /** Efeito de exibição: grava markActionShown + evento action_shown idempotente. */
+  useEffect(() => {
+    if (!params.userId || !params.planId || !action || !currentSignature) return;
+    const key = `${action.actionKey}|${currentSignature}`;
+    if (shownRef.current === key) return;
+    shownRef.current = key;
+    const userId = params.userId;
+    const planId = params.planId;
+    markActionShown({
+      userId,
+      planId,
+      actionKey: action.actionKey,
+      actionCategory: action.category,
+      conditionSignature: currentSignature,
+    }).then(() => {
+      logActionEvent({
+        userId,
+        planId,
+        actionKey: action.actionKey,
+        actionCategory: action.category,
+        eventType: "action_shown",
+      });
+    });
+  }, [params.userId, params.planId, action, currentSignature]);
+
   const logEvent = useCallback(
     (eventType: NextActionEventType) => {
       if (!params.userId || !params.planId || !action) return;
@@ -141,6 +202,7 @@ export function useNextBestAction(params: Params) {
         status,
         snoozedUntil: opts?.snoozedUntil ?? null,
         dismissedReason: opts?.reason ?? null,
+        conditionSignature: currentSignature,
       });
       setStoredStates((prev) => {
         const next = new Map(prev);
@@ -150,6 +212,7 @@ export function useNextBestAction(params: Params) {
           snoozedUntil: opts?.snoozedUntil ?? null,
           dismissedReason: opts?.reason ?? null,
           completedAt: status === "completed" ? new Date().toISOString() : null,
+          conditionSignature: currentSignature,
         });
         return next;
       });
@@ -167,7 +230,7 @@ export function useNextBestAction(params: Params) {
         eventType: evt,
       });
     },
-    [params.userId, params.planId, action],
+    [params.userId, params.planId, action, currentSignature],
   );
 
   return {
