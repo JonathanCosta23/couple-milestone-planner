@@ -47,6 +47,9 @@ export function useLearningProgress(userId: string | undefined) {
       setByTopic(next);
       setLoaded(true);
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [userId]);
 
   const upsert = useCallback(
