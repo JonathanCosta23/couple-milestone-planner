@@ -96,7 +96,7 @@ export function useNextBestAction(params: Params) {
         .filter((d) => d.active)
         .map((d) => ({
           id: d.id,
-          label: d.name || d.category || "Dívida",
+          label: d.name || d.type || "Dívida",
           monthlyPayment: d.monthlyPayment,
           interestRateAnnual: d.interestRate ?? null,
           risk: d.risk,
