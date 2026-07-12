@@ -1,21 +1,17 @@
 import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatBRL } from "@/lib/types";
 import type { PlanConfig, MonthRecord } from "@/lib/types";
 import {
   buildMonthlySummary,
-  computeNextBestAction,
-  type NextBestActionContext,
 } from "@/lib/services/monthlySummary";
 import { calculateDisciplineScore } from "@/lib/services/disciplineScore";
 import {
   Calendar,
   CheckCircle2,
   AlertCircle,
-  ArrowRight,
   Info,
   Activity,
 } from "lucide-react";
@@ -23,9 +19,6 @@ import {
 interface Props {
   config: PlanConfig;
   monthRecords: MonthRecord[];
-  nextActionContext?: NextBestActionContext;
-  onOpenQuickDeposit: () => void;
-  onNavigateToTab: (tab: string) => void;
 }
 
 const STATUS_META: Record<string, { label: string; tone: string; Icon: typeof Calendar }> = {
@@ -38,9 +31,6 @@ const STATUS_META: Record<string, { label: string; tone: string; Icon: typeof Ca
 export function MonthlyExecutiveSummary({
   config,
   monthRecords,
-  nextActionContext,
-  onOpenQuickDeposit,
-  onNavigateToTab,
 }: Props) {
   const summary = useMemo(
     () => buildMonthlySummary(config, monthRecords),
@@ -49,10 +39,6 @@ export function MonthlyExecutiveSummary({
   const score = useMemo(
     () => calculateDisciplineScore(config, monthRecords),
     [config, monthRecords],
-  );
-  const action = useMemo(
-    () => computeNextBestAction(summary, nextActionContext),
-    [summary, nextActionContext],
   );
 
   const status = STATUS_META[summary.status];
@@ -66,11 +52,6 @@ export function MonthlyExecutiveSummary({
     : score.total >= 40
       ? "text-warning"
       : "text-destructive";
-
-  const handleAction = () => {
-    if (action.tab === "") onOpenQuickDeposit();
-    else onNavigateToTab(action.tab);
-  };
 
   return (
     <Card className="glass-card p-4 lg:p-5 space-y-4 animate-fade-in-up">
@@ -155,19 +136,6 @@ export function MonthlyExecutiveSummary({
           <p className={`text-2xl font-bold tabular-nums ${scoreTone}`}>{score.total}</p>
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider">/ 100</p>
         </div>
-      </div>
-
-      {/* Próxima melhor ação */}
-      <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 lg:p-4 space-y-2">
-        <p className="text-[10px] uppercase tracking-wider font-bold text-primary">
-          Próxima melhor ação
-        </p>
-        <p className="text-sm lg:text-base font-semibold leading-snug">{action.title}</p>
-        <p className="text-xs text-muted-foreground leading-snug">{action.description}</p>
-        <Button onClick={handleAction} size="sm" className="w-full sm:w-auto gap-1.5">
-          {action.ctaLabel}
-          <ArrowRight className="w-3.5 h-3.5" />
-        </Button>
       </div>
     </Card>
   );

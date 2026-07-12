@@ -94,7 +94,7 @@ export function useAppNavigation() {
   );
 
   const navigateToTab = useCallback(
-    (rawTab: string) => {
+    (rawTab: string, rawSub?: string) => {
       const tab = resolveAlias(rawTab);
       const section = sectionForTab(tab);
       if (!section) {
@@ -104,11 +104,23 @@ export function useAppNavigation() {
         return;
       }
       setNavSection(section);
+      // Sub explícita (ex.: NBA → "execucao","dividas") tem prioridade sobre o
+      // próprio tab, para que destinos como { tab: "patrimonio", sub: "concentracao" }
+      // cheguem na sub correta sem depender de alias.
+      const sub = rawSub ? resolveAlias(rawSub) : tab;
       switch (section) {
-        case "execucao": setExecucaoSub(tab); break;
-        case "patrimonio": setPatrimonioSub(tab); break;
-        case "projecao": setProjecaoSub(tab); break;
-        case "mais": setMaisSub(tab); break;
+        case "execucao":
+          setExecucaoSub((EXECUCAO_TABS as readonly string[]).includes(sub) ? sub : tab);
+          break;
+        case "patrimonio":
+          setPatrimonioSub((PATRIMONIO_TABS as readonly string[]).includes(sub) ? sub : tab);
+          break;
+        case "projecao":
+          setProjecaoSub((PROJECAO_TABS as readonly string[]).includes(sub) ? sub : tab);
+          break;
+        case "mais":
+          setMaisSub((MAIS_TABS as readonly string[]).includes(sub) ? sub : tab);
+          break;
       }
       scrollTop();
     },
