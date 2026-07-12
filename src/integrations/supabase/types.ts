@@ -831,6 +831,129 @@ export type Database = {
           },
         ]
       }
+      knowledge_asset_cases: {
+        Row: {
+          active: boolean
+          associated_school_slugs: Json
+          business_model: string
+          capital_intensity: string | null
+          cash_flow_summary: string | null
+          commodity_exposure: string | null
+          company_name: string
+          competitive_advantages: Json
+          cost_drivers: Json
+          created_at: string
+          currency_exposure: string | null
+          cyclicality: string | null
+          debt_summary: string | null
+          dividend_summary: string | null
+          educational_disclaimer: string
+          educational_only: boolean
+          events_to_watch: Json
+          governance_summary: string | null
+          government_exposure: string | null
+          id: string
+          indicators_to_watch: Json
+          key_risks: Json
+          last_verified_at: string
+          negative_thesis: Json
+          positive_thesis: Json
+          regulatory_exposure: string | null
+          reporting_period: string | null
+          revenue_drivers: Json
+          review_status: string
+          sector: string
+          share_class: string | null
+          source_date: string | null
+          sources: Json
+          subsector: string | null
+          ticker: string | null
+          ticker_validated: boolean
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          active?: boolean
+          associated_school_slugs?: Json
+          business_model: string
+          capital_intensity?: string | null
+          cash_flow_summary?: string | null
+          commodity_exposure?: string | null
+          company_name: string
+          competitive_advantages?: Json
+          cost_drivers?: Json
+          created_at?: string
+          currency_exposure?: string | null
+          cyclicality?: string | null
+          debt_summary?: string | null
+          dividend_summary?: string | null
+          educational_disclaimer: string
+          educational_only?: boolean
+          events_to_watch?: Json
+          governance_summary?: string | null
+          government_exposure?: string | null
+          id?: string
+          indicators_to_watch?: Json
+          key_risks?: Json
+          last_verified_at?: string
+          negative_thesis?: Json
+          positive_thesis?: Json
+          regulatory_exposure?: string | null
+          reporting_period?: string | null
+          revenue_drivers?: Json
+          review_status?: string
+          sector: string
+          share_class?: string | null
+          source_date?: string | null
+          sources?: Json
+          subsector?: string | null
+          ticker?: string | null
+          ticker_validated?: boolean
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          active?: boolean
+          associated_school_slugs?: Json
+          business_model?: string
+          capital_intensity?: string | null
+          cash_flow_summary?: string | null
+          commodity_exposure?: string | null
+          company_name?: string
+          competitive_advantages?: Json
+          cost_drivers?: Json
+          created_at?: string
+          currency_exposure?: string | null
+          cyclicality?: string | null
+          debt_summary?: string | null
+          dividend_summary?: string | null
+          educational_disclaimer?: string
+          educational_only?: boolean
+          events_to_watch?: Json
+          governance_summary?: string | null
+          government_exposure?: string | null
+          id?: string
+          indicators_to_watch?: Json
+          key_risks?: Json
+          last_verified_at?: string
+          negative_thesis?: Json
+          positive_thesis?: Json
+          regulatory_exposure?: string | null
+          reporting_period?: string | null
+          revenue_drivers?: Json
+          review_status?: string
+          sector?: string
+          share_class?: string | null
+          source_date?: string | null
+          sources?: Json
+          subsector?: string | null
+          ticker?: string | null
+          ticker_validated?: boolean
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
       knowledge_formulas: {
         Row: {
           active: boolean
@@ -874,6 +997,144 @@ export type Database = {
           purpose?: string
           slug?: string
           title?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
+      knowledge_investment_schools: {
+        Row: {
+          active: boolean
+          central_question: string
+          core_concepts: Json
+          created_at: string
+          educational_disclaimer: string
+          id: string
+          jurisdiction: string
+          key_risks: Json
+          last_verified_at: string
+          limitations: Json
+          name: string
+          review_status: string
+          slug: string
+          sort_order: number
+          summary: string
+          updated_at: string
+          version: string
+          when_it_fails: string | null
+          when_it_works: string | null
+        }
+        Insert: {
+          active?: boolean
+          central_question: string
+          core_concepts?: Json
+          created_at?: string
+          educational_disclaimer: string
+          id?: string
+          jurisdiction?: string
+          key_risks?: Json
+          last_verified_at?: string
+          limitations?: Json
+          name: string
+          review_status?: string
+          slug: string
+          sort_order?: number
+          summary: string
+          updated_at?: string
+          version?: string
+          when_it_fails?: string | null
+          when_it_works?: string | null
+        }
+        Update: {
+          active?: boolean
+          central_question?: string
+          core_concepts?: Json
+          created_at?: string
+          educational_disclaimer?: string
+          id?: string
+          jurisdiction?: string
+          key_risks?: Json
+          last_verified_at?: string
+          limitations?: Json
+          name?: string
+          review_status?: string
+          slug?: string
+          sort_order?: number
+          summary?: string
+          updated_at?: string
+          version?: string
+          when_it_fails?: string | null
+          when_it_works?: string | null
+        }
+        Relationships: []
+      }
+      knowledge_investor_references: {
+        Row: {
+          active: boolean
+          associated_school_slugs: Json
+          controversies_or_risks: Json
+          created_at: string
+          documented_principles: Json
+          educational_disclaimer: string
+          educational_only: boolean
+          full_name: string
+          historical_context: string
+          historical_positions: Json
+          id: string
+          last_verified_at: string
+          lessons: Json
+          limitations: Json
+          review_status: string
+          short_bio: string
+          slug: string
+          source_date: string | null
+          sources: Json
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          active?: boolean
+          associated_school_slugs?: Json
+          controversies_or_risks?: Json
+          created_at?: string
+          documented_principles?: Json
+          educational_disclaimer: string
+          educational_only?: boolean
+          full_name: string
+          historical_context: string
+          historical_positions?: Json
+          id?: string
+          last_verified_at?: string
+          lessons?: Json
+          limitations?: Json
+          review_status?: string
+          short_bio: string
+          slug: string
+          source_date?: string | null
+          sources?: Json
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          active?: boolean
+          associated_school_slugs?: Json
+          controversies_or_risks?: Json
+          created_at?: string
+          documented_principles?: Json
+          educational_disclaimer?: string
+          educational_only?: boolean
+          full_name?: string
+          historical_context?: string
+          historical_positions?: Json
+          id?: string
+          last_verified_at?: string
+          lessons?: Json
+          limitations?: Json
+          review_status?: string
+          short_bio?: string
+          slug?: string
+          source_date?: string | null
+          sources?: Json
           updated_at?: string
           version?: string
         }
