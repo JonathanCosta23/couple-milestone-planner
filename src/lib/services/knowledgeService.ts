@@ -13,9 +13,21 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 
 export type Difficulty = "basic" | "intermediate" | "advanced";
 export type ReviewStatus = "unverified" | "in_review" | "verified" | "outdated";
+
+/**
+ * Rows crus vindos do banco (fonte única). Reutilizamos os tipos gerados
+ * para evitar divergência silenciosa. Os campos JSONB (`content`,
+ * `input_definition`) precisam de parser dedicado antes de expor à UI.
+ */
+type KnowledgeTopicRow = Tables<"knowledge_topics">;
+type KnowledgeArticleRow = Tables<"knowledge_articles">;
+type KnowledgeSourceRow = Tables<"knowledge_sources">;
+type KnowledgeFormulaRow = Tables<"knowledge_formulas">;
+type KnowledgeRegulatoryRuleRow = Tables<"knowledge_regulatory_rules">;
 
 export interface KnowledgeTopic {
   id: string;
@@ -175,7 +187,7 @@ export async function listActiveTopics(): Promise<KnowledgeTopic[]> {
     .eq("active", true)
     .order("sort_order", { ascending: true });
   if (error) throw error;
-  return (data ?? []) as KnowledgeTopic[];
+  return (data ?? []).map((row) => mapTopic(row));
 }
 
 export async function listArticlesByTopic(topicId: string): Promise<KnowledgeArticle[]> {
@@ -190,7 +202,7 @@ export async function listArticlesByTopic(topicId: string): Promise<KnowledgeArt
     .eq("review_status", "verified")
     .order("difficulty", { ascending: true });
   if (error) throw error;
-  return (data ?? []) as unknown as KnowledgeArticle[];
+  return (data ?? []).map((row) => mapArticle(row));
 }
 
 export async function listSourcesByArticle(articleId: string): Promise<KnowledgeSource[]> {
@@ -200,7 +212,7 @@ export async function listSourcesByArticle(articleId: string): Promise<Knowledge
     .eq("article_id", articleId)
     .order("is_primary_source", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as KnowledgeSource[];
+  return (data ?? []).map((row) => mapSource(row));
 }
 
 export async function getFormulaBySlug(slug: string): Promise<KnowledgeFormula | null> {
@@ -215,7 +227,7 @@ export async function getFormulaBySlug(slug: string): Promise<KnowledgeFormula |
     .eq("review_status", "verified")
     .maybeSingle();
   if (error) throw error;
-  return (data as KnowledgeFormula | null) ?? null;
+  return data ? mapFormula(data) : null;
 }
 
 export async function listPublishedRegulatoryRules(
@@ -232,5 +244,108 @@ export async function listPublishedRegulatoryRules(
   if (category) query = query.eq("category", category);
   const { data, error } = await query;
   if (error) throw error;
-  return (data ?? []) as KnowledgeRegulatoryRule[];
+  return (data ?? []).map((row) => mapRegulatoryRule(row));
+}
+
+// ---- Mappers (JSONB parsers e narrowing de enums) ------------------------
+
+function narrowDifficulty(value: string): Difficulty {
+  return value === "intermediate" || value === "advanced" ? value : "basic";
+}
+
+function narrowReviewStatus(value: string): ReviewStatus {
+  return value === "in_review" || value === "verified" || value === "outdated"
+    ? value
+    : "unverified";
+}
+
+/** Parser explícito do JSONB `content`. Falha silenciosa devolve objeto vazio. */
+function parseArticleContent(raw: KnowledgeArticleRow["content"]): KnowledgeArticleContent {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const obj = raw as Record<string, unknown>;
+  const simple = (obj.simple && typeof obj.simple === "object" ? obj.simple : undefined) as
+    | KnowledgeArticleContent["simple"]
+    | undefined;
+  const detailed = (obj.detailed && typeof obj.detailed === "object" ? obj.detailed : undefined) as
+    | KnowledgeArticleContent["detailed"]
+    | undefined;
+  return { simple, detailed };
+}
+
+function mapTopic(row: Pick<KnowledgeTopicRow, "id" | "slug" | "title" | "description" | "category" | "difficulty" | "sort_order">): KnowledgeTopic {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    description: row.description,
+    category: row.category,
+    difficulty: narrowDifficulty(row.difficulty),
+    sort_order: row.sort_order,
+  };
+}
+
+function mapArticle(row: Pick<KnowledgeArticleRow, "id" | "topic_id" | "title" | "summary" | "content" | "difficulty" | "estimated_minutes" | "jurisdiction" | "version" | "effective_date" | "last_verified_at" | "review_status" | "educational_disclaimer">): KnowledgeArticle {
+  return {
+    id: row.id,
+    topic_id: row.topic_id,
+    title: row.title,
+    summary: row.summary,
+    content: parseArticleContent(row.content),
+    difficulty: narrowDifficulty(row.difficulty),
+    estimated_minutes: row.estimated_minutes,
+    jurisdiction: row.jurisdiction,
+    version: row.version,
+    effective_date: row.effective_date,
+    last_verified_at: row.last_verified_at,
+    review_status: narrowReviewStatus(row.review_status),
+    educational_disclaimer: row.educational_disclaimer,
+  };
+}
+
+function mapSource(row: Pick<KnowledgeSourceRow, "id" | "article_id" | "source_name" | "source_url" | "source_type" | "publication_date" | "accessed_at" | "is_primary_source">): KnowledgeSource {
+  return {
+    id: row.id,
+    article_id: row.article_id,
+    source_name: row.source_name,
+    source_url: row.source_url,
+    source_type: row.source_type,
+    publication_date: row.publication_date,
+    accessed_at: row.accessed_at,
+    is_primary_source: row.is_primary_source,
+  };
+}
+
+function mapFormula(row: Pick<KnowledgeFormulaRow, "id" | "slug" | "title" | "purpose" | "expression" | "input_definition" | "assumptions" | "limitations" | "example" | "version" | "publication_status" | "review_status" | "last_verified_at">): KnowledgeFormula {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    purpose: row.purpose,
+    expression: row.expression,
+    // JSONB opaco por design — consumidores devem validar antes de renderizar.
+    input_definition: row.input_definition,
+    assumptions: row.assumptions,
+    limitations: row.limitations,
+    example: row.example,
+    version: row.version,
+    publication_status: row.publication_status,
+    review_status: narrowReviewStatus(row.review_status),
+    last_verified_at: row.last_verified_at,
+  };
+}
+
+function mapRegulatoryRule(row: Pick<KnowledgeRegulatoryRuleRow, "id" | "jurisdiction" | "category" | "rule_name" | "rule_content" | "effective_date" | "last_verified_at" | "source_url" | "version" | "publication_status" | "review_status">): KnowledgeRegulatoryRule {
+  return {
+    id: row.id,
+    jurisdiction: row.jurisdiction,
+    category: row.category,
+    rule_name: row.rule_name,
+    rule_content: row.rule_content,
+    effective_date: row.effective_date,
+    last_verified_at: row.last_verified_at,
+    source_url: row.source_url,
+    version: row.version,
+    publication_status: row.publication_status,
+    review_status: narrowReviewStatus(row.review_status),
+  };
 }
