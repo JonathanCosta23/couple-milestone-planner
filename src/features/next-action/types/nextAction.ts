@@ -4,6 +4,12 @@
  */
 
 export const NBA_ENGINE_VERSION = "nba-v1";
+/**
+ * Versão da assinatura da condição.
+ * Bump manual quando a semântica da geração de assinatura mudar,
+ * forçando invalidação de todos os estados persistidos anteriores.
+ */
+export const NBA_SIGNATURE_VERSION = "sig-v1";
 
 export type NextActionCategory =
   | "data_quality"
@@ -72,6 +78,13 @@ export interface NextBestAction {
 export interface NextActionCandidate extends Omit<NextBestAction, "id" | "generatedAt" | "engineVersion"> {
   /** Score interno para desempate. Não exibido ao usuário. */
   score: number;
+  /**
+   * Entradas materiais que definem a condição desta ação.
+   * Devem cobrir qualquer dado cuja mudança deva invalidar
+   * o estado persistido (snooze, dismissed, not_applicable, completed).
+   * Não guardar valores financeiros brutos em texto — a assinatura é hash.
+   */
+  signatureInputs?: Record<string, string | number | boolean | null>;
 }
 
 export type UserActionStatus =
@@ -86,10 +99,14 @@ export interface UserActionState {
   actionKey: string;
   status: UserActionStatus;
   snoozedUntil?: string | null;
+  dismissedUntil?: string | null;
   dismissedReason?: string | null;
   completedAt?: string | null;
   firstSeenAt?: string;
   lastSeenAt?: string;
+  conditionSignature?: string | null;
+  conditionVersion?: string | null;
+  lastValidatedAt?: string | null;
 }
 
 export type UserLearningLevel = "beginner" | "basic" | "intermediate" | "advanced";
