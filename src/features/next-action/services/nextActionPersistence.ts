@@ -97,26 +97,38 @@ export async function markActionShown(input: {
 }) {
   if (!input.userId || !input.planId) return;
   const now = new Date().toISOString();
-  // Upsert mínimo: preserva status/snooze/dismiss existentes. `first_seen_at`
-  // usa default do banco na inserção e é preservado nas atualizações porque
-  // não fazemos parte do payload.
-  return supabase
+  // Preserva status/snooze/dismiss/first_seen_at existentes.
+  // Estratégia: tenta UPDATE apenas dos campos de exibição;
+  // se não houver linha, faz INSERT com defaults do banco.
+  const { data: updated, error: updateError } = await supabase
     .from("user_action_state")
-    .upsert(
-      {
-        user_id: input.userId,
-        plan_id: input.planId,
-        action_key: input.actionKey,
-        action_category: input.actionCategory,
-        status: "active",
-        last_seen_at: now,
-        engine_version: NBA_ENGINE_VERSION,
-        condition_signature: input.conditionSignature,
-        condition_version: NBA_SIGNATURE_VERSION,
-        last_validated_at: now,
-      },
-      { onConflict: "user_id,plan_id,action_key", ignoreDuplicates: false },
-    );
+    .update({
+      last_seen_at: now,
+      engine_version: NBA_ENGINE_VERSION,
+      condition_signature: input.conditionSignature,
+      condition_version: NBA_SIGNATURE_VERSION,
+      last_validated_at: now,
+      action_category: input.actionCategory,
+    })
+    .eq("user_id", input.userId)
+    .eq("plan_id", input.planId)
+    .eq("action_key", input.actionKey)
+    .select("id");
+  if (updateError) return { error: updateError };
+  if (updated && updated.length > 0) return { data: updated };
+  return supabase.from("user_action_state").insert({
+    user_id: input.userId,
+    plan_id: input.planId,
+    action_key: input.actionKey,
+    action_category: input.actionCategory,
+    status: "active",
+    first_seen_at: now,
+    last_seen_at: now,
+    engine_version: NBA_ENGINE_VERSION,
+    condition_signature: input.conditionSignature,
+    condition_version: NBA_SIGNATURE_VERSION,
+    last_validated_at: now,
+  });
 }
 
 export type NextActionEventType =
