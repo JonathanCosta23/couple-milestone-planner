@@ -483,3 +483,30 @@ Em cada caso abaixo, a tela deve mostrar título + descrição + CTA claro
 - [ ] Disclaimer educacional aparece em todos os detalhes; termos "compre", "venda", "preço-alvo" não aparecem em copy.
 - [ ] Home permanece simples; nenhuma nova aba principal foi criada.
 - [ ] Usuário anônimo sem sessão não consegue ler os catálogos (RLS restringe a autenticados).
+
+## Motor de Próxima Melhor Ação (Sprint 6)
+
+- [ ] **Home** exibe apenas **uma** ação principal (`NextActionCard`) — sem lista.
+- [ ] "Por que isso?" abre painel com motivo, evidências, cálculo resumido,
+      "se eu adiar" e critério de conclusão.
+- [ ] Prioridade respeitada: dados > dívida cara > orçamento > reserva >
+      execução mensal > FGC > concentração > aprendizado > revisão.
+- [ ] **Determinismo**: mesma entrada gera a mesma ação (chave estável).
+- [ ] **Confiança "insufficient_data"** exibe aviso "orientação depende de
+      informações que ainda precisam ser confirmadas".
+- [ ] **Ausência de dados** gera ação de coleta, nunca conclusão inventada.
+- [ ] **Adiar** (amanhã / próxima semana / próximo mês) oculta a ação até a
+      data escolhida e ela volta quando expira.
+- [ ] **Não se aplica** e **Já resolvi** removem a ação e persistem status.
+- [ ] Ação **completed/dismissed/not_applicable** não reaparece até a condição
+      voltar a mudar.
+- [ ] `user_action_state` só é lido/gravado pelo próprio usuário (RLS).
+- [ ] `user_action_events` não registra valores financeiros, apenas
+      `action_key`, `category`, `event_type`, timestamp e `engine_version`.
+- [ ] Nenhuma ação usa termos proibidos (compre, venda, resgate, transfira,
+      melhor investimento, retorno garantido, liberdade financeira garantida).
+- [ ] Disclaimer educacional aparece no painel expandido.
+- [ ] **Modo casal**: linguagem neutra ("O aporte planejado do segundo
+      participante ainda não foi registrado"), sem culpar nome real.
+- [ ] Reset do plano invalida ações persistidas (via cascade em `plan_id`).
+- [ ] Logout limpa sessão local — a próxima sessão recarrega estados via RLS.

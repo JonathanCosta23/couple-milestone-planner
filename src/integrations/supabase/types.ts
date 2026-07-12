@@ -1768,6 +1768,106 @@ export type Database = {
         }
         Relationships: []
       }
+      user_action_events: {
+        Row: {
+          action_category: string
+          action_key: string
+          created_at: string
+          engine_version: string
+          event_type: string
+          id: string
+          plan_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action_category: string
+          action_key: string
+          created_at?: string
+          engine_version?: string
+          event_type: string
+          id?: string
+          plan_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action_category?: string
+          action_key?: string
+          created_at?: string
+          engine_version?: string
+          event_type?: string
+          id?: string
+          plan_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_action_events_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_action_state: {
+        Row: {
+          action_category: string
+          action_key: string
+          completed_at: string | null
+          created_at: string
+          dismissed_reason: string | null
+          engine_version: string
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          plan_id: string | null
+          snoozed_until: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_category: string
+          action_key: string
+          completed_at?: string | null
+          created_at?: string
+          dismissed_reason?: string | null
+          engine_version?: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          plan_id?: string | null
+          snoozed_until?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_category?: string
+          action_key?: string
+          completed_at?: string | null
+          created_at?: string
+          dismissed_reason?: string | null
+          engine_version?: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          plan_id?: string | null
+          snoozed_until?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_action_state_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_financial_data: {
         Row: {
           app_data: Json

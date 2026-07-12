@@ -8,6 +8,10 @@ import { getCurrentMonthDeposited } from "@/lib/calculator";
 import { generateNudges } from "@/lib/behavioralEngine";
 import { ContextualEducation } from "./ContextualEducation";
 import { FundamentalNextActionCard } from "./FundamentalNextActionCard";
+import { NextActionCard } from "@/features/next-action/components/NextActionCard";
+import { useNextBestAction } from "@/features/next-action/hooks/useNextBestAction";
+import { useAuth } from "@/hooks/useAuth";
+import { usePlan } from "@/hooks/usePlan";
 import { MonthlyExecutiveSummary } from "./MonthlyExecutiveSummary";
 import { MilestoneProgress } from "./MilestoneProgress";
 import {
@@ -58,6 +62,19 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
   const [showFinancials, setShowFinancials] = useState(false);
   const [titularFilter, setTitularFilter] = useState<string>("all");
   const { metrics, insights, allocation, projection } = core;
+
+  // Motor de Próxima Melhor Ação (Sprint 6) — determinístico, com persistência.
+  const { user } = useAuth();
+  const { plan: cloudPlan } = usePlan();
+  const nba = useNextBestAction({
+    userId: user?.id ?? null,
+    planId: cloudPlan?.id ?? null,
+    metrics,
+    appData,
+    config,
+    monthRecords,
+    hasCoreDataLoaded: true,
+  });
 
   const currentMonth = useMemo(() => getCurrentMonthDeposited(config, monthRecords), [config, monthRecords]);
   const nudges = useMemo(() => generateNudges(appData, config, monthRecords, startDate), [appData, config, monthRecords, startDate]);
@@ -162,6 +179,18 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
         onOpenQuickDeposit={onOpenQuickDeposit}
         onNavigateToTab={onNavigateToTab}
       />
+
+      {/* ── Motor determinístico de Próxima Melhor Ação (Sprint 6) ── */}
+      {nba.action && (
+        <NextActionCard
+          action={nba.action}
+          onNavigate={onNavigateToTab}
+          onComplete={nba.complete}
+          onSnooze={nba.snoozeUntil}
+          onDismiss={nba.dismiss}
+          onOpened={() => nba.logEvent("action_opened")}
+        />
+      )}
 
       {/* ── Marcos patrimoniais (orientado a progresso) ── */}
       <MilestoneProgress
