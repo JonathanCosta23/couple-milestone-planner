@@ -130,9 +130,13 @@ export function AuthPage({ onClose, onSuccess, mode: initialMode = "login", show
         )}
 
         <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold text-gradient">
+          <div
+            role="heading"
+            aria-level={2}
+            className="text-2xl font-bold text-gradient"
+          >
             Plano do Milhão — Planejamento Financeiro
-          </h1>
+          </div>
           <p className="text-sm text-muted-foreground">
             {mode === "forgot"
               ? "Recupere o acesso à sua conta"

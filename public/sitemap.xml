@@ -41,6 +41,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://couple-milestone-planner.lovable.app/connect</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
     <loc>https://couple-milestone-planner.lovable.app/.lovable/oauth/consent</loc>
     <changefreq>yearly</changefreq>
     <priority>0.1</priority>

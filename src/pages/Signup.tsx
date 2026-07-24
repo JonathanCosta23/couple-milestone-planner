@@ -8,8 +8,17 @@ export default function Signup() {
     <>
       <Helmet>
         <title>Criar conta · Plano do Milhão</title>
-        <meta name="description" content="Crie sua conta gratuita no Plano do Milhão." />
+        <meta
+          name="description"
+          content="Crie sua conta gratuita no Plano do Milhão e comece a organizar renda, gastos e patrimônio rumo ao primeiro milhão."
+        />
         <meta name="robots" content="noindex, nofollow" />
+        <meta property="og:title" content="Criar conta · Plano do Milhão" />
+        <meta
+          property="og:description"
+          content="Crie sua conta gratuita e comece hoje seu planejamento financeiro do zero ao primeiro milhão."
+        />
+        <meta property="og:url" content="https://couple-milestone-planner.lovable.app/signup" />
       </Helmet>
       <AuthPage
         mode="signup"
