@@ -39,8 +39,17 @@ export default function ForgotPassword() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Helmet>
         <title>Recuperar senha · Plano do Milhão</title>
-        <meta name="description" content="Recupere o acesso à sua conta no Plano do Milhão." />
+        <meta
+          name="description"
+          content="Recupere o acesso à sua conta no Plano do Milhão: enviamos um link seguro por e-mail para redefinir sua senha."
+        />
         <meta name="robots" content="noindex, nofollow" />
+        <meta property="og:title" content="Recuperar senha · Plano do Milhão" />
+        <meta
+          property="og:description"
+          content="Enviamos um link seguro por e-mail para você redefinir sua senha e voltar ao Plano do Milhão."
+        />
+        <meta property="og:url" content="https://couple-milestone-planner.lovable.app/forgot-password" />
       </Helmet>
       <div className="w-full max-w-md space-y-4">
         <Link

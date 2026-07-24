@@ -21,6 +21,10 @@ const NotFound = () => {
         <meta name="robots" content="noindex, follow" />
         <link rel="canonical" href="https://couple-milestone-planner.lovable.app/404" />
         <meta property="og:title" content="Página não encontrada · Plano do Milhão" />
+        <meta
+          property="og:description"
+          content="A página que você procurou não existe no Plano do Milhão. Volte ao início e continue seu planejamento financeiro."
+        />
         <meta property="og:url" content="https://couple-milestone-planner.lovable.app/404" />
       </Helmet>
       <main className="flex min-h-screen items-center justify-center bg-muted">
