@@ -534,7 +534,11 @@ const Index = () => {
                   updatePrimaryProfile: planActions.updatePrimaryProfile,
                   updatePartnerProfile: planActions.updatePartnerProfile,
                 }}
-                onOpenFinancialSetup={() => setShowFinancialSetup(true)}
+                emotionalGoal={data.emotionalGoal}
+                emotionalGoalCustom={data.emotionalGoalCustom}
+                onSaveFinancialProfile={(profile, goal, custom) => {
+                  updateFinancialProfile(profile, goal, custom);
+                }}
                 onExport={exportImport.handleExport}
                 onTriggerImport={exportImport.triggerFilePicker}
                 onSignOut={handleSignOut}
