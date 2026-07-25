@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { ArrowRight, Shield, Heart, Wallet, PiggyBank, HelpCircle } from "lucide-react";
+import { Shield, Heart, Wallet, PiggyBank, HelpCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface FinancialProfileSetupProps {
@@ -30,7 +30,6 @@ function Tip({ text }: { text: string }) {
 }
 
 export function FinancialProfileSetup({ config, profile: initialProfile, emotionalGoal: initialGoal, emotionalGoalCustom: initialCustom, onSave, onSkip }: FinancialProfileSetupProps) {
-  const [step, setStep] = useState(0);
   const [profile, setProfile] = useState<FinancialProfile>(initialProfile || {});
   const [goal, setGoal] = useState<EmotionalGoal>(initialGoal || "liberdade-financeira");
   const [customGoal, setCustomGoal] = useState(initialCustom || "");
@@ -47,8 +46,7 @@ export function FinancialProfileSetup({ config, profile: initialProfile, emotion
 
   return (
     <div className="max-w-lg mx-auto px-4 space-y-6 animate-fade-in-up">
-      {step === 0 && (
-        <Card className="glass-card-strong p-6 space-y-5">
+      <Card className="glass-card-strong p-6 space-y-5">
           <div className="flex items-center gap-2">
             <Wallet className="w-5 h-5 text-primary" />
             <h2 className="text-xl font-bold">Perfil Financeiro</h2>
@@ -163,18 +161,9 @@ export function FinancialProfileSetup({ config, profile: initialProfile, emotion
               )}
             </div>
           )}
+      </Card>
 
-          <div className="flex justify-between pt-2">
-            <Button variant="ghost" size="sm" onClick={onSkip}>Pular</Button>
-            <Button onClick={() => setStep(1)}>
-              Próximo <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      {step === 1 && (
-        <Card className="glass-card-strong p-6 space-y-5">
+      <Card className="glass-card-strong p-6 space-y-5">
           <div className="flex items-center gap-2">
             <Heart className="w-5 h-5 text-primary" />
             <h2 className="text-xl font-bold">Para que é o milhão?</h2>
@@ -204,15 +193,14 @@ export function FinancialProfileSetup({ config, profile: initialProfile, emotion
               onChange={(e) => setCustomGoal(e.target.value)}
             />
           )}
+      </Card>
 
-          <div className="flex justify-between pt-2">
-            <Button variant="ghost" size="sm" onClick={() => setStep(0)}>Voltar</Button>
-            <Button onClick={() => onSave(profile, goal, customGoal)}>
-              <PiggyBank className="w-4 h-4 mr-1" /> Salvar perfil
-            </Button>
-          </div>
-        </Card>
-      )}
+      <div className="flex justify-between pt-2">
+        <Button variant="ghost" size="sm" onClick={onSkip}>Pular</Button>
+        <Button onClick={() => onSave(profile, goal, customGoal)}>
+          <PiggyBank className="w-4 h-4 mr-1" /> Salvar perfil
+        </Button>
+      </div>
     </div>
   );
 }
