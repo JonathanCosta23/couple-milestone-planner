@@ -5,15 +5,20 @@
  * organização visual da seção (Conta, Dados, Notificações, Sessão e Zona
  * de risco). Sem alteração de comportamento.
  */
+import { lazy, Suspense, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, Upload, RotateCcw, Settings, ArrowLeft } from "lucide-react";
+import { Download, Upload, RotateCcw, Settings, ArrowLeft, ChevronDown } from "lucide-react";
 import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
 import { SharePlan } from "@/components/plan/SharePlan";
 import { NotificationSettings } from "@/components/plan/NotificationSettings";
 import { RestoreBackupButton } from "@/components/plan/RestoreBackupButton";
 import { McpConnectionPanel } from "@/components/integrations/McpConnectionPanel";
 import type { AppData } from "@/lib/models";
-import type { PlanConfig, MonthRecord, PlanData } from "@/lib/types";
+import type { PlanConfig, MonthRecord, PlanData, FinancialProfile, EmotionalGoal } from "@/lib/types";
+
+const FinancialProfileSetup = lazy(() =>
+  import("@/components/plan/FinancialProfileSetup").then((m) => ({ default: m.FinancialProfileSetup }))
+);
 
 type NotificationSettingsType = PlanData["notificationSettings"];
 
@@ -32,7 +37,9 @@ export interface SettingsHubProps {
     updatePrimaryProfile: (patch: Partial<AppData["primaryProfile"]>) => Promise<void> | void;
     updatePartnerProfile: (patch: Partial<NonNullable<AppData["partner"]>["profile"]>) => Promise<void> | void;
   };
-  onOpenFinancialSetup: () => void;
+  emotionalGoal?: EmotionalGoal;
+  emotionalGoalCustom?: string;
+  onSaveFinancialProfile: (profile: FinancialProfile, goal: EmotionalGoal, customGoal?: string) => void;
   onExport: () => void;
   onTriggerImport: () => void;
   onSignOut: () => void;
@@ -42,9 +49,10 @@ export interface SettingsHubProps {
 export function SettingsHub({
   appData, config, monthRecords, startDate, financialProfile,
   notificationSettings, onUpdateNotificationSettings,
-  planActions, onOpenFinancialSetup,
+  planActions, emotionalGoal, emotionalGoalCustom, onSaveFinancialProfile,
   onExport, onTriggerImport, onSignOut, onOpenReset,
 }: SettingsHubProps) {
+  const [profileOpen, setProfileOpen] = useState(false);
   return (
     <div className="space-y-6">
       <section className="space-y-2">
@@ -59,9 +67,34 @@ export function SettingsHub({
           onUpdatePrimaryProfile={planActions.updatePrimaryProfile}
           onUpdatePartnerProfile={planActions.updatePartnerProfile}
         />
-        <Button variant="outline" className="w-full justify-start h-12 rounded-xl" onClick={onOpenFinancialSetup}>
-          <Settings className="w-4 h-4 mr-2.5" /> Perfil financeiro
+        <Button
+          variant="outline"
+          className="w-full justify-between h-12 rounded-xl"
+          onClick={() => setProfileOpen((v) => !v)}
+          aria-expanded={profileOpen}
+        >
+          <span className="flex items-center">
+            <Settings className="w-4 h-4 mr-2.5" /> Perfil financeiro
+          </span>
+          <ChevronDown className={`w-4 h-4 transition-transform ${profileOpen ? "rotate-180" : ""}`} />
         </Button>
+        {profileOpen && (
+          <div className="pt-2">
+            <Suspense fallback={<div className="text-sm text-muted-foreground px-1 py-4">Carregando…</div>}>
+              <FinancialProfileSetup
+                config={config}
+                profile={financialProfile as FinancialProfile | undefined}
+                emotionalGoal={emotionalGoal}
+                emotionalGoalCustom={emotionalGoalCustom}
+                onSave={(profile, goal, custom) => {
+                  onSaveFinancialProfile(profile, goal, custom);
+                  setProfileOpen(false);
+                }}
+                onSkip={() => setProfileOpen(false)}
+              />
+            </Suspense>
+          </div>
+        )}
       </section>
 
       <section className="space-y-2">
