@@ -17,6 +17,7 @@
 
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { hmacCpf, isValidCpf, normalizeCpf } from "./cpf.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -50,56 +51,6 @@ function successResponse(payload: Record<string, unknown>): Response {
     status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-}
-
-/**
- * Normaliza CPF removendo qualquer caractere não numérico. NUNCA loga a
- * entrada — só o resultado sanitizado é usado internamente.
- */
-function normalizeCpf(input: unknown): string | null {
-  if (typeof input !== "string") return null;
-  const digits = input.replace(/\D+/g, "");
-  if (digits.length !== 11) return null;
-  return digits;
-}
-
-/**
- * Valida dígitos verificadores + rejeita sequências repetidas
- * (`00000000000`, `11111111111`, etc.) e valores conhecidos como
- * placeholders inválidos.
- */
-function isValidCpf(cpf: string): boolean {
-  if (!/^[0-9]{11}$/.test(cpf)) return false;
-  if (/^(\d)\1{10}$/.test(cpf)) return false;
-  const calcDigit = (base: string, factor: number): number => {
-    let sum = 0;
-    for (let i = 0; i < base.length; i++) {
-      sum += parseInt(base[i], 10) * (factor - i);
-    }
-    const mod = (sum * 10) % 11;
-    return mod === 10 ? 0 : mod;
-  };
-  const d1 = calcDigit(cpf.slice(0, 9), 10);
-  if (d1 !== parseInt(cpf[9], 10)) return false;
-  const d2 = calcDigit(cpf.slice(0, 10), 11);
-  if (d2 !== parseInt(cpf[10], 10)) return false;
-  return true;
-}
-
-async function hmacCpf(cpf: string, secret: string): Promise<string> {
-  const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    enc.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(cpf));
-  const bytes = new Uint8Array(sig);
-  let hex = "";
-  for (const b of bytes) hex += b.toString(16).padStart(2, "0");
-  return hex;
 }
 
 interface AuthContext {
@@ -175,10 +126,6 @@ async function handleSet(
   const cpf = normalizeCpf(cpfInput);
   if (!cpf || !isValidCpf(cpf)) return errorResponse("invalid_cpf");
 
-  const ownership = await ownedMemberOr404(ctx, memberId);
-  if (ownership instanceof Response) return ownership;
-  if (ownership.status === "removed") return errorResponse("member_not_found", 404);
-
   const secret = Deno.env.get("CPF_HMAC_SECRET");
   if (!secret || secret.length < 32) {
     console.error("member-identity.missing_hmac_secret");
@@ -194,47 +141,28 @@ async function handleSet(
   }
   const cpfLast4 = cpf.slice(-4);
 
-  // Bloqueia duplicidade DENTRO do mesmo plano — nunca revela cross-plan.
-  const dup = await ctx.serviceClient
-    .from("plan_member_private_identity")
-    .select("member_id")
-    .eq("plan_id", ownership.planId)
-    .eq("cpf_hmac", cpfHmac)
-    .neq("member_id", memberId)
-    .maybeSingle();
-  if (dup.error) {
-    console.error("member-identity.dup_check_failed");
+  // RPC transacional: valida ownership, membro ativo, duplicidade no plano,
+  // grava HMAC na tabela privada e atualiza cpf_last4/identity_status. Se
+  // qualquer etapa falhar, rollback completo. Nunca retorna cpf_hmac.
+  const rpc = await ctx.serviceClient.rpc("set_plan_member_identity_v1", {
+    p_authenticated_user_id: ctx.userId,
+    p_member_id: memberId,
+    p_cpf_hmac: cpfHmac,
+    p_cpf_last4: cpfLast4,
+    p_hmac_key_version: CPF_HMAC_KEY_VERSION,
+  });
+  if (rpc.error) {
+    const code = (rpc.error as { code?: string; message?: string }).code;
+    const msg = String((rpc.error as { message?: string }).message ?? "");
+    if (code === "23505" || /duplicate_in_plan/.test(msg)) {
+      return errorResponse("duplicate_in_plan", 409);
+    }
+    if (/member_not_found/.test(msg)) return errorResponse("member_not_found", 404);
+    if (/member_not_active/.test(msg)) return errorResponse("member_not_found", 404);
+    if (/invalid_payload/.test(msg)) return errorResponse("invalid_payload");
+    console.error("member-identity.rpc_failed", { code });
     return errorResponse("server_error", 500);
   }
-  if (dup.data) return errorResponse("duplicate_in_plan", 409);
-
-  const upsertPrivate = await ctx.serviceClient
-    .from("plan_member_private_identity")
-    .upsert({
-      member_id: memberId,
-      plan_id: ownership.planId,
-      user_id: ctx.userId,
-      cpf_hmac: cpfHmac,
-      hmac_key_version: CPF_HMAC_KEY_VERSION,
-    }, { onConflict: "member_id" });
-  if (upsertPrivate.error) {
-    // Postgres unique violation em (plan_id, cpf_hmac) — trata como duplicidade.
-    const code = (upsertPrivate.error as { code?: string }).code;
-    if (code === "23505") return errorResponse("duplicate_in_plan", 409);
-    console.error("member-identity.upsert_private_failed", { code });
-    return errorResponse("server_error", 500);
-  }
-
-  const updatePublic = await ctx.serviceClient
-    .from("plan_members")
-    .update({ cpf_last4: cpfLast4, identity_status: "verified" })
-    .eq("id", memberId)
-    .eq("user_id", ctx.userId);
-  if (updatePublic.error) {
-    console.error("member-identity.update_public_failed");
-    return errorResponse("server_error", 500);
-  }
-
   return successResponse({
     member_id: memberId,
     cpf_last4: cpfLast4,

@@ -1,53 +1,23 @@
 /**
- * Testes puros da lógica de CPF (validação + HMAC) da Edge Function
- * `member-identity`. Reimplementamos as funções aqui, isoladas do fetch,
- * para rodar sem dependência do runtime Supabase.
+ * Testes da lógica compartilhada de CPF. Importa a implementação real de
+ * `./cpf.ts` — nada é duplicado no teste.
  */
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-
-function normalizeCpf(input: unknown): string | null {
-  if (typeof input !== "string") return null;
-  const digits = input.replace(/\D+/g, "");
-  if (digits.length !== 11) return null;
-  return digits;
-}
-
-function isValidCpf(cpf: string): boolean {
-  if (!/^[0-9]{11}$/.test(cpf)) return false;
-  if (/^(\d)\1{10}$/.test(cpf)) return false;
-  const calcDigit = (base: string, factor: number): number => {
-    let sum = 0;
-    for (let i = 0; i < base.length; i++) {
-      sum += parseInt(base[i], 10) * (factor - i);
-    }
-    const mod = (sum * 10) % 11;
-    return mod === 10 ? 0 : mod;
-  };
-  const d1 = calcDigit(cpf.slice(0, 9), 10);
-  if (d1 !== parseInt(cpf[9], 10)) return false;
-  const d2 = calcDigit(cpf.slice(0, 10), 11);
-  if (d2 !== parseInt(cpf[10], 10)) return false;
-  return true;
-}
-
-async function hmacCpf(cpf: string, secret: string): Promise<string> {
-  const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw", enc.encode(secret),
-    { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(cpf));
-  const bytes = new Uint8Array(sig);
-  let hex = "";
-  for (const b of bytes) hex += b.toString(16).padStart(2, "0");
-  return hex;
-}
+import { hmacCpf, isValidCpf, normalizeCpf } from "./cpf.ts";
 
 Deno.test("normalizeCpf strips non-digits and enforces length", () => {
   assertEquals(normalizeCpf("123.456.789-09"), "12345678909");
+  assertEquals(normalizeCpf("529 982 247-25"), "52998224725");
   assertEquals(normalizeCpf("123"), null);
   assertEquals(normalizeCpf(""), null);
   assertEquals(normalizeCpf(123 as unknown as string), null);
+});
+
+Deno.test("normalizeCpf rejects entries with letters or symbols", () => {
+  // 11 dígitos válidos escondidos entre letras — não deve normalizar.
+  assertEquals(normalizeCpf("5a2b9c9d8e2f2g4h7i2j5"), null);
+  assertEquals(normalizeCpf("cpf:52998224725"), null);
+  assertEquals(normalizeCpf("52998224725x"), null);
 });
 
 Deno.test("isValidCpf accepts a known-valid CPF", () => {
