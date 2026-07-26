@@ -255,6 +255,61 @@ const Index = () => {
     if (!data.financialProfile) setShowFinancialSetup(true);
   }, [planActions, data.financialProfile]);
 
+  // Writer direto para "Plano e meta" (Configurações). Atualiza plano na nuvem
+  // e refaz o estado local (config + emotionalGoal) sem tocar em membros.
+  const planWriter = usePlanWriter();
+  const handleSavePlanSettings = useCallback(async (patch: {
+    goalAmount: number; initialAmount: number; monthlyContribution: number;
+    goalYears: number; goalPurpose: import("@/lib/types").EmotionalGoal;
+    goalPurposeCustom?: string;
+  }) => {
+    // 1) Local: config + emotionalGoal (refletir na Home/Simulador/Projeção).
+    const current = data.config;
+    const currentTotal = current.contributors.reduce(
+      (s, c) => s + c.plannedSelic + c.plannedCDB, 0,
+    );
+    let contributors = current.contributors;
+    if (patch.monthlyContribution !== currentTotal) {
+      if (currentTotal > 0) {
+        const factor = patch.monthlyContribution / currentTotal;
+        contributors = current.contributors.map((c) => ({
+          ...c,
+          plannedSelic: Math.round(c.plannedSelic * factor * 100) / 100,
+          plannedCDB: Math.round(c.plannedCDB * factor * 100) / 100,
+        }));
+      } else {
+        contributors = current.contributors.map((c, i) =>
+          i === 0 ? { ...c, plannedSelic: patch.monthlyContribution } : c,
+        );
+      }
+    }
+    updateConfig({
+      ...current,
+      initialAmount: patch.initialAmount,
+      targetAmount: patch.goalAmount,
+      years: patch.goalYears,
+      contributors,
+    });
+    updateFinancialProfile(
+      data.financialProfile ?? {},
+      patch.goalPurpose,
+      patch.goalPurposeCustom,
+    );
+
+    // 2) Nuvem: só quando o plano existe.
+    if (!cloudPlanRow?.id) return;
+    const result = await planWriter.updatePlan(cloudPlanRow.id, {
+      goalAmount: patch.goalAmount,
+      initialAmount: patch.initialAmount,
+      monthlyContribution: patch.monthlyContribution,
+      goalYears: patch.goalYears,
+      goalPurpose: patch.goalPurpose,
+      goalPurposeCustom: patch.goalPurposeCustom ?? null,
+    });
+    if (result.error) throw new Error(result.error);
+    await refreshCloudPlan();
+  }, [data.config, data.financialProfile, updateConfig, updateFinancialProfile, cloudPlanRow?.id, planWriter, refreshCloudPlan]);
+
 
 
 
