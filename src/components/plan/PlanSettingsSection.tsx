@@ -95,7 +95,9 @@ export function PlanSettingsSection({
     setOpen(true);
     // Scroll suave após o próximo paint.
     const t = window.setTimeout(() => {
-      rootRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (typeof rootRef.current?.scrollIntoView === "function") {
+        rootRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
       onAutoExpandConsumed?.();
     }, 60);
     return () => window.clearTimeout(t);
