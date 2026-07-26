@@ -510,3 +510,31 @@ Em cada caso abaixo, a tela deve mostrar título + descrição + CTA claro
       participante ainda não foi registrado"), sem culpar nome real.
 - [ ] Reset do plano invalida ações persistidas (via cascade em `plan_id`).
 - [ ] Logout limpa sessão local — a próxima sessão recarrega estados via RLS.
+
+## Central MCP (Passo 3.1)
+
+- [ ] `/connect` não expõe blocos duplicados de "URL do servidor", "Integração
+      somente leitura" ou "Dados acessíveis" — tudo vem do `McpConnectionPanel`.
+- [ ] Usuário deslogado em `/connect` é redirecionado para `/login?redirect=/connect`
+      e volta à Central após autenticar.
+- [ ] Login só honra `redirect` de destinos internos allowlistados
+      (`/`, `/connect`); URLs absolutas, `//host`, `javascript:` e `data:`
+      caem no fallback `/`.
+- [ ] Nenhuma mensagem de erro exibe texto cru do provedor OAuth — apenas
+      cópias mapeadas a partir de códigos seguros (`grants_load_failed`,
+      `grant_revoke_failed`, `oauth_unavailable`, `invalid_grant_response`).
+- [ ] `clientId` (UUID técnico) não aparece na UI; grants exibem apenas
+      nome, data traduzida em pt-BR e escopos amigáveis.
+- [ ] Escopos são exibidos por rótulo humano (`Identidade da conta`,
+      `Acesso autenticado…`); escopos desconhecidos viram "Permissão adicional".
+- [ ] Revogar acesso pede confirmação em `AlertDialog`, recarrega a lista
+      após o servidor confirmar e nunca remove o item de forma otimista.
+- [ ] Botão "Sair e conectar outra conta" abre confirmação explícita
+      mostrando o e-mail da conta atual antes de encerrar a sessão.
+- [ ] `endpointAvailable` falso mostra aviso `role="alert"` sem quebrar
+      o restante do painel; nenhuma URL `https://.supabase.co` é exibida.
+- [ ] Área "Assistentes autorizados" tem `aria-busy`, região `aria-live="polite"`
+      e mensagens de erro em `role="alert"` `aria-live="assertive"`.
+- [ ] Link "Ver passo a passo" usa `Button asChild` envolvendo `Link` (sem
+      aninhar `<a>` dentro de `<button>`).
+- [ ] Links externos para ChatGPT/Claude usam `rel="noopener noreferrer"`.
