@@ -80,6 +80,7 @@ import { useCelebratedMilestones } from "@/hooks/useCelebratedMilestones";
 import { useInsightsLog } from "@/hooks/useInsightsLog";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { useExportImport } from "@/hooks/useExportImport";
+import { usePlanWriter } from "@/hooks/usePlanWriter";
 import { AppHeader } from "@/components/plan/AppHeader";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
@@ -173,6 +174,7 @@ const Index = () => {
     navSection, execucaoSub, patrimonioSub, projecaoSub, maisSub,
     setNavSection, setExecucaoSub, setPatrimonioSub, setProjecaoSub, setMaisSub,
     goToSection, navigateToTab: handleNavigateToTab,
+    settingsFocus, clearSettingsFocus,
   } = useAppNavigation();
   const exportImport = useExportImport({ data, exportJSON, importJSON });
   const fileInputRef = exportImport.fileInputRef;
