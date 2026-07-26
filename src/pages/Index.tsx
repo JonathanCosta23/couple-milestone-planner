@@ -307,6 +307,18 @@ const Index = () => {
     toast.success("Até logo! 👋");
   };
 
+  // Navegador da SPA usado exclusivamente para o fluxo dedicado de troca de
+  // conta MCP — NÃO reaproveita o logout genérico (`handleSignOut`) para
+  // preservar a separação de intenções.
+  const navigate = useNavigate();
+  const handleMcpSwitchAccount = useCallback(async () => {
+    await performMcpSwitchAccount({
+      userId: user?.id,
+      signOut,
+      navigate: (to) => navigate(to, { replace: true }),
+    });
+  }, [user?.id, signOut, navigate]);
+
   // Milestone popup: only fires for REALIZED wealth, never projected
   const newMilestone = useMemo(() => {
     const queue = core.milestones.celebrationQueue;
@@ -590,6 +602,7 @@ const Index = () => {
                 onExport={exportImport.handleExport}
                 onTriggerImport={exportImport.triggerFilePicker}
                 onSignOut={handleSignOut}
+                onSwitchAccount={handleMcpSwitchAccount}
                 onOpenReset={() => setShowResetDialog(true)}
               />
             )}
