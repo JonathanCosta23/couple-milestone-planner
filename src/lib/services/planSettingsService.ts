@@ -14,6 +14,7 @@
  */
 import type { PlanConfig, FinancialProfile, EmotionalGoal } from "@/lib/types";
 import { distributeMonthlyContribution } from "@/lib/utils/contributionDistribution";
+import { logger } from "@/lib/logger";
 
 export interface PlanSettingsPatch {
   goalAmount: number;
@@ -89,8 +90,19 @@ export async function savePlanSettings(deps: SavePlanSettingsDeps): Promise<void
     throw new Error(result.error);
   }
 
-  // 2) Reidratação da fonte de verdade cloud.
-  await refreshCloudPlan();
+  // 2) Reidratação da fonte de verdade cloud. A gravação já foi confirmada
+  //    pelo writer, então uma falha aqui é apenas latência/rede: registramos
+  //    como warning e seguimos aplicando o estado local para não desfazer
+  //    o que já está persistido.
+  try {
+    await refreshCloudPlan();
+  } catch (err) {
+    logger.warn(
+      "planSettings.refresh_after_save_failed",
+      { cloudPlanId },
+      err,
+    );
+  }
 
   // 3) Estado local — só após confirmação cloud.
   const { contributors } = distributeMonthlyContribution(
