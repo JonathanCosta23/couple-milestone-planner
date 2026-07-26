@@ -56,6 +56,8 @@ export interface SettingsHubProps {
   onExport: () => void;
   onTriggerImport: () => void;
   onSignOut: () => void;
+  /** Fluxo específico de troca de conta MCP (limpeza + signOut + /login?redirect=/connect). */
+  onSwitchAccount: () => void | Promise<void>;
   onOpenReset: () => void;
 }
 
@@ -65,7 +67,7 @@ export function SettingsHub({
   planActions, emotionalGoal, emotionalGoalCustom, onSaveFinancialProfile,
   planSettingsInitial, onSavePlanSettings, planCloudReady,
   settingsFocus, onSettingsFocusHandled,
-  onExport, onTriggerImport, onSignOut, onOpenReset,
+  onExport, onTriggerImport, onSignOut, onSwitchAccount, onOpenReset,
 }: SettingsHubProps) {
   const [profileOpen, setProfileOpen] = useState(false);
   return (
@@ -151,7 +153,7 @@ export function SettingsHub({
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
           Integrações
         </h3>
-        <McpConnectionPanel onSignOut={onSignOut} />
+        <McpConnectionPanel onSwitchAccount={onSwitchAccount} />
       </section>
 
       <section className="space-y-2">

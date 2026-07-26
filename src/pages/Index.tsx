@@ -89,7 +89,8 @@ import { AppHeader } from "@/components/plan/AppHeader";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
+import { performMcpSwitchAccount } from "@/lib/mcp/switchAccount";
 import { ErrorBoundary } from "@/components/system/ErrorBoundary";
 import { OfflineBanner } from "@/components/system/OfflineBanner";
 
