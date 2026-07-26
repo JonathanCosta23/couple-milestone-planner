@@ -536,7 +536,7 @@ const Index = () => {
               <ProjectionRealistic appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
             {sub === "simulador" && (
-              <AdvancedSimulator appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
+              <AdvancedSimulator appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} onNavigateToTab={handleNavigateToTab} />
             )}
             {sub === "cdi" && (
               <CdiCalculator />
