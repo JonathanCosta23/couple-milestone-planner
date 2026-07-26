@@ -5,13 +5,27 @@ import { Button } from "@/components/ui/button";
 import { Check, Copy, Plug, ShieldCheck, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { AuthPage } from "@/components/auth/AuthPage";
+import { McpConnectionPanel } from "@/components/integrations/McpConnectionPanel";
+import { logger } from "@/lib/logger";
 
 const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? "";
 const mcpUrl = `https://${projectRef}.supabase.co/functions/v1/mcp`;
 
 export default function Connect() {
   const [copied, setCopied] = useState(false);
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
+
+  async function handleSignOut() {
+    if (user?.id) {
+      try {
+        const { clearAll } = await import("@/lib/offlineQueue");
+        await clearAll(user.id);
+      } catch (err) {
+        logger.warn("connect.signOut.offlineQueue.clear.fail", { userId: user.id }, err);
+      }
+    }
+    await signOut();
+  }
 
   async function copyUrl() {
     try {
@@ -83,6 +97,8 @@ export default function Connect() {
             as suas permissões.
           </p>
         </header>
+
+        <McpConnectionPanel onSignOut={handleSignOut} />
 
         <Card className="border-primary/30">
           <CardHeader className="space-y-2">
