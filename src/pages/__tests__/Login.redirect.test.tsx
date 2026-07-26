@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 
@@ -30,22 +30,28 @@ function renderAt(initialEntry: string) {
 }
 
 describe("Login redirect", () => {
-  it("navega para /connect quando redirect=/connect", () => {
+  it("navega para /connect quando redirect=/connect", async () => {
     renderAt("/login?redirect=%2Fconnect");
     expect(capturedOnSuccess).not.toBeNull();
-    capturedOnSuccess?.();
+    await act(async () => {
+      capturedOnSuccess?.();
+    });
     expect(screen.getByTestId("connect")).toBeInTheDocument();
   });
 
-  it("ignora redirect inválido e volta para /", () => {
+  it("ignora redirect inválido e volta para /", async () => {
     renderAt("/login?redirect=https%3A%2F%2Fevil.com");
-    capturedOnSuccess?.();
+    await act(async () => {
+      capturedOnSuccess?.();
+    });
     expect(screen.getByTestId("home")).toBeInTheDocument();
   });
 
-  it("ignora redirect fora da allowlist", () => {
+  it("ignora redirect fora da allowlist", async () => {
     renderAt("/login?redirect=%2Fadmin");
-    capturedOnSuccess?.();
+    await act(async () => {
+      capturedOnSuccess?.();
+    });
     expect(screen.getByTestId("home")).toBeInTheDocument();
   });
 });
