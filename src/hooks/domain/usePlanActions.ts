@@ -44,18 +44,12 @@ export function usePlanActions(deps: Deps): PlanActions {
   const writer = usePlanWriter();
 
   const completeWizard = useCallback<PlanActions["completeWizard"]>(async (config) => {
-    completeWizardLocal(config);
     const primary = config.contributors[0];
     const partner = config.contributors[1];
 
-    if (primary?.name) updatePrimaryProfileLocal({ name: primary.name });
-    if (partner?.name) {
-      if (!appData.partner || appData.partner.removedAt) addPartnerLocal(partner.name);
-      else { updatePartnerProfileLocal({ name: partner.name }); setModeLocal("casal"); }
-    } else if (appData.partner && !appData.partner.removedAt) {
-      setModeLocal("individual");
-    }
-
+    // Cloud-first: com usuário logado, PRIMEIRO grava plano+membros na
+    // nuvem via RPC transacional. Só depois aplica estado local. Falha
+    // cloud não pode mexer em primaryProfile, mode ou partner locais.
     if (user) {
       const mode: PlanMode = partner?.name ? "casal" : "individual";
       const totalMonthly = config.contributors.reduce((s, c) => s + c.plannedSelic + c.plannedCDB, 0);
@@ -71,8 +65,30 @@ export function usePlanActions(deps: Deps): PlanActions {
         partnerAge: partner?.age ?? null,
         wizardComplete: true,
       });
-      if (result.error) toast.error(`Falha ao salvar plano na nuvem: ${toFriendlyError(result.error)}`);
-      else await refreshCloudPlan();
+      if (result.error) {
+        toast.error(`Falha ao salvar plano na nuvem: ${toFriendlyError(result.error)}`);
+        return { needsFinancialSetup: false };
+      }
+      // Sucesso na nuvem — aplica estado local para espelhar.
+      completeWizardLocal(config);
+      if (primary?.name) updatePrimaryProfileLocal({ name: primary.name });
+      if (partner?.name) {
+        if (!appData.partner || appData.partner.removedAt) addPartnerLocal(partner.name);
+        else { updatePartnerProfileLocal({ name: partner.name }); setModeLocal("casal"); }
+      } else if (appData.partner && !appData.partner.removedAt) {
+        setModeLocal("individual");
+      }
+      await refreshCloudPlan();
+    } else {
+      // Fluxo pré-login preservado: aplica local (rota de demonstração).
+      completeWizardLocal(config);
+      if (primary?.name) updatePrimaryProfileLocal({ name: primary.name });
+      if (partner?.name) {
+        if (!appData.partner || appData.partner.removedAt) addPartnerLocal(partner.name);
+        else { updatePartnerProfileLocal({ name: partner.name }); setModeLocal("casal"); }
+      } else if (appData.partner && !appData.partner.removedAt) {
+        setModeLocal("individual");
+      }
     }
 
     return { needsFinancialSetup: !appData };
@@ -124,25 +140,33 @@ export function usePlanActions(deps: Deps): PlanActions {
   }, [removePartnerLocal, user, cloudPlan, writer, refreshCloudPlan]);
 
   const updatePrimaryProfile = useCallback<PlanActions["updatePrimaryProfile"]>(async (profile) => {
-    updatePrimaryProfileLocal(profile);
-    if (!user || !primaryMember) return;
+    // Cloud-first quando houver membro na nuvem — evita nome/idade local
+    // "confirmado" enquanto o banco continua com o valor anterior.
+    if (!user || !primaryMember) { updatePrimaryProfileLocal(profile); return; }
     const result = await writer.updateMember(primaryMember.id, {
       name: profile.name ?? primaryMember.name,
       age: profile.age ?? primaryMember.age,
     });
-    if (result.error) toast.error(`Falha ao atualizar titular: ${toFriendlyError(result.error)}`);
-    else await refreshCloudPlan();
+    if (result.error) {
+      toast.error(`Falha ao atualizar titular: ${toFriendlyError(result.error)}`);
+      return;
+    }
+    updatePrimaryProfileLocal(profile);
+    await refreshCloudPlan();
   }, [updatePrimaryProfileLocal, user, primaryMember, writer, refreshCloudPlan]);
 
   const updatePartnerProfile = useCallback<PlanActions["updatePartnerProfile"]>(async (profile) => {
-    updatePartnerProfileLocal(profile);
-    if (!user || !partnerMember) return;
+    if (!user || !partnerMember) { updatePartnerProfileLocal(profile); return; }
     const result = await writer.updateMember(partnerMember.id, {
       name: profile.name ?? partnerMember.name,
       age: profile.age ?? partnerMember.age,
     });
-    if (result.error) toast.error(`Falha ao atualizar parceiro: ${toFriendlyError(result.error)}`);
-    else await refreshCloudPlan();
+    if (result.error) {
+      toast.error(`Falha ao atualizar parceiro: ${toFriendlyError(result.error)}`);
+      return;
+    }
+    updatePartnerProfileLocal(profile);
+    await refreshCloudPlan();
   }, [updatePartnerProfileLocal, user, partnerMember, writer, refreshCloudPlan]);
 
   return { completeWizard, setMode, addPartner, removePartner, updatePrimaryProfile, updatePartnerProfile };
