@@ -11,25 +11,25 @@ import {
 
 describe("parseAddPartnerPayload", () => {
   it("rejeita null", () => {
-    expect(parseAddPartnerPayload(null)).toEqual({ ok: false, error: "invalid_rpc_payload" });
+    expect(parseAddPartnerPayload(null)).toEqual({ ok: false, value: null, error: "invalid_rpc_payload" });
   });
   it("rejeita undefined", () => {
-    expect(parseAddPartnerPayload(undefined)).toEqual({ ok: false, error: "invalid_rpc_payload" });
+    expect(parseAddPartnerPayload(undefined)).toEqual({ ok: false, value: null, error: "invalid_rpc_payload" });
   });
   it("rejeita string", () => {
-    expect(parseAddPartnerPayload("oops")).toEqual({ ok: false, error: "invalid_rpc_payload" });
+    expect(parseAddPartnerPayload("oops")).toEqual({ ok: false, value: null, error: "invalid_rpc_payload" });
   });
   it("rejeita chaves ausentes", () => {
-    expect(parseAddPartnerPayload({ plan_id: "p1" })).toEqual({ ok: false, error: "invalid_rpc_payload" });
-    expect(parseAddPartnerPayload({ plan_id: "p1", mode: "casal" })).toEqual({ ok: false, error: "invalid_rpc_payload" });
+    expect(parseAddPartnerPayload({ plan_id: "p1" })).toEqual({ ok: false, value: null, error: "invalid_rpc_payload" });
+    expect(parseAddPartnerPayload({ plan_id: "p1", mode: "casal" })).toEqual({ ok: false, value: null, error: "invalid_rpc_payload" });
   });
   it("rejeita tipos incorretos", () => {
-    expect(parseAddPartnerPayload({ plan_id: 1, mode: "casal", partner_id: "x" })).toEqual({ ok: false, error: "invalid_rpc_payload" });
-    expect(parseAddPartnerPayload({ plan_id: "p1", mode: "solo", partner_id: "x" })).toEqual({ ok: false, error: "invalid_rpc_payload" });
+    expect(parseAddPartnerPayload({ plan_id: 1, mode: "casal", partner_id: "x" })).toEqual({ ok: false, value: null, error: "invalid_rpc_payload" });
+    expect(parseAddPartnerPayload({ plan_id: "p1", mode: "solo", partner_id: "x" })).toEqual({ ok: false, value: null, error: "invalid_rpc_payload" });
   });
   it("aceita payload válido", () => {
     const r = parseAddPartnerPayload({ plan_id: "p1", mode: "casal", partner_id: "m2", partner: {} });
-    expect(r).toEqual({ ok: true, value: { planId: "p1", mode: "casal", partnerId: "m2" } });
+    expect(r).toEqual({ ok: true, value: { planId: "p1", mode: "casal", partnerId: "m2", error: null } });
   });
 });
 
@@ -55,8 +55,8 @@ describe("parseRemovePartnerPayload", () => {
 
 describe("parseNormalizePayload", () => {
   it("aceita mode válido", () => {
-    expect(parseNormalizePayload({ mode: "casal" })).toEqual({ ok: true, value: { mode: "casal" } });
-    expect(parseNormalizePayload({ mode: "individual" })).toEqual({ ok: true, value: { mode: "individual" } });
+    expect(parseNormalizePayload({ mode: "casal" })).toEqual({ ok: true, value: { mode: "casal", error: null } });
+    expect(parseNormalizePayload({ mode: "individual" })).toEqual({ ok: true, value: { mode: "individual", error: null } });
   });
   it("rejeita mode ausente ou inválido", () => {
     expect(parseNormalizePayload({}).ok).toBe(false);
