@@ -114,6 +114,34 @@ export function useAppNavigation() {
         scrollTop();
         return;
       }
+      // Se `rawTab` for o próprio nome de uma seção, roteia direto para ela
+      // com a sub explícita (quando válida).
+      const sectionCandidates: NavSection[] = [
+        "inicio", "execucao", "patrimonio", "projecao", "mais",
+      ];
+      if ((sectionCandidates as string[]).includes(rawTab)) {
+        const targetSection = rawTab as NavSection;
+        setNavSection(targetSection);
+        if (rawSub) {
+          const sub = resolveAlias(rawSub);
+          switch (targetSection) {
+            case "execucao":
+              if ((EXECUCAO_TABS as readonly string[]).includes(sub)) setExecucaoSub(sub);
+              break;
+            case "patrimonio":
+              if ((PATRIMONIO_TABS as readonly string[]).includes(sub)) setPatrimonioSub(sub);
+              break;
+            case "projecao":
+              if ((PROJECAO_TABS as readonly string[]).includes(sub)) setProjecaoSub(sub);
+              break;
+            case "mais":
+              if ((MAIS_TABS as readonly string[]).includes(sub)) setMaisSub(sub);
+              break;
+          }
+        }
+        scrollTop();
+        return;
+      }
       const tab = resolveAlias(rawTab);
       const section = sectionForTab(tab);
       if (!section) {
