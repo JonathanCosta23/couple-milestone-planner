@@ -335,15 +335,6 @@ function FeatureCard({
   );
 }
 
-function Bullet({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border border-border/50 bg-card/30 p-4">
-      <div className="text-sm font-semibold">{title}</div>
-      <p className="mt-1 text-sm text-muted-foreground leading-relaxed">{children}</p>
-    </div>
-  );
-}
-
 function DoItem({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-start gap-3 rounded-xl border border-border/50 bg-card/30 p-4">
