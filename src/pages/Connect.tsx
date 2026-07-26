@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Plug, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { McpConnectionPanel } from "@/components/integrations/McpConnectionPanel";
-import { logger } from "@/lib/logger";
+import { performMcpSwitchAccount } from "@/lib/mcp/switchAccount";
 
 /**
  * Connect — Central MCP consolidada.
@@ -28,17 +28,12 @@ export default function Connect() {
     }
   }, [authLoading, user, navigate]);
 
-  async function handleSignOut() {
-    if (user?.id) {
-      try {
-        const { clearAll } = await import("@/lib/offlineQueue");
-        await clearAll(user.id);
-      } catch (err) {
-        logger.warn("connect.signOut.offlineQueue.clear.fail", { userId: user.id }, err);
-      }
-    }
-    await signOut();
-    navigate("/login?redirect=%2Fconnect", { replace: true });
+  async function handleSwitchAccount() {
+    await performMcpSwitchAccount({
+      userId: user?.id,
+      signOut,
+      navigate: (to) => navigate(to, { replace: true }),
+    });
   }
 
   if (authLoading || !user) {
@@ -85,7 +80,7 @@ export default function Connect() {
           </p>
         </header>
 
-        <McpConnectionPanel onSignOut={handleSignOut} />
+        <McpConnectionPanel onSwitchAccount={handleSwitchAccount} />
 
         <Card>
           <CardHeader>
