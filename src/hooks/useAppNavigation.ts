@@ -13,10 +13,11 @@ import type { NavSection } from "@/components/plan/BottomNav";
 
 export const EXECUCAO_TABS = ["mensal", "renda", "gastos", "dividas", "disciplina"] as const;
 export const PATRIMONIO_TABS = ["ativos", "concentracao", "estrutura"] as const;
-export const PROJECAO_TABS = ["projecao", "simulador", "jornada"] as const;
+export const PROJECAO_TABS = ["projecao", "simulador", "cdi", "jornada"] as const;
 export const MAIS_TABS = [
   "aprender",
   "glossario",
+  "calculadoras",
   "armadilhas",
   "investir",
   "saude",
