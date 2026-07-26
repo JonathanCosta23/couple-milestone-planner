@@ -596,6 +596,19 @@ const Index = () => {
                 onSaveFinancialProfile={(profile, goal, custom) => {
                   updateFinancialProfile(profile, goal, custom);
                 }}
+                planSettingsInitial={{
+                  goalAmount: data.config.targetAmount,
+                  initialAmount: data.config.initialAmount,
+                  monthlyContribution: data.config.contributors.reduce(
+                    (s, c) => s + c.plannedSelic + c.plannedCDB, 0,
+                  ),
+                  goalYears: data.config.years,
+                  goalPurpose: data.emotionalGoal ?? "liberdade-financeira",
+                  goalPurposeCustom: data.emotionalGoalCustom,
+                }}
+                onSavePlanSettings={handleSavePlanSettings}
+                settingsFocus={settingsFocus}
+                onSettingsFocusHandled={clearSettingsFocus}
                 onExport={exportImport.handleExport}
                 onTriggerImport={exportImport.triggerFilePicker}
                 onSignOut={handleSignOut}
