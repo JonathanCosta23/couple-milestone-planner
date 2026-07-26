@@ -26,6 +26,8 @@ const files = walk("src");
 // tabela privada ou o segredo HMAC diretamente.
 const WHITELIST = new Set<string>([
   "src/lib/mcp/__tests__/cpfExposure.test.ts",
+  // Types gerados pelo Supabase apenas declaram o schema — não são uso.
+  "src/integrations/supabase/types.ts",
 ]);
 
 describe("CPF exposure — client hygiene", () => {
