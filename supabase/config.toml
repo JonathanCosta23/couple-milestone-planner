@@ -1,1 +1,7 @@
 project_id = "mppggukimaifwhuydwcq"
+
+# Endpoint que grava/verifica identidade (CPF em HMAC). Exige JWT válido
+# — subimos a proteção acima do default `verify_jwt = false` para reduzir
+# superfície de abuso, mesmo com validação interna também presente.
+[functions.member-identity]
+verify_jwt = true

@@ -1538,43 +1538,106 @@ export type Database = {
           },
         ]
       }
+      plan_member_private_identity: {
+        Row: {
+          cpf_hmac: string
+          created_at: string
+          hmac_key_version: string
+          member_id: string
+          plan_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cpf_hmac: string
+          created_at?: string
+          hmac_key_version: string
+          member_id: string
+          plan_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cpf_hmac?: string
+          created_at?: string
+          hmac_key_version?: string
+          member_id?: string
+          plan_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_member_private_identity_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "plan_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_member_private_identity_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_members: {
         Row: {
           age: number | null
           avatar_color: string | null
+          cpf_last4: string | null
           created_at: string
           id: string
+          identity_status: string
           is_active: boolean
           is_primary: boolean
+          joined_at: string
+          linked_auth_user_id: string | null
           name: string
           plan_id: string
+          removed_at: string | null
           role: string
+          status: string
           updated_at: string
           user_id: string
         }
         Insert: {
           age?: number | null
           avatar_color?: string | null
+          cpf_last4?: string | null
           created_at?: string
           id?: string
+          identity_status?: string
           is_active?: boolean
           is_primary?: boolean
+          joined_at?: string
+          linked_auth_user_id?: string | null
           name?: string
           plan_id: string
+          removed_at?: string | null
           role?: string
+          status?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           age?: number | null
           avatar_color?: string | null
+          cpf_last4?: string | null
           created_at?: string
           id?: string
+          identity_status?: string
           is_active?: boolean
           is_primary?: boolean
+          joined_at?: string
+          linked_auth_user_id?: string | null
           name?: string
           plan_id?: string
+          removed_at?: string | null
           role?: string
+          status?: string
           updated_at?: string
           user_id?: string
         }
