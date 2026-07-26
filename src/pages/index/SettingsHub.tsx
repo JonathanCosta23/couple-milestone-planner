@@ -48,6 +48,8 @@ export interface SettingsHubProps {
   /** Estado inicial e handler da nova seção "Plano e meta". */
   planSettingsInitial: PlanSettingsInitial;
   onSavePlanSettings: (patch: PlanSettingsPatch) => Promise<void>;
+  /** `true` quando o plano cloud está pronto para receber updates. */
+  planCloudReady?: boolean;
   /** Deep-link opcional (ex.: "plano-meta") vindo de useAppNavigation. */
   settingsFocus?: string | null;
   onSettingsFocusHandled?: () => void;
@@ -61,7 +63,7 @@ export function SettingsHub({
   appData, config, monthRecords, startDate, financialProfile,
   notificationSettings, onUpdateNotificationSettings,
   planActions, emotionalGoal, emotionalGoalCustom, onSaveFinancialProfile,
-  planSettingsInitial, onSavePlanSettings,
+  planSettingsInitial, onSavePlanSettings, planCloudReady,
   settingsFocus, onSettingsFocusHandled,
   onExport, onTriggerImport, onSignOut, onOpenReset,
 }: SettingsHubProps) {
@@ -85,6 +87,7 @@ export function SettingsHub({
           onSave={onSavePlanSettings}
           autoExpand={settingsFocus === "plano-meta"}
           onAutoExpandConsumed={onSettingsFocusHandled}
+          cloudReady={planCloudReady}
         />
         <Button
           variant="outline"
