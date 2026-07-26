@@ -98,3 +98,42 @@ describe("useAppNavigation", () => {
     expect(result.current.settingsFocus).toBeNull();
   });
 });
+
+describe("useAppNavigation — destinos CDI e Calculadoras", () => {
+  it("navigateToTab('cdi') abre Projeção → CDI", () => {
+    const { result } = renderHook(() => useAppNavigation());
+    act(() => result.current.navigateToTab("cdi"));
+    expect(result.current.navSection).toBe("projecao");
+    expect(result.current.projecaoSub).toBe("cdi");
+  });
+
+  it("navigateToTab('projecao','cdi') abre Projeção → CDI", () => {
+    const { result } = renderHook(() => useAppNavigation());
+    act(() => result.current.navigateToTab("projecao", "cdi"));
+    expect(result.current.navSection).toBe("projecao");
+    expect(result.current.projecaoSub).toBe("cdi");
+  });
+
+  it("navigateToTab('calculadoras') abre Mais → Calculadoras", () => {
+    const { result } = renderHook(() => useAppNavigation());
+    act(() => result.current.navigateToTab("calculadoras"));
+    expect(result.current.navSection).toBe("mais");
+    expect(result.current.maisSub).toBe("calculadoras");
+  });
+
+  it("navigateToTab('mais','calculadoras') abre Mais → Calculadoras", () => {
+    const { result } = renderHook(() => useAppNavigation());
+    act(() => result.current.navigateToTab("mais", "calculadoras"));
+    expect(result.current.navSection).toBe("mais");
+    expect(result.current.maisSub).toBe("calculadoras");
+  });
+
+  it.each(["cdi", "calculadoras"])(
+    "destino '%s' não cai na Home",
+    (dest) => {
+      const { result } = renderHook(() => useAppNavigation());
+      act(() => result.current.navigateToTab(dest));
+      expect(result.current.navSection).not.toBe("inicio");
+    },
+  );
+});
