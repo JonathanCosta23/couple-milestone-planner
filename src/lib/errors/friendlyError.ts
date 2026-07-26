@@ -31,6 +31,17 @@ const CODE_MAP: Record<string, string> = {
 };
 
 const MESSAGE_PATTERNS: Array<{ test: RegExp; friendly: string }> = [
+  // Códigos fechados vindos das triggers/RPCs do Plano do Milhão. Mantidos
+  // no topo para preceder padrões genéricos (ex.: "check violation").
+  { test: /explicit_reintegration_required/, friendly: "Este participante precisa ser reintegrado por um fluxo específico." },
+  { test: /member_not_active/, friendly: "Este participante não está ativo." },
+  { test: /member_scope_mismatch/, friendly: "Não foi possível associar este registro ao participante selecionado." },
+  { test: /member_not_found/, friendly: "Participante não encontrado." },
+  { test: /partner_already_active/, friendly: "Já existe um parceiro ativo neste plano." },
+  { test: /partner_not_active/, friendly: "Não há parceiro ativo para remover." },
+  { test: /plan_not_found/, friendly: "Plano não encontrado." },
+  { test: /invalid_payload/, friendly: "Dados inválidos para esta operação." },
+  { test: /unauthorized/, friendly: "Sessão expirada. Faça login novamente." },
   { test: /foreign key/i, friendly: "Referência inválida entre registros." },
   { test: /duplicate key|unique constraint/i, friendly: "Este registro já existe." },
   { test: /not[- ]?null/i, friendly: "Campo obrigatório não preenchido." },
