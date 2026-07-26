@@ -89,7 +89,8 @@ import { AppHeader } from "@/components/plan/AppHeader";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
+import { performMcpSwitchAccount } from "@/lib/mcp/switchAccount";
 import { ErrorBoundary } from "@/components/system/ErrorBoundary";
 import { OfflineBanner } from "@/components/system/OfflineBanner";
 
@@ -305,6 +306,18 @@ const Index = () => {
     await signOut();
     toast.success("Até logo! 👋");
   };
+
+  // Navegador da SPA usado exclusivamente para o fluxo dedicado de troca de
+  // conta MCP — NÃO reaproveita o logout genérico (`handleSignOut`) para
+  // preservar a separação de intenções.
+  const navigate = useNavigate();
+  const handleMcpSwitchAccount = useCallback(async () => {
+    await performMcpSwitchAccount({
+      userId: user?.id,
+      signOut,
+      navigate: (to) => navigate(to, { replace: true }),
+    });
+  }, [user?.id, signOut, navigate]);
 
   // Milestone popup: only fires for REALIZED wealth, never projected
   const newMilestone = useMemo(() => {
@@ -589,6 +602,7 @@ const Index = () => {
                 onExport={exportImport.handleExport}
                 onTriggerImport={exportImport.triggerFilePicker}
                 onSignOut={handleSignOut}
+                onSwitchAccount={handleMcpSwitchAccount}
                 onOpenReset={() => setShowResetDialog(true)}
               />
             )}
