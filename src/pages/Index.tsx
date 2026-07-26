@@ -583,6 +583,7 @@ const Index = () => {
                   goalPurposeCustom: data.emotionalGoalCustom,
                 }}
                 onSavePlanSettings={handleSavePlanSettings}
+                planCloudReady={!!cloudPlanRow?.id}
                 settingsFocus={settingsFocus}
                 onSettingsFocusHandled={clearSettingsFocus}
                 onExport={exportImport.handleExport}
