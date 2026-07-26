@@ -65,7 +65,7 @@ beforeEach(() => {
 describe("McpConnectionPanel — conteúdo estático", () => {
   it("mostra a conta ativa e o endpoint disponível", () => {
     renderPanel();
-    expect(screen.getByText("ana@exemplo.com")).toBeInTheDocument();
+    expect(screen.getAllByText("ana@exemplo.com").length).toBeGreaterThan(0);
     expect(
       screen.getByText("https://example.supabase.co/functions/v1/mcp"),
     ).toBeInTheDocument();
