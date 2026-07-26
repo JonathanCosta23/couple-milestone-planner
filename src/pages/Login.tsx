@@ -1,9 +1,16 @@
 import { Helmet } from "react-helmet-async";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AuthPage } from "@/components/auth/AuthPage";
+import { sanitizeReturnTo } from "@/lib/utils/safeRedirect";
+
+// Destinos internos permitidos como `?redirect=` após login. Restringir
+// evita open-redirect e uso indevido como bounce para páginas técnicas.
+const ALLOWED_REDIRECTS = ["/", "/connect"] as const;
 
 export default function Login() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const target = sanitizeReturnTo(params.get("redirect"), "/", ALLOWED_REDIRECTS);
   return (
     <>
       <Helmet>
@@ -24,7 +31,7 @@ export default function Login() {
         mode="login"
         showBackButton
         onClose={() => navigate("/")}
-        onSuccess={() => navigate("/", { replace: true })}
+        onSuccess={() => navigate(target, { replace: true })}
       />
     </>
   );

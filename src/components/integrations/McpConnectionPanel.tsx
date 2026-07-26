@@ -27,18 +27,39 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { logger } from "@/lib/logger";
-import { useMcpConnections, type McpGrantSummary } from "@/hooks/useMcpConnections";
+import {
+  useMcpConnections,
+  type McpErrorCode,
+  type McpGrantSummary,
+} from "@/hooks/useMcpConnections";
+import {
+  MCP_DATA_ACCESSED,
+  MCP_ENDPOINT_UNAVAILABLE_MESSAGE,
+  MCP_READONLY_DESCRIPTION,
+  endpointAvailable,
+  mcpEndpoint,
+} from "@/lib/mcp/mcpConnectionConfig";
+import { formatGrantDate, translateScopes } from "@/lib/mcp/friendlyScopes";
 
-const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? "";
-const MCP_URL = `https://${projectRef}.supabase.co/functions/v1/mcp`;
+/** Mapa códigos → mensagens seguras/humanas (nunca vaza erro cru do provedor). */
+const ERROR_MESSAGES: Record<McpErrorCode, string> = {
+  oauth_unavailable:
+    "Gestão automática de conexões indisponível neste momento. Para revogar, remova o conector nas configurações do ChatGPT ou Claude.",
+  unauthenticated: "Entre na sua conta para ver e revogar conexões.",
+  grants_load_failed:
+    "Não conseguimos carregar suas conexões agora. Tente novamente em instantes.",
+  grant_revoke_failed:
+    "Não conseguimos revogar essa conexão agora. Tente novamente em instantes.",
+  invalid_grant_response:
+    "A resposta do servidor veio em um formato inesperado. Tente atualizar a lista.",
+};
 
 /**
  * McpConnectionPanel — controle do usuário sobre a integração MCP.
  *
- * Exibe endpoint, escopo somente leitura, dados acessíveis e permite
- * "limpar sessão neste navegador" (signOut + storage local). A revogação
- * definitiva do conector precisa ser feita no ChatGPT/Claude — isso é
- * dito abertamente para não induzir falsa sensação de revogação completa.
+ * Toda cópia de erro é curta, humana e mapeada a partir de códigos seguros;
+ * nenhuma mensagem crua do provedor OAuth chega ao usuário. Escopos são
+ * traduzidos para pt-BR e o `clientId` técnico nunca aparece na UI.
  */
 export function McpConnectionPanel({
   onSignOut,
@@ -50,11 +71,18 @@ export function McpConnectionPanel({
   const [busy, setBusy] = useState(false);
   const [pendingRevoke, setPendingRevoke] = useState<McpGrantSummary | null>(null);
   const [revoking, setRevoking] = useState(false);
-  const { state, grants, errorMessage, reload, revoke } = useMcpConnections(user?.id ?? null);
+  const [pendingSignOut, setPendingSignOut] = useState(false);
+  const { state, grants, errorCode, reload, revoke } = useMcpConnections(user?.id ?? null);
+
+  const errorText = errorCode ? ERROR_MESSAGES[errorCode] : null;
 
   async function copyUrl() {
+    if (!mcpEndpoint) {
+      toast.error(MCP_ENDPOINT_UNAVAILABLE_MESSAGE);
+      return;
+    }
     try {
-      await navigator.clipboard.writeText(MCP_URL);
+      await navigator.clipboard.writeText(mcpEndpoint);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch (err) {
@@ -79,11 +107,12 @@ export function McpConnectionPanel({
       }
       await onSignOut();
       toast.success(
-        "Sessão encerrada. Entre novamente com a conta correta e reautorize o assistente para trocar de vínculo.",
+        "Sessão encerrada neste navegador. Entre com a outra conta e reautorize o assistente.",
         { duration: 8000 },
       );
     } finally {
       setBusy(false);
+      setPendingSignOut(false);
     }
   }
 
@@ -91,12 +120,14 @@ export function McpConnectionPanel({
     if (!pendingRevoke) return;
     setRevoking(true);
     const { error } = await revoke(pendingRevoke.clientId);
+    // Confirmação: recarrega a lista para refletir estado real do servidor.
+    await reload();
     setRevoking(false);
     if (error) {
-      toast.error(`Falha ao revogar: ${error}`);
+      toast.error(ERROR_MESSAGES[error]);
       return;
     }
-    toast.success(`Acesso de "${pendingRevoke.name}" revogado.`);
+    toast.success(`Acesso de ${pendingRevoke.name} revogado.`);
     setPendingRevoke(null);
   }
 
@@ -126,25 +157,34 @@ export function McpConnectionPanel({
           </p>
         </div>
 
-        <div className="rounded-md border border-border bg-muted/40 p-3 space-y-2">
-          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
-            Endpoint MCP
+        {endpointAvailable && mcpEndpoint ? (
+          <div className="rounded-md border border-border bg-muted/40 p-3 space-y-2">
+            <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              Endpoint MCP
+            </div>
+            <div className="font-mono text-xs sm:text-sm break-all">{mcpEndpoint}</div>
+            <div>
+              <Button variant="outline" size="sm" onClick={copyUrl} className="rounded-lg">
+                {copied ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2" /> Copiado
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 mr-2" /> Copiar endpoint
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
-          <div className="font-mono text-xs sm:text-sm break-all">{MCP_URL}</div>
-          <div>
-            <Button variant="outline" size="sm" onClick={copyUrl} className="rounded-lg">
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4 mr-2" /> Copiado
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4 mr-2" /> Copiar endpoint
-                </>
-              )}
-            </Button>
+        ) : (
+          <div
+            className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive"
+            role="alert"
+          >
+            {MCP_ENDPOINT_UNAVAILABLE_MESSAGE}
           </div>
-        </div>
+        )}
 
         <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2 text-sm">
           <div className="flex items-center gap-2 text-primary">
@@ -152,21 +192,23 @@ export function McpConnectionPanel({
             <span className="font-medium">Somente leitura</span>
           </div>
           <p className="text-muted-foreground text-xs sm:text-sm">
-            O assistente vê apenas os seus dados e <strong>não cria, altera ou apaga</strong> nada.
-            Ferramenta educacional — não é recomendação de investimento.
+            {MCP_READONLY_DESCRIPTION} Ferramenta educacional — não é recomendação
+            de investimento.
           </p>
           <div className="text-[11px] uppercase tracking-wide text-muted-foreground pt-1">
             Dados acessíveis
           </div>
           <ul className="list-disc pl-5 text-xs sm:text-sm space-y-0.5">
-            <li>Plano atual e meta</li>
-            <li>Participantes ativos</li>
-            <li>Ativos e investimentos</li>
-            <li>Histórico mensal de aportes</li>
+            {MCP_DATA_ACCESSED.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
           </ul>
         </div>
 
-        <div className="rounded-md border border-border p-3 space-y-3 text-sm">
+        <div
+          className="rounded-md border border-border p-3 space-y-3 text-sm"
+          aria-busy={state === "loading"}
+        >
           <div className="flex items-center justify-between gap-2">
             <div className="font-medium">Assistentes autorizados</div>
             <Button
@@ -181,35 +223,46 @@ export function McpConnectionPanel({
             </Button>
           </div>
 
+          <div className="sr-only" aria-live="polite" role="status">
+            {state === "loading"
+              ? "Carregando conexões."
+              : state === "ready"
+              ? `${grants.length} assistente(s) autorizado(s).`
+              : ""}
+          </div>
+
           {state === "loading" && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Loader2 className="w-3.5 h-3.5 animate-spin" /> Carregando conexões…
             </div>
           )}
 
-          {state === "unauthenticated" && (
-            <p className="text-xs text-muted-foreground">
-              Entre na sua conta para ver e revogar conexões.
-            </p>
-          )}
-
-          {state === "unavailable" && (
-            <p className="text-xs text-muted-foreground">
-              Gestão automática de conexões indisponível. Para revogar, remova o
-              conector nas configurações do <strong>ChatGPT</strong> ou <strong>Claude</strong>.
-            </p>
-          )}
-
-          {state === "error" && (
-            <div className="space-y-2">
-              <p className="text-xs text-destructive">
-                Não foi possível carregar suas conexões{errorMessage ? `: ${errorMessage}` : "."}
-              </p>
-              <Button variant="outline" size="sm" className="rounded-lg" onClick={() => void reload()}>
-                Tentar novamente
-              </Button>
-            </div>
-          )}
+          {(state === "unauthenticated" ||
+            state === "unavailable" ||
+            state === "error") &&
+            errorText && (
+              <div className="space-y-2" role="alert" aria-live="assertive">
+                <p
+                  className={
+                    state === "error"
+                      ? "text-xs text-destructive"
+                      : "text-xs text-muted-foreground"
+                  }
+                >
+                  {errorText}
+                </p>
+                {state === "error" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-lg"
+                    onClick={() => void reload()}
+                  >
+                    Tentar novamente
+                  </Button>
+                )}
+              </div>
+            )}
 
           {state === "ready" && grants.length === 0 && (
             <div className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground space-y-1">
@@ -224,7 +277,9 @@ export function McpConnectionPanel({
 
           {state === "ready" && grants.length > 0 && (
             <ul className="space-y-2">
-              {grants.map((g) => (
+              {grants.map((g) => {
+                const scopeLabels = translateScopes(g.scopes);
+                return (
                 <li
                   key={g.clientId}
                   className="flex items-center justify-between gap-3 rounded-md border border-border p-2.5"
@@ -232,19 +287,26 @@ export function McpConnectionPanel({
                   <div className="min-w-0">
                     <div className="text-sm font-medium truncate">{g.name}</div>
                     <div className="text-[11px] text-muted-foreground truncate">
-                      Autorizado em {new Date(g.grantedAt).toLocaleDateString("pt-BR")} · somente leitura
+                      Autorizado em {formatGrantDate(g.grantedAt)} · somente leitura
                     </div>
+                    {scopeLabels.length > 0 && (
+                      <div className="text-[11px] text-muted-foreground truncate">
+                        Permissões: {scopeLabels.join(", ")}
+                      </div>
+                    )}
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
                     className="rounded-lg shrink-0"
                     onClick={() => setPendingRevoke(g)}
+                    aria-label={`Revogar acesso de ${g.name}`}
                   >
                     <XCircle className="w-4 h-4 mr-1.5" /> Revogar
                   </Button>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
         </div>
@@ -260,17 +322,17 @@ export function McpConnectionPanel({
               Claude: Conectores → Adicionar conector personalizado, colando o endpoint acima.
             </li>
           </ul>
-          <Link to="/connect">
-            <Button variant="outline" size="sm" className="rounded-lg mt-1">
+          <Button variant="outline" size="sm" className="rounded-lg mt-1" asChild>
+            <Link to="/connect">
               Ver passo a passo <ExternalLink className="w-3.5 h-3.5 ml-1.5" />
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
 
         <div className="rounded-md border border-border p-3 space-y-3 text-sm">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-amber-500" />
-            <span className="font-medium">Trocar de conta neste navegador</span>
+            <span className="font-medium">Sair e conectar outra conta</span>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground">
             Sair encerra a sessão aqui e permite entrar com outra conta antes de
@@ -282,10 +344,10 @@ export function McpConnectionPanel({
             size="sm"
             className="rounded-lg"
             disabled={busy}
-            onClick={() => void clearLocalSession()}
+            onClick={() => setPendingSignOut(true)}
           >
             <LogOut className="w-4 h-4 mr-2" />
-            {busy ? "Saindo…" : "Sair desta conta"}
+            {busy ? "Saindo…" : "Sair e conectar outra conta"}
           </Button>
         </div>
       </CardContent>
@@ -302,9 +364,9 @@ export function McpConnectionPanel({
               Revogar acesso de {pendingRevoke?.name}?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              O assistente perde imediatamente o acesso aos seus dados. Ele pode
-              pedir para reautorizar na próxima vez que você usar. Esta ação não
-              apaga nada do seu plano.
+              O assistente perde o acesso aos seus dados assim que a revogação
+              for confirmada pelo servidor. Ele pode pedir para reautorizar na
+              próxima vez que você usar. Esta ação não apaga nada do seu plano.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -317,6 +379,36 @@ export function McpConnectionPanel({
               }}
             >
               {revoking ? "Revogando…" : "Revogar acesso"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={pendingSignOut}
+        onOpenChange={(open) => {
+          if (!open && !busy) setPendingSignOut(false);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sair e conectar outra conta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A sessão desta conta ({user?.email ?? "conta atual"}) será encerrada
+              neste navegador. Você poderá entrar com outra conta e reautorizar o
+              assistente em seguida.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={busy}
+              onClick={(e) => {
+                e.preventDefault();
+                void clearLocalSession();
+              }}
+            >
+              {busy ? "Saindo…" : "Sair agora"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,19 +1,32 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import { Helmet } from "react-helmet-async";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Check, Copy, Plug, ShieldCheck, Loader2 } from "lucide-react";
+import { Plug, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { AuthPage } from "@/components/auth/AuthPage";
 import { McpConnectionPanel } from "@/components/integrations/McpConnectionPanel";
 import { logger } from "@/lib/logger";
 
-const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? "";
-const mcpUrl = `https://${projectRef}.supabase.co/functions/v1/mcp`;
-
+/**
+ * Connect — Central MCP consolidada.
+ *
+ * A URL do endpoint, escopo somente leitura, dados acessíveis, lista de
+ * grants, revogação e logout ficam exclusivamente no `McpConnectionPanel`.
+ * Esta página apenas orienta o passo a passo em ChatGPT/Claude — nenhum
+ * bloco duplicado do painel é renderizado aqui.
+ *
+ * Usuários deslogados são redirecionados para `/login?redirect=/connect`
+ * para que voltem à Central após autenticar.
+ */
 export default function Connect() {
-  const [copied, setCopied] = useState(false);
+  const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/login?redirect=%2Fconnect", { replace: true });
+    }
+  }, [authLoading, user, navigate]);
 
   async function handleSignOut() {
     if (user?.id) {
@@ -25,19 +38,10 @@ export default function Connect() {
       }
     }
     await signOut();
+    navigate("/login?redirect=%2Fconnect", { replace: true });
   }
 
-  async function copyUrl() {
-    try {
-      await navigator.clipboard.writeText(mcpUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      // ignore
-    }
-  }
-
-  if (authLoading) {
+  if (authLoading || !user) {
     return (
       <main className="min-h-screen grid place-items-center bg-background">
         <Helmet>
@@ -45,23 +49,6 @@ export default function Connect() {
           <meta name="robots" content="noindex, nofollow" />
         </Helmet>
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </main>
-    );
-  }
-
-  if (!user) {
-    return (
-      <main className="min-h-screen bg-background">
-        <Helmet>
-          <title>Conectar assistente de IA · Plano do Milhão</title>
-          <meta name="robots" content="noindex, nofollow" />
-        </Helmet>
-        <div className="mx-auto max-w-md pt-6 px-4 pb-2">
-          <p className="text-sm text-muted-foreground text-center">
-            Entre na sua conta para configurar a integração com um assistente de IA.
-          </p>
-        </div>
-        <AuthPage />
       </main>
     );
   }
@@ -100,65 +87,6 @@ export default function Connect() {
 
         <McpConnectionPanel onSignOut={handleSignOut} />
 
-        <Card className="border-primary/30">
-          <CardHeader className="space-y-2">
-            <div className="flex items-center gap-2 text-primary">
-              <ShieldCheck className="h-5 w-5" />
-              <CardTitle className="text-base">Integração somente leitura</CardTitle>
-            </div>
-            <CardDescription>
-              O assistente conectado vê apenas os seus dados e <strong>não cria, altera ou apaga</strong> nada.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div>
-              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-                Dados acessíveis
-              </div>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>Seu plano atual e a meta financeira</li>
-                <li>Participantes ativos do plano</li>
-                <li>Ativos e investimentos cadastrados</li>
-                <li>Histórico mensal de aportes</li>
-              </ul>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Aviso educacional: o Plano do Milhão é uma ferramenta de educação e planejamento
-              financeiro. Respostas geradas por assistentes de IA não são recomendação
-              personalizada de investimento.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Você pode <strong>revogar o acesso</strong> a qualquer momento nas configurações de
-              conectores do ChatGPT ou do Claude, ou saindo da sua conta aqui no app.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">URL do servidor</CardTitle>
-            <CardDescription>
-              Copie este endereço — você vai colar dentro do ChatGPT ou do Claude nos passos abaixo.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="rounded-md border border-border bg-muted/40 p-3 font-mono text-xs sm:text-sm break-all">
-              {mcpUrl}
-            </div>
-            <Button onClick={copyUrl} className="w-full sm:w-auto">
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4 mr-2" /> Copiado
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4 mr-2" /> Copiar URL
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-
         <Card>
           <CardHeader>
             <CardTitle className="text-base">ChatGPT</CardTitle>
@@ -173,7 +101,7 @@ export default function Connect() {
                 <a
                   href="https://chatgpt.com/#settings/Connectors/Advanced"
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="text-primary underline"
                 >
                   Configurações → Conectores → Avançado
@@ -182,7 +110,7 @@ export default function Connect() {
               </li>
               <li>No menu "+" do campo de mensagem, ative o Developer mode.</li>
               <li>Clique em "Add sources" e depois em "Connect more".</li>
-              <li>Dê um nome ao conector (por exemplo, "Plano do Milhão") e cole a URL acima.</li>
+              <li>Dê um nome ao conector (por exemplo, "Plano do Milhão") e cole o endpoint copiado no painel acima.</li>
               <li>Peça ao ChatGPT para usar o Plano do Milhão. Ele vai pedir para você entrar na sua conta na primeira vez.</li>
             </ol>
           </CardContent>
@@ -202,14 +130,14 @@ export default function Connect() {
                 <a
                   href="https://claude.ai/customize/connectors?modal=add-custom-connector"
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="text-primary underline"
                 >
                   Claude → Conectores → Adicionar conector personalizado
                 </a>
                 .
               </li>
-              <li>Dê um nome ao conector (por exemplo, "Plano do Milhão") e cole a URL acima.</li>
+              <li>Dê um nome ao conector (por exemplo, "Plano do Milhão") e cole o endpoint copiado no painel acima.</li>
               <li>
                 Ative o conector no menu do campo de mensagem e peça ao Claude para consultar
                 seu plano. Ele vai pedir para você entrar na sua conta na primeira vez.
