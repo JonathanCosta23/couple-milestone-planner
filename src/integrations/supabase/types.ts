@@ -2049,6 +2049,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_plan_partner_v1: {
+        Args: { p_age?: number; p_name: string; p_plan_id: string }
+        Returns: Json
+      }
+      remove_plan_partner_v1: { Args: { p_plan_id: string }; Returns: Json }
       reset_user_plan_data: { Args: never; Returns: Json }
       set_plan_member_identity_v1: {
         Args: {
