@@ -72,4 +72,29 @@ describe("useAppNavigation", () => {
       expect(allTabs.has(target)).toBe(true);
     }
   });
+
+  it.each(["plano-meta", "editar-meta", "ajustar-plano"])(
+    "deep-link '%s' abre Configurações com foco em Plano e meta",
+    (token) => {
+      const { result } = renderHook(() => useAppNavigation());
+      act(() => result.current.navigateToTab(token));
+      expect(result.current.navSection).toBe("mais");
+      expect(result.current.maisSub).toBe("configuracoes");
+      expect(result.current.settingsFocus).toBe("plano-meta");
+    },
+  );
+
+  it("navigateToTab('configuracoes','plano-meta') mantém foco de Plano e meta", () => {
+    const { result } = renderHook(() => useAppNavigation());
+    act(() => result.current.navigateToTab("configuracoes", "plano-meta"));
+    expect(result.current.maisSub).toBe("configuracoes");
+    expect(result.current.settingsFocus).toBe("plano-meta");
+  });
+
+  it("clearSettingsFocus limpa o foco após consumo", () => {
+    const { result } = renderHook(() => useAppNavigation());
+    act(() => result.current.navigateToTab("plano-meta"));
+    act(() => result.current.clearSettingsFocus());
+    expect(result.current.settingsFocus).toBeNull();
+  });
 });

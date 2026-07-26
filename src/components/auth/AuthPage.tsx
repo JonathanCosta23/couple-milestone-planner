@@ -155,7 +155,7 @@ export function AuthPage({ onClose, onSuccess, mode: initialMode = "login", show
               {mode === "forgot"
                 ? "Enviaremos um link para redefinir sua senha."
                 : mode === "signup"
-                  ? "Seus dados ficam seguros e sincronizados."
+                  ? "Crie sua conta para salvar e sincronizar seu progresso."
                   : "Acesse seu plano de qualquer dispositivo."}
             </CardDescription>
           </CardHeader>
