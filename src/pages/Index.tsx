@@ -81,6 +81,10 @@ import { useInsightsLog } from "@/hooks/useInsightsLog";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { useExportImport } from "@/hooks/useExportImport";
 import { usePlanWriter } from "@/hooks/usePlanWriter";
+import {
+  savePlanSettings,
+  type PlanSettingsPatch,
+} from "@/lib/services/planSettingsService";
 import { AppHeader } from "@/components/plan/AppHeader";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
