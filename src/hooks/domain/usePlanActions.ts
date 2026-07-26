@@ -9,6 +9,7 @@ import type { PlanConfig } from "@/lib/types";
 import type { PlanRow, PlanMemberRow } from "@/hooks/usePlan";
 import { usePlanWriter } from "@/hooks/usePlanWriter";
 import { toFriendlyError } from "@/lib/errors/friendlyError";
+import { logger } from "@/lib/logger";
 
 interface Deps {
   user: { id: string } | null;
@@ -42,6 +43,20 @@ export function usePlanActions(deps: Deps): PlanActions {
     updatePrimaryProfileLocal, updatePartnerProfileLocal,
   } = deps;
   const writer = usePlanWriter();
+
+  // Reidrata a fonte de verdade cloud depois de um write já confirmado.
+  // Falha aqui é apenas latência/rede — não pode virar erro para o usuário
+  // nem desfazer o que já persistiu. Registra warning técnico apenas.
+  const refreshAfterConfirmedWrite = useCallback(
+    async (context: string) => {
+      try {
+        await refreshCloudPlan();
+      } catch (err) {
+        logger.warn("planActions.refresh_after_write_failed", { context }, err);
+      }
+    },
+    [refreshCloudPlan]
+  );
 
   const completeWizard = useCallback<PlanActions["completeWizard"]>(async (config) => {
     const primary = config.contributors[0];
@@ -78,7 +93,7 @@ export function usePlanActions(deps: Deps): PlanActions {
       } else if (appData.partner && !appData.partner.removedAt) {
         setModeLocal("individual");
       }
-      await refreshCloudPlan();
+      await refreshAfterConfirmedWrite("completeWizard");
     } else {
       // Fluxo pré-login preservado: aplica local (rota de demonstração).
       completeWizardLocal(config);
@@ -93,7 +108,7 @@ export function usePlanActions(deps: Deps): PlanActions {
 
     return { needsFinancialSetup: !appData };
     // o componente decide se mostra setup com base em planData.financialProfile
-  }, [appData, completeWizardLocal, updatePrimaryProfileLocal, addPartnerLocal, updatePartnerProfileLocal, setModeLocal, user, writer, refreshCloudPlan]);
+  }, [appData, completeWizardLocal, updatePrimaryProfileLocal, addPartnerLocal, updatePartnerProfileLocal, setModeLocal, user, writer, refreshAfterConfirmedWrite]);
 
   const setMode = useCallback<PlanActions["setMode"]>(async (mode) => {
     // Cloud-first: sem usuário/plano na nuvem, mantém compat local (rota
@@ -114,8 +129,8 @@ export function usePlanActions(deps: Deps): PlanActions {
       return;
     }
     setModeLocal(mode);
-    await refreshCloudPlan();
-  }, [setModeLocal, user, cloudPlan, appData.partner, writer, refreshCloudPlan]);
+    await refreshAfterConfirmedWrite("setMode");
+  }, [setModeLocal, user, cloudPlan, appData.partner, writer, refreshAfterConfirmedWrite]);
 
   const addPartner = useCallback<PlanActions["addPartner"]>(async (name, age) => {
     if (!user || !cloudPlan) { addPartnerLocal(name, age); return; }
@@ -125,8 +140,8 @@ export function usePlanActions(deps: Deps): PlanActions {
       return;
     }
     addPartnerLocal(name, age);
-    await refreshCloudPlan();
-  }, [addPartnerLocal, user, cloudPlan, writer, refreshCloudPlan]);
+    await refreshAfterConfirmedWrite("addPartner");
+  }, [addPartnerLocal, user, cloudPlan, writer, refreshAfterConfirmedWrite]);
 
   const removePartner = useCallback<PlanActions["removePartner"]>(async () => {
     if (!user || !cloudPlan) { removePartnerLocal(); return; }
@@ -136,8 +151,8 @@ export function usePlanActions(deps: Deps): PlanActions {
       return;
     }
     removePartnerLocal();
-    await refreshCloudPlan();
-  }, [removePartnerLocal, user, cloudPlan, writer, refreshCloudPlan]);
+    await refreshAfterConfirmedWrite("removePartner");
+  }, [removePartnerLocal, user, cloudPlan, writer, refreshAfterConfirmedWrite]);
 
   const updatePrimaryProfile = useCallback<PlanActions["updatePrimaryProfile"]>(async (profile) => {
     // Cloud-first quando houver membro na nuvem — evita nome/idade local
@@ -152,8 +167,8 @@ export function usePlanActions(deps: Deps): PlanActions {
       return;
     }
     updatePrimaryProfileLocal(profile);
-    await refreshCloudPlan();
-  }, [updatePrimaryProfileLocal, user, primaryMember, writer, refreshCloudPlan]);
+    await refreshAfterConfirmedWrite("updatePrimaryProfile");
+  }, [updatePrimaryProfileLocal, user, primaryMember, writer, refreshAfterConfirmedWrite]);
 
   const updatePartnerProfile = useCallback<PlanActions["updatePartnerProfile"]>(async (profile) => {
     if (!user || !partnerMember) { updatePartnerProfileLocal(profile); return; }
@@ -166,8 +181,8 @@ export function usePlanActions(deps: Deps): PlanActions {
       return;
     }
     updatePartnerProfileLocal(profile);
-    await refreshCloudPlan();
-  }, [updatePartnerProfileLocal, user, partnerMember, writer, refreshCloudPlan]);
+    await refreshAfterConfirmedWrite("updatePartnerProfile");
+  }, [updatePartnerProfileLocal, user, partnerMember, writer, refreshAfterConfirmedWrite]);
 
   return { completeWizard, setMode, addPartner, removePartner, updatePrimaryProfile, updatePartnerProfile };
 }
