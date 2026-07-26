@@ -71,21 +71,49 @@ describe("usePlanWriter.setPlanMode", () => {
     expect(rpcMock).not.toHaveBeenCalled();
   });
 
-  it("individual em plano já individual (partner_not_active) é tratado como sucesso", async () => {
-    rpcMock.mockResolvedValueOnce({ data: null, error: { message: "partner_not_active" } });
+  it("individual em plano já individual: normaliza e confirma sucesso quando mode='individual'", async () => {
+    rpcMock
+      .mockResolvedValueOnce({ data: null, error: { message: "partner_not_active" } })
+      .mockResolvedValueOnce({ data: { mode: "individual", primary_active: 1, partner_active: 0 }, error: null });
     const { result } = renderHook(() => usePlanWriter());
     let res: { data: unknown; error: string | null } = { data: null, error: "x" };
     await act(async () => { res = await result.current.setPlanMode("p1", "individual"); });
     expect(res.error).toBeNull();
+    expect(rpcMock).toHaveBeenNthCalledWith(2, "normalize_plan_mode_v1", { p_plan_id: "p1" });
   });
 
-  it("casal com parceiro já ativo (partner_already_active) é tratado como sucesso", async () => {
-    rpcMock.mockResolvedValueOnce({ data: null, error: { message: "partner_already_active" } });
+  it("casal com parceiro já ativo: normaliza e confirma sucesso quando mode='casal'", async () => {
+    rpcMock
+      .mockResolvedValueOnce({ data: null, error: { message: "partner_already_active" } })
+      .mockResolvedValueOnce({ data: { mode: "casal", primary_active: 1, partner_active: 1 }, error: null });
     const { result } = renderHook(() => usePlanWriter());
     let res: { data: unknown; error: string | null } = { data: null, error: "x" };
     await act(async () => {
       res = await result.current.setPlanMode("p1", "casal", { name: "Bia" });
     });
     expect(res.error).toBeNull();
+    expect(rpcMock).toHaveBeenNthCalledWith(2, "normalize_plan_mode_v1", { p_plan_id: "p1" });
+  });
+
+  it("individual: se normalize devolver mode divergente, retorna erro (nunca falso sucesso)", async () => {
+    rpcMock
+      .mockResolvedValueOnce({ data: null, error: { message: "partner_not_active" } })
+      .mockResolvedValueOnce({ data: { mode: "casal", primary_active: 1, partner_active: 1 }, error: null });
+    const { result } = renderHook(() => usePlanWriter());
+    let res: { data: unknown; error: string | null } = { data: null, error: null };
+    await act(async () => { res = await result.current.setPlanMode("p1", "individual"); });
+    expect(res.error).toBe("plan_members_inconsistent");
+  });
+
+  it("casal: se normalize devolver mode divergente, retorna erro (nunca falso sucesso)", async () => {
+    rpcMock
+      .mockResolvedValueOnce({ data: null, error: { message: "partner_already_active" } })
+      .mockResolvedValueOnce({ data: { mode: "individual", primary_active: 1, partner_active: 0 }, error: null });
+    const { result } = renderHook(() => usePlanWriter());
+    let res: { data: unknown; error: string | null } = { data: null, error: null };
+    await act(async () => {
+      res = await result.current.setPlanMode("p1", "casal", { name: "Bia" });
+    });
+    expect(res.error).toBe("plan_members_inconsistent");
   });
 });
