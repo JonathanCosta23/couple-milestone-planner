@@ -432,49 +432,32 @@ export function usePlanWriter() {
       const uid = ensureUser(user?.id);
       if (!uid) return { data: null, error: "Usuário não autenticado." };
 
-      // Garante que o plano está em modo casal
-      await supabase.from("plans").update({ mode: "casal" }).eq("id", planId).eq("user_id", uid);
-
-      const { data: existing } = await supabase
-        .from("plan_members")
-        .select("*")
-        .eq("plan_id", planId)
-        .eq("is_primary", false)
-        .limit(1)
-        .maybeSingle();
-
-      if (existing) {
-        const { data, error } = await supabase
-          .from("plan_members")
-          .update({
-            name: partner.name,
-            age: partner.age ?? null,
-            avatar_color: partner.avatarColor ?? existing.avatar_color,
-            is_active: true,
-          })
-          .eq("id", existing.id)
-          .select()
-          .single();
-        if (error || !data) return { data: null, error: error?.message ?? "Falha ao reativar parceiro." };
-        return { data: data as PlanMemberRow, error: null };
+      // RPC transacional: cria novo membro parceiro + muda mode=casal
+      // numa única transação. NUNCA reativa parceiro removido — a
+      // reintegração fica para RPC específica futura.
+      const rpc = await supabase.rpc("add_plan_partner_v1", {
+        p_plan_id: planId,
+        p_name: partner.name,
+        p_age: partner.age ?? null,
+      });
+      if (rpc.error) return { data: null, error: rpc.error.message };
+      const payload = rpc.data as { partner_id?: string } | null;
+      if (!payload?.partner_id) {
+        return { data: null, error: "Falha ao adicionar parceiro." };
       }
-
       const { data, error } = await supabase
         .from("plan_members")
-        .insert({
-          plan_id: planId,
-          user_id: uid,
-          name: partner.name,
-          age: partner.age ?? null,
-          avatar_color: partner.avatarColor ?? null,
-          is_primary: false,
-          role: "parceiro",
-          is_active: true,
-        })
-        .select()
+        .select("*")
+        .eq("id", payload.partner_id)
+        .eq("user_id", uid)
         .single();
-
-      if (error || !data) return { data: null, error: error?.message ?? "Falha ao adicionar parceiro." };
+      if (error || !data) return { data: null, error: error?.message ?? "Falha ao ler parceiro." };
+      // Opcional: avatar color permanece patch de UI, aplicado depois.
+      if (partner.avatarColor) {
+        await supabase.from("plan_members")
+          .update({ avatar_color: partner.avatarColor })
+          .eq("id", payload.partner_id).eq("user_id", uid);
+      }
       return { data: data as PlanMemberRow, error: null };
     },
     [user]
@@ -485,19 +468,10 @@ export function usePlanWriter() {
     async (planId: string): Promise<WriterResult<true>> => {
       const uid = ensureUser(user?.id);
       if (!uid) return { data: null, error: "Usuário não autenticado." };
-
-      const { error: deactErr } = await supabase
-        .from("plan_members")
-        .update({ is_active: false })
-        .eq("plan_id", planId)
-        .eq("user_id", uid)
-        .eq("is_primary", false);
-      if (deactErr) return { data: null, error: `Falha ao desativar parceiro: ${deactErr.message}` };
-
-      const { error: modeErr } = await supabase
-        .from("plans").update({ mode: "individual" }).eq("id", planId).eq("user_id", uid);
-      if (modeErr) return { data: null, error: `Falha ao trocar modo do plano: ${modeErr.message}` };
-
+      // RPC transacional: desativa parceiro ativo e troca mode=individual
+      // atomicamente. Rollback em caso de erro impede estados parciais.
+      const rpc = await supabase.rpc("remove_plan_partner_v1", { p_plan_id: planId });
+      if (rpc.error) return { data: null, error: rpc.error.message };
       return { data: true, error: null };
     },
     [user]
