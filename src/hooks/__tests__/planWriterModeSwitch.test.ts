@@ -1,7 +1,8 @@
 /**
- * usePlanWriter.setPlanMode — 4.a.3: não usa mais RPCs v1/v2 legadas.
- * casal → add_plan_partner_v1; individual → remove_plan_partner_v1.
- * Nenhum UPDATE direto em `plans.mode` seguido de UPDATE em membros.
+ * usePlanWriter.setPlanMode — 4.b.1.1-A:
+ *  - Contrato ModeChangeResult (sem PlanRow artificial).
+ *  - Parsers estritos: null/ausente/tipos incorretos ⇒ invalid_rpc_payload.
+ *  - No-ops confirmam via normalize_plan_mode_v1 antes de declarar sucesso.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -41,11 +42,16 @@ describe("usePlanWriter.setPlanMode", () => {
       error: null,
     });
     const { result } = renderHook(() => usePlanWriter());
-    await act(async () => { await result.current.setPlanMode("p1", "individual"); });
+    let res: { data: unknown; error: string | null } = { data: null, error: "x" };
+    await act(async () => { res = await result.current.setPlanMode("p1", "individual"); });
     expect(rpcMock).toHaveBeenCalledTimes(1);
     expect(rpcMock).toHaveBeenCalledWith("remove_plan_partner_v1", { p_plan_id: "p1" });
-    // Nada de UPDATE direto em plan_members/plans.
     expect(fromMock).not.toHaveBeenCalled();
+    expect(res.error).toBeNull();
+    expect(res.data).toEqual({
+      outcome: "changed", planId: "p1", mode: "individual",
+      partnerId: null, removedPartnerId: "old",
+    });
   });
 
   it("individual -> casal com parceiro: chama add_plan_partner_v1", async () => {
@@ -54,13 +60,19 @@ describe("usePlanWriter.setPlanMode", () => {
       error: null,
     });
     const { result } = renderHook(() => usePlanWriter());
+    let res: { data: unknown; error: string | null } = { data: null, error: "x" };
     await act(async () => {
-      await result.current.setPlanMode("p1", "casal", { name: "Bia", age: 30 });
+      res = await result.current.setPlanMode("p1", "casal", { name: "Bia", age: 30 });
     });
     expect(rpcMock).toHaveBeenCalledWith("add_plan_partner_v1", {
       p_plan_id: "p1", p_name: "Bia", p_age: 30,
     });
     expect(fromMock).not.toHaveBeenCalled();
+    expect(res.error).toBeNull();
+    expect(res.data).toEqual({
+      outcome: "changed", planId: "p1", mode: "casal",
+      partnerId: "new", removedPartnerId: null,
+    });
   });
 
   it("casal sem partner é rejeitado localmente (partner_name_required)", async () => {
@@ -79,6 +91,7 @@ describe("usePlanWriter.setPlanMode", () => {
     let res: { data: unknown; error: string | null } = { data: null, error: "x" };
     await act(async () => { res = await result.current.setPlanMode("p1", "individual"); });
     expect(res.error).toBeNull();
+    expect(res.data).toMatchObject({ outcome: "noop", mode: "individual", planId: "p1" });
     expect(rpcMock).toHaveBeenNthCalledWith(2, "normalize_plan_mode_v1", { p_plan_id: "p1" });
   });
 
@@ -92,6 +105,7 @@ describe("usePlanWriter.setPlanMode", () => {
       res = await result.current.setPlanMode("p1", "casal", { name: "Bia" });
     });
     expect(res.error).toBeNull();
+    expect(res.data).toMatchObject({ outcome: "noop", mode: "casal", planId: "p1" });
     expect(rpcMock).toHaveBeenNthCalledWith(2, "normalize_plan_mode_v1", { p_plan_id: "p1" });
   });
 
@@ -115,5 +129,52 @@ describe("usePlanWriter.setPlanMode", () => {
       res = await result.current.setPlanMode("p1", "casal", { name: "Bia" });
     });
     expect(res.error).toBe("plan_members_inconsistent");
+  });
+
+  it("individual: payload null da RPC principal → invalid_rpc_payload", async () => {
+    rpcMock.mockResolvedValueOnce({ data: null, error: null });
+    const { result } = renderHook(() => usePlanWriter());
+    let res: { data: unknown; error: string | null } = { data: null, error: null };
+    await act(async () => { res = await result.current.setPlanMode("p1", "individual"); });
+    expect(res.error).toBe("invalid_rpc_payload");
+    expect(res.data).toBeNull();
+  });
+
+  it("casal: payload sem partner_id → invalid_rpc_payload", async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: { plan_id: "p1", mode: "casal" },
+      error: null,
+    });
+    const { result } = renderHook(() => usePlanWriter());
+    let res: { data: unknown; error: string | null } = { data: null, error: null };
+    await act(async () => {
+      res = await result.current.setPlanMode("p1", "casal", { name: "Bia" });
+    });
+    expect(res.error).toBe("invalid_rpc_payload");
+  });
+
+  it("casal: mode com valor inválido no payload → invalid_rpc_payload", async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: { plan_id: "p1", mode: "solo", partner_id: "x" },
+      error: null,
+    });
+    const { result } = renderHook(() => usePlanWriter());
+    let res: { data: unknown; error: string | null } = { data: null, error: null };
+    await act(async () => {
+      res = await result.current.setPlanMode("p1", "casal", { name: "Bia" });
+    });
+    expect(res.error).toBe("invalid_rpc_payload");
+  });
+
+  it("no-op cases nunca fabricam PlanRow — retornam somente ModeChangeResult", async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: { plan_id: "p1", mode: "individual", removed_partner_id: null },
+      error: null,
+    });
+    const { result } = renderHook(() => usePlanWriter());
+    let res: { data: unknown; error: string | null } = { data: null, error: null };
+    await act(async () => { res = await result.current.setPlanMode("p1", "individual"); });
+    expect(res.data).not.toHaveProperty("plan");
+    expect(res.data).not.toHaveProperty("members");
   });
 });
