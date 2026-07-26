@@ -13,6 +13,11 @@ import { SharePlan } from "@/components/plan/SharePlan";
 import { NotificationSettings } from "@/components/plan/NotificationSettings";
 import { RestoreBackupButton } from "@/components/plan/RestoreBackupButton";
 import { McpConnectionPanel } from "@/components/integrations/McpConnectionPanel";
+import {
+  PlanSettingsSection,
+  type PlanSettingsInitial,
+  type PlanSettingsPatch,
+} from "@/components/plan/PlanSettingsSection";
 import type { AppData } from "@/lib/models";
 import type { PlanConfig, MonthRecord, PlanData, FinancialProfile, EmotionalGoal } from "@/lib/types";
 
@@ -27,7 +32,7 @@ export interface SettingsHubProps {
   config: PlanConfig;
   monthRecords: MonthRecord[];
   startDate: string;
-  financialProfile: unknown;
+  financialProfile: FinancialProfile | undefined;
   notificationSettings: NotificationSettingsType;
   onUpdateNotificationSettings: (s: NotificationSettingsType) => void;
   planActions: {
@@ -40,6 +45,12 @@ export interface SettingsHubProps {
   emotionalGoal?: EmotionalGoal;
   emotionalGoalCustom?: string;
   onSaveFinancialProfile: (profile: FinancialProfile, goal: EmotionalGoal, customGoal?: string) => void;
+  /** Estado inicial e handler da nova seção "Plano e meta". */
+  planSettingsInitial: PlanSettingsInitial;
+  onSavePlanSettings: (patch: PlanSettingsPatch) => Promise<void>;
+  /** Deep-link opcional (ex.: "plano-meta") vindo de useAppNavigation. */
+  settingsFocus?: string | null;
+  onSettingsFocusHandled?: () => void;
   onExport: () => void;
   onTriggerImport: () => void;
   onSignOut: () => void;
@@ -50,6 +61,8 @@ export function SettingsHub({
   appData, config, monthRecords, startDate, financialProfile,
   notificationSettings, onUpdateNotificationSettings,
   planActions, emotionalGoal, emotionalGoalCustom, onSaveFinancialProfile,
+  planSettingsInitial, onSavePlanSettings,
+  settingsFocus, onSettingsFocusHandled,
   onExport, onTriggerImport, onSignOut, onOpenReset,
 }: SettingsHubProps) {
   const [profileOpen, setProfileOpen] = useState(false);
@@ -67,6 +80,12 @@ export function SettingsHub({
           onUpdatePrimaryProfile={planActions.updatePrimaryProfile}
           onUpdatePartnerProfile={planActions.updatePartnerProfile}
         />
+        <PlanSettingsSection
+          initial={planSettingsInitial}
+          onSave={onSavePlanSettings}
+          autoExpand={settingsFocus === "plano-meta"}
+          onAutoExpandConsumed={onSettingsFocusHandled}
+        />
         <Button
           variant="outline"
           className="w-full justify-between h-12 rounded-xl"
@@ -83,7 +102,7 @@ export function SettingsHub({
             <Suspense fallback={<div className="text-sm text-muted-foreground px-1 py-4">Carregando…</div>}>
               <FinancialProfileSetup
                 config={config}
-                profile={financialProfile as FinancialProfile | undefined}
+                profile={financialProfile}
                 emotionalGoal={emotionalGoal}
                 emotionalGoalCustom={emotionalGoalCustom}
                 onSave={(profile, goal, custom) => {
@@ -105,7 +124,7 @@ export function SettingsHub({
           config={config}
           monthRecords={monthRecords}
           startDate={startDate}
-          profile={financialProfile as never}
+          profile={financialProfile}
           onExportJSON={onExport}
           onImportClick={onTriggerImport}
         />
