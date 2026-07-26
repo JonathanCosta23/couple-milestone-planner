@@ -51,7 +51,7 @@ function getActivationSteps(appData: AppData, config: PlanConfig, monthRecords: 
 
   return [
     { id: "cashflow", label: "Configure renda e gastos", description: "Para saber quanto sobra sem chute.", done: hasIncome && hasExpenses, tab: hasIncome ? "gastos" : "renda", Icon: Wallet, layer: "essencial" },
-    { id: "goal", label: "Revise a meta mensal", description: "O valor planejado para investir no mês.", done: hasMonthlyGoal, tab: "simulador", Icon: Target, layer: "essencial" },
+    { id: "goal", label: "Revise a meta mensal", description: "Edite meta, prazo e aporte oficiais do plano.", done: hasMonthlyGoal, tab: "plano-meta", Icon: Target, layer: "essencial" },
     { id: "aporte", label: "Registre o primeiro aporte", description: "Aporte é o dinheiro separado para investir.", done: hasAporte, tab: "", Icon: DollarSign, layer: "essencial" },
     { id: "tracking", label: "Acompanhe o mês", description: "Compare planejado e realizado sem planilha.", done: hasTrackedMonth, tab: "historico", Icon: Calendar, layer: "essencial" },
     { id: "advanced", label: "Explore depois", description: "Simulações, projeções e riscos ficam para a próxima camada.", done: false, tab: "simulador", Icon: Compass, layer: "avançado" },
