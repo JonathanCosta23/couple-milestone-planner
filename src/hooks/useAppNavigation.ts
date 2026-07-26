@@ -50,7 +50,15 @@ export const TAB_ALIASES: Record<string, string> = {
   dados: "configuracoes",
   compartilhar: "configuracoes",
   perfil: "configuracoes",
+  // Deep links para a seção "Plano e meta" dentro de Configurações
+  "plano-meta": "configuracoes",
+  "editar-meta": "configuracoes",
+  "ajustar-plano": "configuracoes",
 };
+
+/** Sub-tokens que solicitam foco na seção "Plano e meta" em Configurações. */
+const PLAN_META_FOCUS_TOKENS = new Set(["plano-meta", "editar-meta", "ajustar-plano"]);
+export type SettingsFocus = "plano-meta" | null;
 
 function resolveAlias(tab: string): string {
   return TAB_ALIASES[tab] ?? tab;
@@ -78,6 +86,7 @@ export function useAppNavigation() {
   const [patrimonioSub, setPatrimonioSub] = useState<string>("ativos");
   const [projecaoSub, setProjecaoSub] = useState<string>("projecao");
   const [maisSub, setMaisSub] = useState<string>("configuracoes");
+  const [settingsFocus, setSettingsFocus] = useState<SettingsFocus>(null);
 
   const scrollTop = useCallback(() => {
     if (typeof window !== "undefined") {
@@ -95,6 +104,15 @@ export function useAppNavigation() {
 
   const navigateToTab = useCallback(
     (rawTab: string, rawSub?: string) => {
+      // Foco especial: qualquer alias/sub que aponte para "plano-meta" abre
+      // Configurações e sinaliza a seção a ser expandida.
+      if (PLAN_META_FOCUS_TOKENS.has(rawTab) || (rawSub && PLAN_META_FOCUS_TOKENS.has(rawSub))) {
+        setNavSection("mais");
+        setMaisSub("configuracoes");
+        setSettingsFocus("plano-meta");
+        scrollTop();
+        return;
+      }
       const tab = resolveAlias(rawTab);
       const section = sectionForTab(tab);
       if (!section) {
@@ -127,17 +145,21 @@ export function useAppNavigation() {
     [scrollTop],
   );
 
+  const clearSettingsFocus = useCallback(() => setSettingsFocus(null), []);
+
   return {
     navSection,
     execucaoSub,
     patrimonioSub,
     projecaoSub,
     maisSub,
+    settingsFocus,
     setNavSection,
     setExecucaoSub,
     setPatrimonioSub,
     setProjecaoSub,
     setMaisSub,
+    clearSettingsFocus,
     goToSection,
     navigateToTab,
   };
