@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { PlanConfig, MonthRecord, formatBRL, formatBRLCompact } from "@/lib/types";
 import { generateScenarioSuite, AdvancedScenarioResult, simulateAdvancedScenario } from "@/lib/financialEngine";
-import { Calculator, TrendingUp, Clock, DollarSign, ArrowUpRight, ArrowDownRight, Eye, Shield, Layers, ToggleLeft, ToggleRight } from "lucide-react";
+import { Calculator, TrendingUp, Clock, DollarSign, ArrowUpRight, ArrowDownRight, Eye, Shield, Layers, ToggleLeft, ToggleRight, Info, Settings2 } from "lucide-react";
 import { ContextualEducation } from "./ContextualEducation";
 import { AppData } from "@/lib/models";
 
@@ -17,6 +17,8 @@ interface Props {
   monthRecords: MonthRecord[];
   startDate: string;
   core: FinancialCoreState;
+  /** Deep-link para "Plano e meta" em Configurações (Passo 2). */
+  onNavigateToTab?: (tab: string, sub?: string) => void;
 }
 
 function CurrencyInput({ value, onChange, id, label }: { value: number; onChange: (v: number) => void; id: string; label: string }) {
@@ -39,7 +41,7 @@ function CurrencyInput({ value, onChange, id, label }: { value: number; onChange
   );
 }
 
-export function AdvancedSimulator({ appData, config, monthRecords, startDate, core }: Props) {
+export function AdvancedSimulator({ appData, config, monthRecords, startDate, core, onNavigateToTab }: Props) {
   const monthly = config.contributors.reduce((s, c) => s + c.plannedSelic + c.plannedCDB, 0);
   const [mode, setMode] = useState<"simple" | "advanced">("simple");
   const [customWealth, setCustomWealth] = useState(config.initialAmount);
@@ -110,6 +112,31 @@ export function AdvancedSimulator({ appData, config, monthRecords, startDate, co
 
   return (
     <div className="space-y-4 lg:space-y-6">
+      {/* Aviso oficial: simulações não alteram o plano. */}
+      <div
+        role="note"
+        data-testid="simulator-disclaimer"
+        className="flex items-start gap-2 rounded-xl border border-border/60 bg-muted/40 p-3 text-xs sm:text-sm"
+      >
+        <Info className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" aria-hidden />
+        <div className="flex-1 min-w-0">
+          <p className="text-foreground">
+            Simulações não alteram seu plano oficial. Para editar meta, prazo ou
+            aporte, use <strong>Configurações → Plano e meta</strong>.
+          </p>
+        </div>
+        {onNavigateToTab && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-lg h-8 shrink-0"
+            onClick={() => onNavigateToTab("configuracoes", "plano-meta")}
+          >
+            <Settings2 className="w-3.5 h-3.5 mr-1.5" /> Editar plano
+          </Button>
+        )}
+      </div>
+
       {/* Header with mode toggle */}
       <Card className="glass-card-strong p-4 lg:p-6">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
