@@ -53,12 +53,12 @@ export default function Landing() {
             <span className="font-semibold tracking-tight">Plano do Milhão</span>
           </div>
           <div className="flex items-center gap-2">
-            <Link to="/login">
-              <Button variant="ghost" size="sm">Entrar</Button>
-            </Link>
-            <Link to="/signup">
-              <Button size="sm" className="rounded-xl">Criar conta</Button>
-            </Link>
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/login">Entrar</Link>
+            </Button>
+            <Button asChild size="sm" className="rounded-xl">
+              <Link to="/signup">Criar conta</Link>
+            </Button>
           </div>
         </div>
       </header>
@@ -84,17 +84,24 @@ export default function Landing() {
               financeira em um cockpit privado, para você saber exatamente o que fazer a cada mês.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center lg:justify-start justify-center gap-3">
-              <Link to="/signup" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full sm:w-auto rounded-xl h-12 px-6 font-semibold">
+              <Button
+                asChild
+                size="lg"
+                className="w-full sm:w-auto rounded-xl h-12 px-6 font-semibold"
+              >
+                <Link to="/signup">
                   Criar conta grátis
                   <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-              <Link to="/login" className="w-full sm:w-auto">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto rounded-xl h-12 px-6">
-                  Entrar
-                </Button>
-              </Link>
+                </Link>
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="w-full sm:w-auto rounded-xl h-12 px-6"
+              >
+                <Link to="/login">Entrar</Link>
+              </Button>
             </div>
             <p className="mt-4 text-xs text-muted-foreground">
               Sem cobrança. Sem recomendação de investimento. Você no controle.
