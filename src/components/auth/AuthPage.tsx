@@ -285,7 +285,8 @@ export function AuthPage({ onClose, onSuccess, mode: initialMode = "login", show
         </Card>
 
         <p className="text-[11px] text-muted-foreground text-center leading-relaxed px-4">
-          Ao criar conta, você concorda com nossos termos de uso. Seus dados financeiros ficam criptografados e seguros.
+          Ao criar conta, você concorda com nossos termos de uso. Seus dados são protegidos por
+          autenticação, permissões por usuário e controles de acesso.
         </p>
       </div>
     </div>
