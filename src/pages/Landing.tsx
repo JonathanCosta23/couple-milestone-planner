@@ -225,11 +225,9 @@ export default function Landing() {
             investimentos e histórico de aportes. Não cria, altera ou apaga nada.
           </p>
           <div>
-            <Link to="/connect">
-              <Button variant="outline" size="sm" className="rounded-xl">
-                Ver como conectar
-              </Button>
-            </Link>
+            <Button asChild variant="outline" size="sm" className="rounded-xl">
+              <Link to="/connect">Ver como conectar</Link>
+            </Button>
           </div>
         </div>
       </Section>
@@ -244,17 +242,24 @@ export default function Landing() {
             Cinco minutos para configurar seu plano. Depois, um cockpit para toda a jornada.
           </p>
           <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link to="/signup" className="w-full sm:w-auto">
-              <Button size="lg" className="w-full sm:w-auto rounded-xl h-12 px-6 font-semibold">
+            <Button
+              asChild
+              size="lg"
+              className="w-full sm:w-auto rounded-xl h-12 px-6 font-semibold"
+            >
+              <Link to="/signup">
                 Criar minha conta
                 <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-            <Link to="/login" className="w-full sm:w-auto">
-              <Button size="lg" variant="ghost" className="w-full sm:w-auto rounded-xl h-12 px-6">
-                Já tenho conta
-              </Button>
-            </Link>
+              </Link>
+            </Button>
+            <Button
+              asChild
+              size="lg"
+              variant="ghost"
+              className="w-full sm:w-auto rounded-xl h-12 px-6"
+            >
+              <Link to="/login">Já tenho conta</Link>
+            </Button>
           </div>
         </div>
       </section>
@@ -277,16 +282,12 @@ export default function Landing() {
         className="sm:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur px-4 py-3 flex gap-2"
         data-testid="mobile-cta-bar"
       >
-        <Link to="/login" className="flex-1">
-          <Button variant="outline" className="w-full rounded-xl h-11">
-            Entrar
-          </Button>
-        </Link>
-        <Link to="/signup" className="flex-1">
-          <Button className="w-full rounded-xl h-11 font-semibold">
-            Criar conta
-          </Button>
-        </Link>
+        <Button asChild variant="outline" className="flex-1 w-full rounded-xl h-11">
+          <Link to="/login">Entrar</Link>
+        </Button>
+        <Button asChild className="flex-1 w-full rounded-xl h-11 font-semibold">
+          <Link to="/signup">Criar conta</Link>
+        </Button>
       </div>
       {/* Espaço para não cobrir conteúdo no mobile */}
       <div aria-hidden className="sm:hidden h-20" />
