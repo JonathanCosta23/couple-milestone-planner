@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -102,6 +102,12 @@ export function McpConnectionPanel({
   const [revoking, setRevoking] = useState(false);
   const [reloading, setReloading] = useState(false);
   const [pendingSignOut, setPendingSignOut] = useState(false);
+  // Refs de triggers para retorno explícito de foco após fechar o
+  // AlertDialog — o retorno padrão do Radix não é confiável em todos os
+  // ambientes (comprovado por teste de acessibilidade).
+  const switchAccountTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const revokeTriggerRefs = useRef(new Map<string, HTMLButtonElement | null>());
+  const lastRevokeTriggerId = useRef<string | null>(null);
   const { state, grants, errorCode, reload, revoke } = useMcpConnections(user?.id ?? null);
 
   const errorText = errorCode ? ERROR_MESSAGES[errorCode] : null;
@@ -340,7 +346,13 @@ export function McpConnectionPanel({
                     variant="outline"
                     size="sm"
                     className="rounded-lg shrink-0"
-                    onClick={() => setPendingRevoke(g)}
+                    onClick={() => {
+                      lastRevokeTriggerId.current = g.clientId;
+                      setPendingRevoke(g);
+                    }}
+                    ref={(el) => {
+                      revokeTriggerRefs.current.set(g.clientId, el);
+                    }}
                     disabled={anyOpInProgress}
                     aria-label={`Revogar acesso de ${g.name}`}
                   >
@@ -418,6 +430,7 @@ export function McpConnectionPanel({
             className="rounded-lg"
             disabled={anyOpInProgress}
             onClick={() => setPendingSignOut(true)}
+            ref={switchAccountTriggerRef}
           >
             <LogOut className="w-4 h-4 mr-2" />
             {busy ? "Saindo…" : "Sair e conectar outra conta"}
@@ -428,7 +441,16 @@ export function McpConnectionPanel({
       <AlertDialog
         open={pendingRevoke !== null}
         onOpenChange={(open) => {
-          if (!open && !revoking) setPendingRevoke(null);
+          if (!open && !revoking) {
+            setPendingRevoke(null);
+            // Retorno explícito de foco ao trigger que abriu o diálogo.
+            const id = lastRevokeTriggerId.current;
+            if (id) {
+              const el = revokeTriggerRefs.current.get(id);
+              // requestAnimationFrame evita corrida com o unmount do Radix.
+              requestAnimationFrame(() => el?.focus());
+            }
+          }
         }}
       >
         <AlertDialogContent>
@@ -472,7 +494,11 @@ export function McpConnectionPanel({
       <AlertDialog
         open={pendingSignOut}
         onOpenChange={(open) => {
-          if (!open && !busy) setPendingSignOut(false);
+          if (!open && !busy) {
+            setPendingSignOut(false);
+            const el = switchAccountTriggerRef.current;
+            requestAnimationFrame(() => el?.focus());
+          }
         }}
       >
         <AlertDialogContent>
