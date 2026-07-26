@@ -68,10 +68,12 @@ describe("Connect", () => {
     expect(screen.queryByTestId("auth-page")).not.toBeInTheDocument();
   });
 
-  it("declara noindex, nofollow", () => {
+  it("declara noindex, nofollow", async () => {
     renderConnect();
-    const meta = document.head.querySelector('meta[name="robots"]');
-    expect(meta?.getAttribute("content")).toBe("noindex, nofollow");
+    await waitFor(() => {
+      const meta = document.head.querySelector('meta[name="robots"]');
+      expect(meta?.getAttribute("content")).toBe("noindex, nofollow");
+    });
   });
 
   it("links externos usam target=_blank e rel=noopener noreferrer", () => {
