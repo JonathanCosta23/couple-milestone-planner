@@ -71,7 +71,7 @@ export function computeFundamentalNextAction(ctx: FundamentalContext): Fundament
       headline: "Reserva básica formada",
       detail: "Sua reserva está no cenário-alvo. Agora revise sua estratégia de construção patrimonial.",
       ctaLabel: "Revisar plano",
-      ctaTarget: { tab: "projecao", sub: "projecao" },
+      ctaTarget: { tab: "configuracoes", sub: "plano-meta" },
     };
   }
 

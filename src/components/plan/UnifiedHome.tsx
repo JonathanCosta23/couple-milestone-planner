@@ -165,7 +165,7 @@ export function UnifiedHome({ appData, config, monthRecords, startDate, onNaviga
         })}
         onPrimaryAction={onOpenQuickDeposit}
         onSecondaryAction={() => onNavigateToTab("historico")}
-        onTertiaryAction={() => onNavigateToTab("simulador")}
+        onTertiaryAction={() => onNavigateToTab("configuracoes", "plano-meta")}
         onOpenPatrimonio={() => onNavigateToTab("patrimonio")}
       />
 
