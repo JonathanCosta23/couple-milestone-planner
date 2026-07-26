@@ -172,7 +172,8 @@ export default function Landing() {
         </div>
         <p className="mt-4 text-xs text-muted-foreground max-w-2xl">
           Seus dados são protegidos por autenticação, permissões por usuário e controles de
-          acesso. Não vendemos, alugamos nem compartilhamos suas informações.
+          acesso. Não vendemos nem alugamos seus dados. O tratamento necessário para operar o
+          serviço é descrito na Política de Privacidade.
         </p>
       </Section>
 
