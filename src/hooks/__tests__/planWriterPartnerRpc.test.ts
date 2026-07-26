@@ -48,15 +48,16 @@ beforeEach(() => {
 });
 
 describe("usePlanWriter.addPartner (RPC add_plan_partner_v1)", () => {
-  it("delega à RPC e depois lê a linha nova — nunca reativa parceiro removido", async () => {
+  it("usa o payload da RPC — sem SELECT posterior de confirmação", async () => {
     rpcMock.mockResolvedValueOnce({
-      data: { plan_id: "p1", partner_id: "new-partner", mode: "casal" },
+      data: {
+        plan_id: "p1",
+        partner_id: "new-partner",
+        mode: "casal",
+        partner: { id: "new-partner", is_primary: false, is_active: true, name: "Bia", age: 30 },
+      },
       error: null,
     });
-    // read back after RPC
-    fromMock.mockImplementationOnce(() =>
-      chainable({ data: { id: "new-partner", is_primary: false, is_active: true, name: "Bia" }, error: null }),
-    );
 
     const { result } = renderHook(() => usePlanWriter());
     let res: { data: { id: string } | null; error: string | null } = { data: null, error: null };
@@ -69,9 +70,9 @@ describe("usePlanWriter.addPartner (RPC add_plan_partner_v1)", () => {
       p_name: "Bia",
       p_age: 30,
     });
-    // Não usa update em plan_members para reativar — só o SELECT posterior.
-    const fromCalls = fromMock.mock.calls.map((c) => c[0]);
-    expect(fromCalls).toContain("plan_members");
+    // Sucesso é derivado do payload da RPC — nenhum SELECT/UPDATE posterior.
+    expect(fromMock).not.toHaveBeenCalled();
+    expect(res.error).toBeNull();
     expect(res.data?.id).toBe("new-partner");
   });
 

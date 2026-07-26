@@ -2069,6 +2069,15 @@ export type Database = {
         Args: { _topic_id: string }
         Returns: boolean
       }
+      update_plan_member_profile_v1: {
+        Args: {
+          p_age?: number
+          p_avatar_color?: string
+          p_member_id: string
+          p_name?: string
+        }
+        Returns: Json
+      }
       upsert_month_with_members: {
         Args: {
           p_completed?: boolean
@@ -2098,6 +2107,25 @@ export type Database = {
         Returns: Json
       }
       upsert_plan_with_members_v2: {
+        Args: {
+          p_goal_amount?: number
+          p_goal_purpose?: string
+          p_goal_purpose_custom?: string
+          p_goal_years?: number
+          p_initial_amount?: number
+          p_mode: string
+          p_monthly_contribution?: number
+          p_onboarding_complete?: boolean
+          p_partner_age?: number
+          p_partner_name?: string
+          p_plan_id?: string
+          p_primary_age?: number
+          p_primary_name: string
+          p_wizard_complete?: boolean
+        }
+        Returns: Json
+      }
+      upsert_plan_with_members_v3: {
         Args: {
           p_goal_amount?: number
           p_goal_purpose?: string

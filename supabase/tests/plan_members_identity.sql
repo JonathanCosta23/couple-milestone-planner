@@ -604,3 +604,175 @@ BEGIN
   IF NOT blocked THEN RAISE EXCEPTION 'RPC aceitou member de outro usuario'; END IF;
 END $$;
 ROLLBACK;
+
+
+-- =====================================================================
+-- Passo 4.a.3 — plan_members read-only + RPC de perfil + autolink titular
+-- =====================================================================
+
+-- 11) authenticated NÃO pode INSERT/UPDATE/DELETE direto em plan_members
+BEGIN;
+DO $$
+DECLARE
+  u uuid := '00000000-0000-0000-0000-0000000c0a11';
+  p uuid; m uuid;
+  denied boolean;
+BEGIN
+  INSERT INTO auth.users (id, email, aud, role)
+  VALUES (u,'ro@test.local','authenticated','authenticated')
+  ON CONFLICT (id) DO NOTHING;
+
+  -- Setup como service_role (permitido).
+  INSERT INTO public.plans (user_id, mode, goal_amount, initial_amount,
+                            monthly_contribution, goal_years, goal_months)
+  VALUES (u,'individual',1000000,0,0,21,252) RETURNING id INTO p;
+  INSERT INTO public.plan_members (plan_id, user_id, name, is_primary, role, status)
+  VALUES (p, u, 'T', true,'titular','active') RETURNING id INTO m;
+
+  PERFORM set_config('role','authenticated', true);
+  PERFORM set_config('request.jwt.claims',
+    json_build_object('sub', u::text, 'role','authenticated')::text, true);
+
+  -- 11.1 SELECT continua permitido (RLS deixa passar o próprio user).
+  PERFORM 1 FROM public.plan_members WHERE id = m;
+
+  -- 11.2 INSERT direto rejeitado por falta de privilégio.
+  denied := false;
+  BEGIN
+    INSERT INTO public.plan_members (plan_id, user_id, name, is_primary, role, status)
+    VALUES (p, u, 'X', false,'parceiro','active');
+  EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+  IF NOT denied THEN RAISE EXCEPTION 'INSERT direto foi permitido'; END IF;
+
+  -- 11.3 UPDATE direto de coluna segura ainda rejeitado por privilégio.
+  denied := false;
+  BEGIN
+    UPDATE public.plan_members SET name = 'Hack' WHERE id = m;
+  EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+  IF NOT denied THEN RAISE EXCEPTION 'UPDATE direto foi permitido'; END IF;
+
+  -- 11.4 DELETE direto rejeitado.
+  denied := false;
+  BEGIN
+    DELETE FROM public.plan_members WHERE id = m;
+  EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+  IF NOT denied THEN RAISE EXCEPTION 'DELETE direto foi permitido'; END IF;
+END $$;
+ROLLBACK;
+
+
+-- 12) update_plan_member_profile_v1 só altera name/age/avatar_color
+BEGIN;
+DO $$
+DECLARE
+  u uuid := '00000000-0000-0000-0000-0000000c0a12';
+  p uuid; m uuid;
+  before_row public.plan_members%ROWTYPE;
+  after_row  public.plan_members%ROWTYPE;
+  denied boolean;
+BEGIN
+  INSERT INTO auth.users (id, email, aud, role)
+  VALUES (u,'up@test.local','authenticated','authenticated')
+  ON CONFLICT (id) DO NOTHING;
+  INSERT INTO public.plans (user_id, mode, goal_amount, initial_amount,
+                            monthly_contribution, goal_years, goal_months)
+  VALUES (u,'individual',1000000,0,0,21,252) RETURNING id INTO p;
+  INSERT INTO public.plan_members (plan_id, user_id, name, age, is_primary, role, status, cpf_last4, identity_status)
+  VALUES (p, u, 'Antigo', 30, true,'titular','active','1234','verified') RETURNING id INTO m;
+
+  SELECT * INTO before_row FROM public.plan_members WHERE id = m;
+
+  PERFORM set_config('request.jwt.claims',
+    json_build_object('sub', u::text, 'role','authenticated')::text, true);
+
+  -- 12.1 altera nome/idade/cor
+  PERFORM public.update_plan_member_profile_v1(m, 'Novo', 31, '#aabbcc');
+  SELECT * INTO after_row FROM public.plan_members WHERE id = m;
+  IF after_row.name <> 'Novo' OR after_row.age <> 31 OR after_row.avatar_color <> '#aabbcc' THEN
+    RAISE EXCEPTION 'campos seguros não foram atualizados';
+  END IF;
+
+  -- 12.2 cpf_last4, identity_status, is_primary, role, plan_id, user_id, status inalterados
+  IF after_row.cpf_last4 <> before_row.cpf_last4
+     OR after_row.identity_status <> before_row.identity_status
+     OR after_row.is_primary <> before_row.is_primary
+     OR after_row.role <> before_row.role
+     OR after_row.plan_id <> before_row.plan_id
+     OR after_row.user_id <> before_row.user_id
+     OR after_row.status <> before_row.status THEN
+    RAISE EXCEPTION 'RPC alterou coluna proibida';
+  END IF;
+
+  -- 12.3 avatar_color com formato inválido rejeitado
+  denied := false;
+  BEGIN
+    PERFORM public.update_plan_member_profile_v1(m, NULL, NULL, 'red');
+  EXCEPTION WHEN check_violation THEN denied := true; END;
+  IF NOT denied THEN RAISE EXCEPTION 'avatar_color inválido aceito'; END IF;
+
+  -- 12.4 idade fora do intervalo rejeitada
+  denied := false;
+  BEGIN
+    PERFORM public.update_plan_member_profile_v1(m, NULL, 999, NULL);
+  EXCEPTION WHEN check_violation THEN denied := true; END;
+  IF NOT denied THEN RAISE EXCEPTION 'idade fora do intervalo aceita'; END IF;
+
+  -- 12.5 membro removed não é editável
+  UPDATE public.plan_members SET status='removed' WHERE id = m;
+  denied := false;
+  BEGIN
+    PERFORM public.update_plan_member_profile_v1(m, 'X', NULL, NULL);
+  EXCEPTION WHEN check_violation THEN denied := true; END;
+  IF NOT denied THEN RAISE EXCEPTION 'membro removed foi editado'; END IF;
+
+  -- 12.6 membro de outro usuário → member_not_found
+  DECLARE
+    u2 uuid := '00000000-0000-0000-0000-0000000c0b12';
+  BEGIN
+    INSERT INTO auth.users (id, email, aud, role)
+    VALUES (u2,'up2@test.local','authenticated','authenticated')
+    ON CONFLICT (id) DO NOTHING;
+    PERFORM set_config('request.jwt.claims',
+      json_build_object('sub', u2::text, 'role','authenticated')::text, true);
+    denied := false;
+    BEGIN
+      PERFORM public.update_plan_member_profile_v1(m, 'Hack', NULL, NULL);
+    EXCEPTION WHEN no_data_found THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'cross-user editou membro alheio'; END IF;
+  END;
+END $$;
+ROLLBACK;
+
+
+-- 13) linked_auth_user_id: autolink do titular, parceiro fica null
+BEGIN;
+DO $$
+DECLARE
+  u uuid := '00000000-0000-0000-0000-0000000c0a13';
+  p uuid; primary_id uuid; partner_id uuid;
+  linked uuid;
+BEGIN
+  INSERT INTO auth.users (id, email, aud, role)
+  VALUES (u,'link@test.local','authenticated','authenticated')
+  ON CONFLICT (id) DO NOTHING;
+  INSERT INTO public.plans (user_id, mode, goal_amount, initial_amount,
+                            monthly_contribution, goal_years, goal_months)
+  VALUES (u,'casal',1000000,0,0,21,252) RETURNING id INTO p;
+
+  -- 13.1 novo titular sem linked_auth_user_id → trigger preenche.
+  INSERT INTO public.plan_members (plan_id, user_id, name, is_primary, role, status)
+  VALUES (p, u, 'T', true,'titular','active') RETURNING id INTO primary_id;
+  SELECT linked_auth_user_id INTO linked FROM public.plan_members WHERE id = primary_id;
+  IF linked IS NULL OR linked <> u THEN
+    RAISE EXCEPTION 'titular não recebeu linked_auth_user_id: %', linked;
+  END IF;
+
+  -- 13.2 parceiro NÃO recebe linked automaticamente.
+  INSERT INTO public.plan_members (plan_id, user_id, name, is_primary, role, status)
+  VALUES (p, u, 'P', false,'parceiro','active') RETURNING id INTO partner_id;
+  SELECT linked_auth_user_id INTO linked FROM public.plan_members WHERE id = partner_id;
+  IF linked IS NOT NULL THEN
+    RAISE EXCEPTION 'parceiro recebeu linked automaticamente: %', linked;
+  END IF;
+END $$;
+ROLLBACK;

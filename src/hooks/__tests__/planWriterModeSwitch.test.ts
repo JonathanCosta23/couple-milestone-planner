@@ -1,7 +1,7 @@
 /**
- * usePlanWriter.setPlanMode — garante que alternar entre individual e casal
- * delega à RPC transacional, preservando o titular e desativando o parceiro
- * sem apagar histórico (a desativação é responsabilidade da RPC no banco).
+ * usePlanWriter.setPlanMode — 4.a.3: não usa mais RPCs v1/v2 legadas.
+ * casal → add_plan_partner_v1; individual → remove_plan_partner_v1.
+ * Nenhum UPDATE direto em `plans.mode` seguido de UPDATE em membros.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -29,89 +29,63 @@ vi.mock("@/lib/services/auditService", () => ({
 import { renderHook, act } from "@testing-library/react";
 import { usePlanWriter } from "@/hooks/usePlanWriter";
 
-/** Constrói um mock "chainable" que sempre devolve `final` no .maybeSingle()/.single(). */
-function chainable(final: unknown) {
-  const api: Record<string, unknown> = {};
-  const passthrough = () => api;
-  for (const m of ["select", "eq", "order", "limit", "update", "insert", "delete"]) {
-    api[m] = vi.fn(passthrough);
-  }
-  api.maybeSingle = vi.fn().mockResolvedValue(final);
-  api.single = vi.fn().mockResolvedValue(final);
-  // Quando o writer usar await direto sem .single, retorna o final.
-  api.then = (resolve: (v: unknown) => void) => resolve(final);
-  return api;
-}
-
 beforeEach(() => {
   rpcMock.mockReset();
   fromMock.mockReset();
 });
 
-describe("usePlanWriter.setPlanMode (RPC)", () => {
-  it("casal -> individual: chama RPC com modo individual e sem parceiro", async () => {
-    // 1ª chamada from(): busca primary para reaproveitar nome/idade.
-    fromMock.mockImplementationOnce(() =>
-      chainable({ data: { name: "Ana", age: 33 }, error: null }),
-    );
-    // RPC retorna plano com apenas o titular ativo.
+describe("usePlanWriter.setPlanMode", () => {
+  it("casal -> individual: chama apenas remove_plan_partner_v1", async () => {
     rpcMock.mockResolvedValueOnce({
-      data: {
-        plan: { id: "p1", mode: "individual" },
-        members: [{ id: "m-primary", is_primary: true, is_active: true, name: "Ana" }],
-      },
+      data: { plan_id: "p1", removed_partner_id: "old", mode: "individual" },
       error: null,
     });
-
     const { result } = renderHook(() => usePlanWriter());
-    let res: { data: { plan: { mode: string }; members: unknown[] } | null } = { data: null };
-    await act(async () => {
-      res = await result.current.setPlanMode("p1", "individual");
-    });
-
-    expect(rpcMock).toHaveBeenCalledWith(
-      "upsert_plan_with_members_v2",
-      expect.objectContaining({
-        p_mode: "individual",
-        p_primary_name: "Ana",
-        p_partner_name: null,
-        p_plan_id: "p1",
-      }),
-    );
-    expect(res.data?.plan.mode).toBe("individual");
-    // Parceiro não aparece nos membros ativos retornados.
-    expect(res.data?.members.length).toBe(1);
+    await act(async () => { await result.current.setPlanMode("p1", "individual"); });
+    expect(rpcMock).toHaveBeenCalledTimes(1);
+    expect(rpcMock).toHaveBeenCalledWith("remove_plan_partner_v1", { p_plan_id: "p1" });
+    // Nada de UPDATE direto em plan_members/plans.
+    expect(fromMock).not.toHaveBeenCalled();
   });
 
-  it("individual -> casal: envia parceiro novo para a RPC", async () => {
-    fromMock.mockImplementationOnce(() =>
-      chainable({ data: { name: "Ana", age: 33 }, error: null }),
-    );
+  it("individual -> casal com parceiro: chama add_plan_partner_v1", async () => {
     rpcMock.mockResolvedValueOnce({
-      data: {
-        plan: { id: "p1", mode: "casal" },
-        members: [
-          { id: "m-primary", is_primary: true, is_active: true, name: "Ana" },
-          { id: "m-partner", is_primary: false, is_active: true, name: "Bia" },
-        ],
-      },
+      data: { partner_id: "new", plan_id: "p1", mode: "casal" },
       error: null,
     });
-
     const { result } = renderHook(() => usePlanWriter());
     await act(async () => {
       await result.current.setPlanMode("p1", "casal", { name: "Bia", age: 30 });
     });
+    expect(rpcMock).toHaveBeenCalledWith("add_plan_partner_v1", {
+      p_plan_id: "p1", p_name: "Bia", p_age: 30,
+    });
+    expect(fromMock).not.toHaveBeenCalled();
+  });
 
-    expect(rpcMock).toHaveBeenCalledWith(
-      "upsert_plan_with_members_v2",
-      expect.objectContaining({
-        p_mode: "casal",
-        p_primary_name: "Ana",
-        p_partner_name: "Bia",
-        p_partner_age: 30,
-        p_plan_id: "p1",
-      }),
-    );
+  it("casal sem partner é rejeitado localmente (partner_name_required)", async () => {
+    const { result } = renderHook(() => usePlanWriter());
+    let res: { error: string | null } = { error: null };
+    await act(async () => { res = await result.current.setPlanMode("p1", "casal"); });
+    expect(res.error).toBe("partner_name_required");
+    expect(rpcMock).not.toHaveBeenCalled();
+  });
+
+  it("individual em plano já individual (partner_not_active) é tratado como sucesso", async () => {
+    rpcMock.mockResolvedValueOnce({ data: null, error: { message: "partner_not_active" } });
+    const { result } = renderHook(() => usePlanWriter());
+    let res: { data: unknown; error: string | null } = { data: null, error: "x" };
+    await act(async () => { res = await result.current.setPlanMode("p1", "individual"); });
+    expect(res.error).toBeNull();
+  });
+
+  it("casal com parceiro já ativo (partner_already_active) é tratado como sucesso", async () => {
+    rpcMock.mockResolvedValueOnce({ data: null, error: { message: "partner_already_active" } });
+    const { result } = renderHook(() => usePlanWriter());
+    let res: { data: unknown; error: string | null } = { data: null, error: "x" };
+    await act(async () => {
+      res = await result.current.setPlanMode("p1", "casal", { name: "Bia" });
+    });
+    expect(res.error).toBeNull();
   });
 });
