@@ -2053,6 +2053,15 @@ export type Database = {
         Args: { p_age?: number; p_name: string; p_plan_id: string }
         Returns: Json
       }
+      get_plan_member_removal_impact_v1: {
+        Args: { p_member_id: string; p_plan_id: string }
+        Returns: Json
+      }
+      normalize_plan_mode_v1: { Args: { p_plan_id: string }; Returns: Json }
+      reintegrate_plan_member_v1: {
+        Args: { p_member_id: string; p_plan_id: string }
+        Returns: Json
+      }
       remove_plan_partner_v1: { Args: { p_plan_id: string }; Returns: Json }
       reset_user_plan_data: { Args: never; Returns: Json }
       set_plan_member_identity_v1: {

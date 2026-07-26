@@ -34,7 +34,6 @@ export interface CreatePlanInput {
 }
 
 export interface UpdatePlanInput {
-  mode?: CanonicalPlanMode;
   goalAmount?: number;
   initialAmount?: number;
   monthlyContribution?: number;
@@ -58,7 +57,6 @@ interface WriterResult<T> {
 }
 
 type PlanUpdatePayload = {
-  mode?: CanonicalPlanMode;
   goal_amount?: number;
   initial_amount?: number;
   monthly_contribution?: number;
@@ -134,7 +132,6 @@ export function usePlanWriter() {
       if (!uid) return { data: null, error: "Usuário não autenticado." };
 
       const payload: PlanUpdatePayload = {};
-      if (patch.mode !== undefined) payload.mode = patch.mode;
       if (patch.goalAmount !== undefined) payload.goal_amount = patch.goalAmount;
       if (patch.initialAmount !== undefined) payload.initial_amount = patch.initialAmount;
       if (patch.monthlyContribution !== undefined) payload.monthly_contribution = patch.monthlyContribution;
@@ -179,12 +176,29 @@ export function usePlanWriter() {
       const uid = ensureUser(user?.id);
       if (!uid) return { data: null, error: "Usuário não autenticado." };
 
+      // Normaliza mode a partir dos membros reais quando a RPC principal
+      // indicar estado idempotente. Só declaramos sucesso se o mode
+      // confirmado bater com o solicitado.
+      const normalize = async (): Promise<WriterResult<{ mode: CanonicalPlanMode }>> => {
+        const rpc = await supabase.rpc("normalize_plan_mode_v1", { p_plan_id: planId });
+        if (rpc.error || !rpc.data) {
+          return { data: null, error: rpc.error?.message ?? "plan_members_inconsistent" };
+        }
+        const payload = rpc.data as { mode?: CanonicalPlanMode };
+        return { data: { mode: (payload.mode ?? "individual") as CanonicalPlanMode }, error: null };
+      };
+
       if (mode === "individual") {
         const rpc = await supabase.rpc("remove_plan_partner_v1", { p_plan_id: planId });
-        // Se já é individual (nenhum parceiro ativo), o banco devolve
-        // `partner_not_active` — tratamos como no-op silencioso.
-        if (rpc.error && !/partner_not_active/i.test(rpc.error.message)) {
-          return { data: null, error: rpc.error.message };
+        if (rpc.error) {
+          if (!/partner_not_active/i.test(rpc.error.message)) {
+            return { data: null, error: rpc.error.message };
+          }
+          // Não confia no código de erro: normaliza e confirma o modo real.
+          const norm = await normalize();
+          if (norm.error || norm.data?.mode !== "individual") {
+            return { data: null, error: norm.error ?? "plan_members_inconsistent" };
+          }
         }
       } else {
         if (!partner?.name) {
@@ -195,9 +209,14 @@ export function usePlanWriter() {
           p_name: partner.name,
           p_age: partner.age ?? null,
         });
-        // Se já existe parceiro ativo, é no-op — modo continua casal.
-        if (rpc.error && !/partner_already_active/i.test(rpc.error.message)) {
-          return { data: null, error: rpc.error.message };
+        if (rpc.error) {
+          if (!/partner_already_active/i.test(rpc.error.message)) {
+            return { data: null, error: rpc.error.message };
+          }
+          const norm = await normalize();
+          if (norm.error || norm.data?.mode !== "casal") {
+            return { data: null, error: norm.error ?? "plan_members_inconsistent" };
+          }
         }
       }
 
@@ -212,9 +231,7 @@ export function usePlanWriter() {
         eventProperties: { mode },
       });
 
-      // Não devolvemos plano/membros aqui: as RPCs de parceiro já
-      // ajustam `plans.mode` numa transação. O caller faz reidratação
-      // via `refreshCloudPlan()` para consolidar o estado.
+      // O caller consolida o estado real via `refreshCloudPlan()`.
       return {
         data: { plan: { id: planId, mode } as PlanRow, members: [] },
         error: null,
