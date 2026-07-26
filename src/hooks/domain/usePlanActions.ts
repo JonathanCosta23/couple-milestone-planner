@@ -80,8 +80,11 @@ export function usePlanActions(deps: Deps): PlanActions {
   }, [appData, completeWizardLocal, updatePrimaryProfileLocal, addPartnerLocal, updatePartnerProfileLocal, setModeLocal, user, writer, refreshCloudPlan]);
 
   const setMode = useCallback<PlanActions["setMode"]>(async (mode) => {
-    setModeLocal(mode);
-    if (!user || !cloudPlan) return;
+    // Cloud-first: sem usuário/plano na nuvem, mantém compat local (rota
+    // pré-login). Com nuvem, só atualiza estado local após sucesso — se o
+    // banco rejeitar (ex.: reativação bloqueada de parceiro removido), a
+    // UI não pode dizer "casal" enquanto o banco continua "individual".
+    if (!user || !cloudPlan) { setModeLocal(mode); return; }
     const partnerProfile = appData.partner?.profile;
     const result = await writer.setPlanMode(
       cloudPlan.id,
@@ -90,24 +93,34 @@ export function usePlanActions(deps: Deps): PlanActions {
         ? { name: partnerProfile.name, age: partnerProfile.age ?? null }
         : undefined,
     );
-    if (result.error) toast.error(`Falha ao trocar modo: ${toFriendlyError(result.error)}`);
-    else await refreshCloudPlan();
+    if (result.error) {
+      toast.error(`Falha ao trocar modo: ${toFriendlyError(result.error)}`);
+      return;
+    }
+    setModeLocal(mode);
+    await refreshCloudPlan();
   }, [setModeLocal, user, cloudPlan, appData.partner, writer, refreshCloudPlan]);
 
   const addPartner = useCallback<PlanActions["addPartner"]>(async (name, age) => {
-    addPartnerLocal(name, age);
-    if (!user || !cloudPlan) return;
+    if (!user || !cloudPlan) { addPartnerLocal(name, age); return; }
     const result = await writer.addPartner(cloudPlan.id, { name, age: age ?? null });
-    if (result.error) toast.error(`Falha ao adicionar parceiro: ${toFriendlyError(result.error)}`);
-    else await refreshCloudPlan();
+    if (result.error) {
+      toast.error(`Falha ao adicionar parceiro: ${toFriendlyError(result.error)}`);
+      return;
+    }
+    addPartnerLocal(name, age);
+    await refreshCloudPlan();
   }, [addPartnerLocal, user, cloudPlan, writer, refreshCloudPlan]);
 
   const removePartner = useCallback<PlanActions["removePartner"]>(async () => {
-    removePartnerLocal();
-    if (!user || !cloudPlan) return;
+    if (!user || !cloudPlan) { removePartnerLocal(); return; }
     const result = await writer.removePartner(cloudPlan.id);
-    if (result.error) toast.error(`Falha ao remover parceiro: ${toFriendlyError(result.error)}`);
-    else await refreshCloudPlan();
+    if (result.error) {
+      toast.error(`Falha ao remover parceiro: ${toFriendlyError(result.error)}`);
+      return;
+    }
+    removePartnerLocal();
+    await refreshCloudPlan();
   }, [removePartnerLocal, user, cloudPlan, writer, refreshCloudPlan]);
 
   const updatePrimaryProfile = useCallback<PlanActions["updatePrimaryProfile"]>(async (profile) => {
