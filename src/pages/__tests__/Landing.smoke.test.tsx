@@ -52,5 +52,25 @@ describe("Landing page", () => {
 
     // Legal footer is present.
     expect(screen.getByTestId("legal-footer")).toBeInTheDocument();
+
+    // Required content blocks.
+    expect(
+      screen.getByRole("heading", { name: /o que o sistema faz/i, level: 2 }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /o que o sistema não faz/i, level: 2 }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /como seus dados são protegidos/i, level: 2 }),
+    ).toBeInTheDocument();
+
+    // Uses the approved privacy phrasing, never the banned "criptografados e seguros".
+    expect(
+      screen.getByText(/autenticação, permissões por usuário e controles de acesso/i),
+    ).toBeInTheDocument();
+    expect(document.body.textContent ?? "").not.toMatch(/criptografados e seguros/i);
+
+    // Sticky mobile CTA bar.
+    expect(screen.getByTestId("mobile-cta-bar")).toBeInTheDocument();
   });
 });
