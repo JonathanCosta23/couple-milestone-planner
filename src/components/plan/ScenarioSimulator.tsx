@@ -32,6 +32,9 @@ export function ScenarioSimulator({ config, monthRecords, startDate }: ScenarioS
         <Zap className="w-5 h-5 text-accent" />
         <h3 className="font-semibold text-sm">Cenários de Vida Real</h3>
       </div>
+      <p className="text-xs text-muted-foreground -mt-1">
+        Simulações não alteram seu plano oficial.
+      </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {results.map(({ key, icon: Icon, label, color, result }) => (
