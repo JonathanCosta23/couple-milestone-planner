@@ -12,6 +12,11 @@ import {
   Compass,
   Plug,
   ArrowRight,
+  Check,
+  X,
+  KeyRound,
+  UserCheck,
+  SlidersHorizontal,
 } from "lucide-react";
 
 /**
@@ -65,34 +70,39 @@ export default function Landing() {
           aria-hidden
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.18),transparent_60%)]"
         />
-        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 py-16 sm:py-24 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/60 px-3 py-1 text-xs text-muted-foreground">
-            <ShieldCheck className="h-3.5 w-3.5 text-primary" aria-hidden />
-            Ferramenta educacional · seus dados são privados
+        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 py-14 sm:py-20 grid gap-10 lg:grid-cols-2 lg:items-center">
+          <div className="text-center lg:text-left">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/60 px-3 py-1 text-xs text-muted-foreground">
+              <ShieldCheck className="h-3.5 w-3.5 text-primary" aria-hidden />
+              Ambiente privado · ferramenta educacional
+            </div>
+            <h1 className="mt-6 text-3xl sm:text-5xl font-bold tracking-tight leading-tight">
+              Transforme sua meta patrimonial em uma rotina mensal clara, segura e mensurável.
+            </h1>
+            <p className="mt-5 text-base sm:text-lg text-muted-foreground max-w-2xl lg:mx-0 mx-auto leading-relaxed">
+              O Plano do Milhão organiza seus aportes, patrimônio, projeções e disciplina
+              financeira em um cockpit privado, para você saber exatamente o que fazer a cada mês.
+            </p>
+            <div className="mt-8 flex flex-col sm:flex-row items-center lg:justify-start justify-center gap-3">
+              <Link to="/signup" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto rounded-xl h-12 px-6 font-semibold">
+                  Criar conta grátis
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <Link to="/login" className="w-full sm:w-auto">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto rounded-xl h-12 px-6">
+                  Entrar
+                </Button>
+              </Link>
+            </div>
+            <p className="mt-4 text-xs text-muted-foreground">
+              Sem cobrança. Sem recomendação de investimento. Você no controle.
+            </p>
           </div>
-          <h1 className="mt-6 text-3xl sm:text-5xl font-bold tracking-tight leading-tight">
-            Transforme sua meta patrimonial em uma rotina mensal clara, segura e mensurável.
-          </h1>
-          <p className="mt-5 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            O Plano do Milhão organiza seus aportes, patrimônio, projeções e disciplina
-            financeira em um cockpit privado, para você saber exatamente o que fazer a cada mês.
-          </p>
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link to="/signup" className="w-full sm:w-auto">
-              <Button size="lg" className="w-full sm:w-auto rounded-xl h-12 px-6 font-semibold">
-                Criar conta grátis
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-            <Link to="/login" className="w-full sm:w-auto">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto rounded-xl h-12 px-6">
-                Entrar
-              </Button>
-            </Link>
-          </div>
-          <p className="mt-4 text-xs text-muted-foreground">
-            Sem cobrança. Sem recomendação de investimento. Você no controle.
-          </p>
+
+          {/* Mockup visual — abstrato, sem valores financeiros */}
+          <ProductMockup />
         </div>
       </section>
 
@@ -117,49 +127,53 @@ export default function Landing() {
         </div>
       </Section>
 
-      {/* O que você acompanha */}
-      <Section title="O que você acompanha" eyebrow="Cockpit">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Bullet title="Meta e propósito">
-            A promessa financeira que dá sentido ao esforço mensal.
-          </Bullet>
-          <Bullet title="Aportes mensais">
-            Planejado × realizado, com déficit calculado e status por mês.
-          </Bullet>
-          <Bullet title="Patrimônio real">
-            Bruto, líquido de imposto e ajustado por inflação — sem falsa sensação de riqueza.
-          </Bullet>
-          <Bullet title="Disciplina">
-            Consistência dos aportes, alertas de armadilhas e sugestões de próxima ação.
-          </Bullet>
-          <Bullet title="Renda, gastos e dívidas">
-            Um retrato honesto do fluxo, com divisão para casal quando aplicável.
-          </Bullet>
-          <Bullet title="Concentração e proteção">
-            Distribuição por bucket, cobertura FGC e risco de concentração por instituição.
-          </Bullet>
+      {/* O que o sistema faz */}
+      <Section title="O que o sistema faz" eyebrow="Escopo">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <DoItem>Organiza meta, aportes e patrimônio em um único cockpit.</DoItem>
+          <DoItem>Compara planejado × realizado a cada mês, com status honesto.</DoItem>
+          <DoItem>Mostra patrimônio nominal, líquido de imposto e real (ajustado por inflação).</DoItem>
+          <DoItem>Sugere a próxima melhor ação com base nos seus dados.</DoItem>
+          <DoItem>Registra renda, gastos e dívidas — individual ou casal.</DoItem>
+          <DoItem>Mapeia concentração por bucket, instituição e cobertura FGC.</DoItem>
         </div>
       </Section>
 
-      {/* Proteção e privacidade */}
-      <Section title="Proteção e privacidade" eyebrow="Confiança">
+      {/* O que o sistema NÃO faz */}
+      <Section title="O que o sistema não faz" eyebrow="Limites claros">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <DontItem>Não recomenda ativos, corretoras ou produtos específicos.</DontItem>
+          <DontItem>Não promete retorno, rentabilidade nem “ficar rico rápido”.</DontItem>
+          <DontItem>Não movimenta dinheiro, não abre conta e não opera investimentos.</DontItem>
+          <DontItem>Não substitui um assessor financeiro qualificado.</DontItem>
+          <DontItem>Não vende, aluga nem compartilha seus dados com terceiros.</DontItem>
+          <DontItem>Não publica seu plano nem seu patrimônio em lugar nenhum.</DontItem>
+        </div>
+      </Section>
+
+      {/* Como seus dados são protegidos */}
+      <Section title="Como seus dados são protegidos" eyebrow="Privacidade">
         <div className="grid gap-4 sm:grid-cols-3">
           <FeatureCard
-            icon={<Lock className="h-5 w-5" />}
-            title="Seus dados são seus"
-            body="Cada conta vê apenas os próprios registros. Nada é publicado nem compartilhado."
+            icon={<KeyRound className="h-5 w-5" />}
+            title="Autenticação por conta"
+            body="Login por e-mail e senha. Cada acesso é vinculado a uma conta identificável."
           />
           <FeatureCard
-            icon={<ShieldCheck className="h-5 w-5" />}
-            title="Somente para organização"
-            body="Usamos os dados para organizar sua vida financeira e acompanhar o patrimônio. Não vendemos dados."
+            icon={<UserCheck className="h-5 w-5" />}
+            title="Permissões por usuário"
+            body="Cada conta enxerga apenas os próprios registros. Sem visão cruzada entre usuários."
           />
           <FeatureCard
-            icon={<Sparkles className="h-5 w-5" />}
-            title="Sem promessa de retorno"
-            body="Projeções são estimativas educacionais. Não constituem recomendação de investimento."
+            icon={<SlidersHorizontal className="h-5 w-5" />}
+            title="Controles de acesso"
+            body="Regras no banco garantem que leitura e escrita respeitem o dono do dado."
           />
         </div>
+        <p className="mt-4 text-xs text-muted-foreground max-w-2xl">
+          Seus dados são protegidos por autenticação, permissões por usuário e controles de
+          acesso. Não vendemos, alugamos nem compartilhamos suas informações.
+        </p>
       </Section>
 
       {/* Casal / individual */}
@@ -249,6 +263,25 @@ export default function Landing() {
           <LegalFooter />
         </div>
       </footer>
+
+      {/* CTA mobile fixo */}
+      <div
+        className="sm:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur px-4 py-3 flex gap-2"
+        data-testid="mobile-cta-bar"
+      >
+        <Link to="/login" className="flex-1">
+          <Button variant="outline" className="w-full rounded-xl h-11">
+            Entrar
+          </Button>
+        </Link>
+        <Link to="/signup" className="flex-1">
+          <Button className="w-full rounded-xl h-11 font-semibold">
+            Criar conta
+          </Button>
+        </Link>
+      </div>
+      {/* Espaço para não cobrir conteúdo no mobile */}
+      <div aria-hidden className="sm:hidden h-20" />
     </div>
   );
 }
@@ -298,6 +331,86 @@ function Bullet({ title, children }: { title: string; children: React.ReactNode 
     <div className="rounded-xl border border-border/50 bg-card/30 p-4">
       <div className="text-sm font-semibold">{title}</div>
       <p className="mt-1 text-sm text-muted-foreground leading-relaxed">{children}</p>
+    </div>
+  );
+}
+
+function DoItem({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-border/50 bg-card/30 p-4">
+      <div className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-primary">
+        <Check className="h-3.5 w-3.5" aria-hidden />
+      </div>
+      <p className="text-sm text-foreground leading-relaxed">{children}</p>
+    </div>
+  );
+}
+
+function DontItem({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-border/50 bg-card/20 p-4">
+      <div className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <X className="h-3.5 w-3.5" aria-hidden />
+      </div>
+      <p className="text-sm text-muted-foreground leading-relaxed">{children}</p>
+    </div>
+  );
+}
+
+/**
+ * Mockup abstrato do produto — sem valores monetários reais, sem promessas.
+ * Serve como referência visual do cockpit privado.
+ */
+function ProductMockup() {
+  return (
+    <div className="relative mx-auto w-full max-w-md lg:max-w-none" aria-hidden>
+      <div
+        className="absolute -inset-6 rounded-[2rem] bg-[radial-gradient(circle_at_top_right,hsl(var(--primary)/0.25),transparent_60%)] blur-2xl"
+        aria-hidden
+      />
+      <div className="relative rounded-2xl border border-border/60 bg-card/80 shadow-2xl backdrop-blur p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-2.5 w-2.5 rounded-full bg-primary" />
+            <span className="text-xs font-medium text-muted-foreground">Cockpit privado</span>
+          </div>
+          <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+        </div>
+
+        <div className="rounded-xl border border-border/50 bg-background/60 p-4">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Progresso da meta
+          </div>
+          <div className="mt-2 h-2 rounded-full bg-muted overflow-hidden">
+            <div className="h-full w-2/5 rounded-full bg-gradient-to-r from-primary to-primary/60" />
+          </div>
+          <div className="mt-2 flex justify-between text-[10px] text-muted-foreground">
+            <span>Início</span>
+            <span>Meta</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          {["Aportes", "Patrimônio", "Reserva"].map((label) => (
+            <div key={label} className="rounded-lg border border-border/50 bg-background/40 p-3">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                {label}
+              </div>
+              <div className="mt-1 h-1.5 w-3/4 rounded-full bg-muted" />
+              <div className="mt-1 h-1.5 w-1/2 rounded-full bg-muted/70" />
+            </div>
+          ))}
+        </div>
+
+        <div className="rounded-xl border border-border/50 bg-background/60 p-4 space-y-2">
+          <div className="flex items-center gap-2 text-xs font-medium">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            Próxima melhor ação
+          </div>
+          <div className="h-1.5 w-5/6 rounded-full bg-muted" />
+          <div className="h-1.5 w-3/5 rounded-full bg-muted/70" />
+        </div>
+      </div>
     </div>
   );
 }
