@@ -191,8 +191,8 @@ export function usePlanWriter() {
         const rpc = await supabase.rpc("normalize_plan_mode_v1", { p_plan_id: planId });
         if (rpc.error) return { data: null, error: rpc.error.message };
         const parsed = parseNormalizePayload(rpc.data);
-        if (!parsed.ok) return { data: null, error: parsed.error };
-        return { data: { mode: parsed.value.mode }, error: null };
+        if (parsed.ok) return { data: { mode: parsed.value.mode }, error: null };
+        return { data: null, error: parsed.error };
       };
 
       const buildNoop = async (): Promise<WriterResult<ModeChangeResult>> => {
@@ -232,7 +232,9 @@ export function usePlanWriter() {
           return noop;
         }
         const parsed = parseRemovePartnerPayload(rpc.data);
-        if (!parsed.ok) return { data: null, error: parsed.error };
+        if (!parsed.ok) {
+          return { data: null, error: parsed.error };
+        }
         // Confirma modo esperado; se divergir, normaliza uma vez.
         if (parsed.value.mode !== "individual") {
           const noop = await buildNoop();
@@ -276,7 +278,9 @@ export function usePlanWriter() {
           return noop;
         }
         const parsed = parseAddPartnerPayload(rpc.data);
-        if (!parsed.ok) return { data: null, error: parsed.error };
+        if (!parsed.ok) {
+          return { data: null, error: parsed.error };
+        }
         if (parsed.value.mode !== "casal") {
           const noop = await buildNoop();
           if (noop.error) return noop;
