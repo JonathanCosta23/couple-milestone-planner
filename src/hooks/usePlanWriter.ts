@@ -17,6 +17,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { trackWriterChange } from "@/lib/services/auditService";
 import type { CanonicalPlanMode } from "@/lib/services/dataMigrationService";
 import type { PlanRow, PlanMemberRow } from "@/hooks/usePlan";
+import {
+  parseAddPartnerPayload,
+  parseRemovePartnerPayload,
+  parseNormalizePayload,
+  type ModeChangeResult,
+} from "@/hooks/planWriter/modeChange";
+
+export type { ModeChangeResult, ModeChangeOutcome } from "@/hooks/planWriter/modeChange";
 
 export interface CreatePlanInput {
   mode: CanonicalPlanMode;
@@ -172,20 +180,39 @@ export function usePlanWriter() {
       planId: string,
       mode: CanonicalPlanMode,
       partner?: { name: string; age?: number | null }
-    ): Promise<WriterResult<{ plan: PlanRow; members: PlanMemberRow[] }>> => {
+    ): Promise<WriterResult<ModeChangeResult>> => {
       const uid = ensureUser(user?.id);
       if (!uid) return { data: null, error: "Usuário não autenticado." };
 
-      // Normaliza mode a partir dos membros reais quando a RPC principal
-      // indicar estado idempotente. Só declaramos sucesso se o mode
+      // Normaliza modo a partir dos membros reais quando a RPC principal
+      // indicar estado idempotente. Só declaramos sucesso se o modo
       // confirmado bater com o solicitado.
       const normalize = async (): Promise<WriterResult<{ mode: CanonicalPlanMode }>> => {
         const rpc = await supabase.rpc("normalize_plan_mode_v1", { p_plan_id: planId });
-        if (rpc.error || !rpc.data) {
-          return { data: null, error: rpc.error?.message ?? "plan_members_inconsistent" };
+        if (rpc.error) return { data: null, error: rpc.error.message };
+        const parsed = parseNormalizePayload(rpc.data);
+        if (!parsed.ok) return { data: null, error: parsed.error };
+        return { data: { mode: parsed.value.mode }, error: null };
+      };
+
+      const buildNoop = async (): Promise<WriterResult<ModeChangeResult>> => {
+        const norm = await normalize();
+        if (norm.error || !norm.data) {
+          return { data: null, error: norm.error ?? "plan_members_inconsistent" };
         }
-        const payload = rpc.data as { mode?: CanonicalPlanMode };
-        return { data: { mode: (payload.mode ?? "individual") as CanonicalPlanMode }, error: null };
+        if (norm.data.mode !== mode) {
+          return { data: null, error: "plan_members_inconsistent" };
+        }
+        return {
+          data: {
+            outcome: "noop",
+            planId,
+            mode: norm.data.mode,
+            partnerId: null,
+            removedPartnerId: null,
+          },
+          error: null,
+        };
       };
 
       if (mode === "individual") {
@@ -194,12 +221,38 @@ export function usePlanWriter() {
           if (!/partner_not_active/i.test(rpc.error.message)) {
             return { data: null, error: rpc.error.message };
           }
-          // Não confia no código de erro: normaliza e confirma o modo real.
-          const norm = await normalize();
-          if (norm.error || norm.data?.mode !== "individual") {
-            return { data: null, error: norm.error ?? "plan_members_inconsistent" };
-          }
+          // Estado já era individual — confirma com normalize.
+          const noop = await buildNoop();
+          if (noop.error) return noop;
+          void trackWriterChange({
+            userId: uid, planId, entity: "plan", entityId: planId,
+            action: "update", newValue: { mode } as Record<string, unknown>,
+            event: "plan_updated", eventProperties: { mode, outcome: "noop" },
+          });
+          return noop;
         }
+        const parsed = parseRemovePartnerPayload(rpc.data);
+        if (!parsed.ok) return { data: null, error: parsed.error };
+        // Confirma modo esperado; se divergir, normaliza uma vez.
+        if (parsed.value.mode !== "individual") {
+          const noop = await buildNoop();
+          if (noop.error) return noop;
+        }
+        void trackWriterChange({
+          userId: uid, planId, entity: "plan", entityId: planId,
+          action: "update", newValue: { mode } as Record<string, unknown>,
+          event: "plan_updated", eventProperties: { mode, outcome: "changed" },
+        });
+        return {
+          data: {
+            outcome: "changed",
+            planId: parsed.value.planId,
+            mode: parsed.value.mode,
+            partnerId: null,
+            removedPartnerId: parsed.value.removedPartnerId,
+          },
+          error: null,
+        };
       } else {
         if (!partner?.name) {
           return { data: null, error: "partner_name_required" };
@@ -213,29 +266,37 @@ export function usePlanWriter() {
           if (!/partner_already_active/i.test(rpc.error.message)) {
             return { data: null, error: rpc.error.message };
           }
-          const norm = await normalize();
-          if (norm.error || norm.data?.mode !== "casal") {
-            return { data: null, error: norm.error ?? "plan_members_inconsistent" };
-          }
+          const noop = await buildNoop();
+          if (noop.error) return noop;
+          void trackWriterChange({
+            userId: uid, planId, entity: "plan", entityId: planId,
+            action: "update", newValue: { mode } as Record<string, unknown>,
+            event: "plan_updated", eventProperties: { mode, outcome: "noop" },
+          });
+          return noop;
         }
+        const parsed = parseAddPartnerPayload(rpc.data);
+        if (!parsed.ok) return { data: null, error: parsed.error };
+        if (parsed.value.mode !== "casal") {
+          const noop = await buildNoop();
+          if (noop.error) return noop;
+        }
+        void trackWriterChange({
+          userId: uid, planId, entity: "plan", entityId: planId,
+          action: "update", newValue: { mode } as Record<string, unknown>,
+          event: "plan_updated", eventProperties: { mode, outcome: "changed" },
+        });
+        return {
+          data: {
+            outcome: "changed",
+            planId: parsed.value.planId,
+            mode: parsed.value.mode,
+            partnerId: parsed.value.partnerId,
+            removedPartnerId: null,
+          },
+          error: null,
+        };
       }
-
-      void trackWriterChange({
-        userId: uid,
-        planId,
-        entity: "plan",
-        entityId: planId,
-        action: "update",
-        newValue: { mode } as Record<string, unknown>,
-        event: "plan_updated",
-        eventProperties: { mode },
-      });
-
-      // O caller consolida o estado real via `refreshCloudPlan()`.
-      return {
-        data: { plan: { id: planId, mode } as PlanRow, members: [] },
-        error: null,
-      };
     },
     [user]
   );
