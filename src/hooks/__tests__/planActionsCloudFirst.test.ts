@@ -86,4 +86,19 @@ describe("usePlanActions.completeWizard cloud-first", () => {
     expect(writerCreate).not.toHaveBeenCalled();
     expect(deps.completeWizardLocal).toHaveBeenCalledTimes(1);
   });
+
+  it("refresh falhando após write confirmado NÃO gera falso erro", async () => {
+    writerCreate.mockResolvedValueOnce({
+      data: { plan: { id: "p1", mode: "individual" }, members: [] }, error: null,
+    });
+    const deps = baseDeps({
+      refreshCloudPlan: vi.fn().mockRejectedValue(new Error("network fail")),
+    });
+    const { result } = renderHook(() => usePlanActions(deps));
+    let out: unknown = "unset";
+    await act(async () => { out = await result.current.completeWizard(CONFIG); });
+    // Não lança, e o local FOI aplicado (write já confirmado).
+    expect(out).toEqual({ needsFinancialSetup: expect.any(Boolean) });
+    expect(deps.completeWizardLocal).toHaveBeenCalledTimes(1);
+  });
 });
