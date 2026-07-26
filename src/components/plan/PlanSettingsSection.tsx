@@ -18,6 +18,7 @@ import {
 } from "@/lib/types";
 import { toast } from "sonner";
 import { toFriendlyError } from "@/lib/errors/friendlyError";
+import { parseBRLCurrency, formatBRLCurrencyInput } from "@/lib/utils/currencyBR";
 
 export interface PlanSettingsPatch {
   goalAmount: number;
@@ -44,6 +45,8 @@ interface Props {
   autoExpand?: boolean;
   /** Chamado quando o auto-expand foi consumido, para limpar o foco global. */
   onAutoExpandConsumed?: () => void;
+  /** Quando `false`, o botão de salvar é bloqueado (plano cloud ainda não pronto). */
+  cloudReady?: boolean;
 }
 
 interface FieldErrors {
@@ -54,29 +57,24 @@ interface FieldErrors {
   goalPurposeCustom?: string;
 }
 
-/** Máscara BRL para inputs numéricos. Aceita apenas dígitos e retorna o número. */
-function parseBRL(raw: string): number {
-  const digits = raw.replace(/\D/g, "");
-  if (!digits) return 0;
-  return Number(digits);
-}
-
-function formatBRLInput(value: number): string {
-  if (!value) return "";
-  return value.toLocaleString("pt-BR");
-}
-
 export function PlanSettingsSection({
   initial,
   onSave,
   autoExpand,
   onAutoExpandConsumed,
+  cloudReady = true,
 }: Props) {
   const [open, setOpen] = useState(!!autoExpand);
-  const [goalAmount, setGoalAmount] = useState(initial.goalAmount);
-  const [initialAmount, setInitialAmount] = useState(initial.initialAmount);
-  const [monthlyContribution, setMonthlyContribution] = useState(
-    initial.monthlyContribution,
+  // Campos monetários armazenados como string para respeitar o que o usuário
+  // digita (ex.: "1.000,50"); a conversão só ocorre no submit.
+  const [goalAmountStr, setGoalAmountStr] = useState(
+    formatBRLCurrencyInput(initial.goalAmount),
+  );
+  const [initialAmountStr, setInitialAmountStr] = useState(
+    formatBRLCurrencyInput(initial.initialAmount),
+  );
+  const [monthlyContributionStr, setMonthlyContributionStr] = useState(
+    formatBRLCurrencyInput(initial.monthlyContribution),
   );
   const [goalYears, setGoalYears] = useState<number>(initial.goalYears);
   const [goalPurpose, setGoalPurpose] = useState<EmotionalGoal>(
@@ -105,9 +103,9 @@ export function PlanSettingsSection({
 
   // Ressincroniza campos se os valores iniciais mudarem (ex.: outro dispositivo).
   useEffect(() => {
-    setGoalAmount(initial.goalAmount);
-    setInitialAmount(initial.initialAmount);
-    setMonthlyContribution(initial.monthlyContribution);
+    setGoalAmountStr(formatBRLCurrencyInput(initial.goalAmount));
+    setInitialAmountStr(formatBRLCurrencyInput(initial.initialAmount));
+    setMonthlyContributionStr(formatBRLCurrencyInput(initial.monthlyContribution));
     setGoalYears(initial.goalYears);
     setGoalPurpose(initial.goalPurpose);
     setGoalPurposeCustom(initial.goalPurposeCustom ?? "");
@@ -128,34 +126,73 @@ export function PlanSettingsSection({
     [initial.goalAmount, initial.goalYears],
   );
 
-  function validate(): FieldErrors {
-    const next: FieldErrors = {};
-    if (!(goalAmount > 0)) next.goalAmount = "Informe uma meta maior que zero.";
-    if (initialAmount < 0) next.initialAmount = "Não pode ser negativo.";
-    if (monthlyContribution < 0)
-      next.monthlyContribution = "Não pode ser negativo.";
-    if (!Number.isInteger(goalYears) || goalYears < 1 || goalYears > 50)
-      next.goalYears = "Escolha entre 1 e 50 anos.";
+  interface Parsed {
+    goalAmount: number;
+    initialAmount: number;
+    monthlyContribution: number;
+    errors: FieldErrors;
+  }
+
+  function parseAndValidate(): Parsed {
+    const errs: FieldErrors = {};
+
+    const goal = parseBRLCurrency(goalAmountStr);
+    let goalAmount = 0;
+    if (goal.error) errs.goalAmount = goal.error;
+    else if (goal.value === null || goal.value <= 0)
+      errs.goalAmount = "Informe uma meta maior que zero.";
+    else goalAmount = goal.value;
+
+    const initialP = parseBRLCurrency(initialAmountStr);
+    let initialAmount = 0;
+    if (initialP.error) errs.initialAmount = initialP.error;
+    else if (initialP.value === null) initialAmount = 0;
+    else if (initialP.value < 0) errs.initialAmount = "Não pode ser negativo.";
+    else initialAmount = initialP.value;
+
+    const monthlyP = parseBRLCurrency(monthlyContributionStr);
+    let monthlyContribution = 0;
+    if (monthlyP.error) errs.monthlyContribution = monthlyP.error;
+    else if (monthlyP.value === null) monthlyContribution = 0;
+    else if (monthlyP.value < 0)
+      errs.monthlyContribution = "Não pode ser negativo.";
+    else monthlyContribution = monthlyP.value;
+
+    if (
+      !Number.isInteger(goalYears) ||
+      !Number.isFinite(goalYears) ||
+      goalYears < 1 ||
+      goalYears > 50
+    ) {
+      errs.goalYears = "Escolha entre 1 e 50 anos.";
+    }
     if (goalPurpose === "outro" && !goalPurposeCustom.trim())
-      next.goalPurposeCustom = "Descreva o propósito da meta.";
-    return next;
+      errs.goalPurposeCustom = "Descreva o propósito da meta.";
+    return { goalAmount, initialAmount, monthlyContribution, errors: errs };
   }
 
   async function handleSubmit() {
-    const nextErrors = validate();
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+    if (!cloudReady) {
+      toast.error(
+        "Seu plano ainda está sendo carregado. Aguarde e tente novamente.",
+      );
+      return;
+    }
+    const parsed = parseAndValidate();
+    setErrors(parsed.errors);
+    if (Object.keys(parsed.errors).length > 0) return;
     setSaving(true);
     try {
       await onSave({
-        goalAmount,
-        initialAmount,
-        monthlyContribution,
+        goalAmount: parsed.goalAmount,
+        initialAmount: parsed.initialAmount,
+        monthlyContribution: parsed.monthlyContribution,
         goalYears,
         goalPurpose,
         goalPurposeCustom:
           goalPurpose === "outro" ? goalPurposeCustom.trim() : undefined,
       });
+      // Toast só após confirmação cloud (onSave resolveu sem lançar).
       toast.success("Plano atualizado.");
       setOpen(false);
     } catch (e) {
@@ -191,10 +228,10 @@ export function PlanSettingsSection({
               <Label htmlFor="plan-goal-amount">Meta patrimonial</Label>
               <Input
                 id="plan-goal-amount"
-                inputMode="numeric"
+                inputMode="decimal"
                 autoComplete="off"
-                value={formatBRLInput(goalAmount)}
-                onChange={(e) => setGoalAmount(parseBRL(e.target.value))}
+                value={goalAmountStr}
+                onChange={(e) => setGoalAmountStr(e.target.value)}
                 aria-invalid={!!errors.goalAmount}
                 aria-describedby={errors.goalAmount ? "err-goal-amount" : undefined}
               />
@@ -231,10 +268,10 @@ export function PlanSettingsSection({
               <Label htmlFor="plan-initial">Patrimônio inicial</Label>
               <Input
                 id="plan-initial"
-                inputMode="numeric"
+                inputMode="decimal"
                 autoComplete="off"
-                value={formatBRLInput(initialAmount)}
-                onChange={(e) => setInitialAmount(parseBRL(e.target.value))}
+                value={initialAmountStr}
+                onChange={(e) => setInitialAmountStr(e.target.value)}
                 aria-invalid={!!errors.initialAmount}
               />
               {errors.initialAmount && (
@@ -246,12 +283,10 @@ export function PlanSettingsSection({
               <Label htmlFor="plan-monthly">Aporte mensal planejado</Label>
               <Input
                 id="plan-monthly"
-                inputMode="numeric"
+                inputMode="decimal"
                 autoComplete="off"
-                value={formatBRLInput(monthlyContribution)}
-                onChange={(e) =>
-                  setMonthlyContribution(parseBRL(e.target.value))
-                }
+                value={monthlyContributionStr}
+                onChange={(e) => setMonthlyContributionStr(e.target.value)}
                 aria-invalid={!!errors.monthlyContribution}
               />
               {errors.monthlyContribution && (
@@ -303,6 +338,17 @@ export function PlanSettingsSection({
             Projeção. Simulações não alteram estes valores.
           </p>
 
+          {!cloudReady && (
+            <p
+              className="text-xs text-warning"
+              role="status"
+              data-testid="plan-settings-cloud-loading"
+            >
+              Seu plano ainda está sendo carregado. Aguarde alguns segundos e
+              tente novamente.
+            </p>
+          )}
+
           <div className="flex gap-2 justify-end">
             <Button
               variant="ghost"
@@ -311,7 +357,15 @@ export function PlanSettingsSection({
             >
               Cancelar
             </Button>
-            <Button onClick={handleSubmit} disabled={saving}>
+            <Button
+              onClick={handleSubmit}
+              disabled={saving || !cloudReady}
+              title={
+                !cloudReady
+                  ? "Aguarde o plano oficial carregar para salvar."
+                  : undefined
+              }
+            >
               {saving && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
               {saving ? "Salvando…" : "Salvar plano"}
             </Button>
