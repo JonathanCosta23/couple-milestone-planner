@@ -78,4 +78,57 @@ describe("PlanSettingsSection", () => {
     );
     expect(onSave).not.toHaveBeenCalled();
   });
+
+  it("aceita 1.000,50 e envia 1000.50; aceita 0,99 e envia 0.99", async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(
+      <PlanSettingsSection initial={baseInitial} onSave={onSave} autoExpand />,
+    );
+    const initial = await screen.findByLabelText(/Patrimônio inicial/i);
+    fireEvent.change(initial, { target: { value: "1.000,50" } });
+    const monthly = screen.getByLabelText(/Aporte mensal/i);
+    fireEvent.change(monthly, { target: { value: "0,99" } });
+    fireEvent.click(screen.getByRole("button", { name: /Salvar plano/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialAmount: 1000.5,
+        monthlyContribution: 0.99,
+      }),
+    );
+  });
+
+  it("bloqueia formato monetário inválido", async () => {
+    const onSave = vi.fn();
+    render(
+      <PlanSettingsSection initial={baseInitial} onSave={onSave} autoExpand />,
+    );
+    const goal = await screen.findByLabelText(/Meta patrimonial/i);
+    fireEvent.change(goal, { target: { value: "abc" } });
+    fireEvent.click(screen.getByRole("button", { name: /Salvar plano/i }));
+    await waitFor(() =>
+      expect(screen.getByText(/Formato inválido/i)).toBeInTheDocument(),
+    );
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it("desabilita salvar e alerta quando cloudReady=false", async () => {
+    const onSave = vi.fn();
+    render(
+      <PlanSettingsSection
+        initial={baseInitial}
+        onSave={onSave}
+        autoExpand
+        cloudReady={false}
+      />,
+    );
+    const saveBtn = await screen.findByRole("button", { name: /Salvar plano/i });
+    expect(saveBtn).toBeDisabled();
+    expect(
+      screen.getByTestId("plan-settings-cloud-loading"),
+    ).toBeInTheDocument();
+    fireEvent.click(saveBtn);
+    expect(onSave).not.toHaveBeenCalled();
+  });
+});
 });
