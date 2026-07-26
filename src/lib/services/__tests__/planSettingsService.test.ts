@@ -128,4 +128,15 @@ describe("savePlanSettings", () => {
       "Comprar casa",
     );
   });
+
+  it("falha em refreshCloudPlan após writer OK não desfaz o salvamento e ainda aplica estado local", async () => {
+    const { deps, updateConfig, updateFinancialProfile } = makeDeps();
+    deps.refreshCloudPlan = vi
+      .fn()
+      .mockRejectedValue(new Error("refresh network fail"));
+    await expect(savePlanSettings(deps)).resolves.toBeUndefined();
+    expect(deps.writer.updatePlan).toHaveBeenCalledTimes(1);
+    expect(updateConfig).toHaveBeenCalledTimes(1);
+    expect(updateFinancialProfile).toHaveBeenCalledTimes(1);
+  });
 });
