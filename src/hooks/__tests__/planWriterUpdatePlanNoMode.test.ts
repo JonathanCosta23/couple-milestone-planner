@@ -10,7 +10,7 @@ const eqMock = vi.fn().mockReturnThis();
 const selectMock = vi.fn().mockReturnThis();
 const singleMock = vi.fn().mockResolvedValue({ data: { id: "p1" }, error: null });
 
-const fromMock = vi.fn(() => ({
+const fromMock = vi.fn((..._args: unknown[]) => ({
   update: (...a: unknown[]) => { updateMock(...a); return { eq: eqMock, select: selectMock, single: singleMock }; },
   eq: (...a: unknown[]) => { eqMock(...a); return { eq: eqMock, select: selectMock, single: singleMock }; },
   select: (...a: unknown[]) => { selectMock(...a); return { single: singleMock }; },
