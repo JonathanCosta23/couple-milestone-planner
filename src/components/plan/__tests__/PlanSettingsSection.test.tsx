@@ -131,4 +131,3 @@ describe("PlanSettingsSection", () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 });
-});
