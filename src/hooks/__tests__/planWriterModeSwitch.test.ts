@@ -75,12 +75,37 @@ describe("usePlanWriter.setPlanMode", () => {
     });
   });
 
-  it("casal sem partner é rejeitado localmente (partner_name_required)", async () => {
+  it("casal sem partner, plano já casal → noop confirmado por normalize", async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: { mode: "casal", primary_active: 1, partner_active: 1 },
+      error: null,
+    });
     const { result } = renderHook(() => usePlanWriter());
-    let res: { error: string | null } = { error: null };
+    let res: { data: unknown; error: string | null } = { data: null, error: "x" };
+    await act(async () => { res = await result.current.setPlanMode("p1", "casal"); });
+    expect(res.error).toBeNull();
+    expect(res.data).toMatchObject({ outcome: "noop", mode: "casal", planId: "p1" });
+    expect(rpcMock).toHaveBeenCalledWith("normalize_plan_mode_v1", { p_plan_id: "p1" });
+  });
+
+  it("casal sem partner, plano é individual → partner_name_required", async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: { mode: "individual", primary_active: 1, partner_active: 0 },
+      error: null,
+    });
+    const { result } = renderHook(() => usePlanWriter());
+    let res: { data: unknown; error: string | null } = { data: null, error: null };
     await act(async () => { res = await result.current.setPlanMode("p1", "casal"); });
     expect(res.error).toBe("partner_name_required");
-    expect(rpcMock).not.toHaveBeenCalled();
+    expect(res.data).toBeNull();
+  });
+
+  it("casal sem partner, normalize inválido → propaga invalid_rpc_payload", async () => {
+    rpcMock.mockResolvedValueOnce({ data: { mode: "casal" }, error: null });
+    const { result } = renderHook(() => usePlanWriter());
+    let res: { data: unknown; error: string | null } = { data: null, error: null };
+    await act(async () => { res = await result.current.setPlanMode("p1", "casal"); });
+    expect(res.error).toBe("invalid_rpc_payload");
   });
 
   it("individual em plano já individual: normaliza e confirma sucesso quando mode='individual'", async () => {
@@ -167,6 +192,28 @@ describe("usePlanWriter.setPlanMode", () => {
   });
 
   it("no-op cases nunca fabricam PlanRow — retornam somente ModeChangeResult", async () => {
+    rpcMock
+      .mockResolvedValueOnce({ data: null, error: { message: "partner_not_active" } })
+      .mockResolvedValueOnce({ data: { mode: "individual", primary_active: 1, partner_active: 0 }, error: null });
+    const { result } = renderHook(() => usePlanWriter());
+    let res: { data: unknown; error: string | null } = { data: null, error: null };
+    await act(async () => { res = await result.current.setPlanMode("p1", "individual"); });
+    expect(res.data).not.toHaveProperty("plan");
+    expect(res.data).not.toHaveProperty("members");
+  });
+
+  it("individual: remove com removed_partner_id ausente → invalid_rpc_payload", async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: { plan_id: "p1", mode: "individual" },
+      error: null,
+    });
+    const { result } = renderHook(() => usePlanWriter());
+    let res: { data: unknown; error: string | null } = { data: null, error: null };
+    await act(async () => { res = await result.current.setPlanMode("p1", "individual"); });
+    expect(res.error).toBe("invalid_rpc_payload");
+  });
+
+  it("individual: remove com removed_partner_id null → invalid_rpc_payload", async () => {
     rpcMock.mockResolvedValueOnce({
       data: { plan_id: "p1", mode: "individual", removed_partner_id: null },
       error: null,
@@ -174,7 +221,77 @@ describe("usePlanWriter.setPlanMode", () => {
     const { result } = renderHook(() => usePlanWriter());
     let res: { data: unknown; error: string | null } = { data: null, error: null };
     await act(async () => { res = await result.current.setPlanMode("p1", "individual"); });
-    expect(res.data).not.toHaveProperty("plan");
-    expect(res.data).not.toHaveProperty("members");
+    expect(res.error).toBe("invalid_rpc_payload");
+  });
+
+  it("individual: plan_id divergente na RPC → invalid_rpc_payload", async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: { plan_id: "OUTRO", mode: "individual", removed_partner_id: "old" },
+      error: null,
+    });
+    const { result } = renderHook(() => usePlanWriter());
+    let res: { data: unknown; error: string | null } = { data: null, error: null };
+    await act(async () => { res = await result.current.setPlanMode("p1", "individual"); });
+    expect(res.error).toBe("invalid_rpc_payload");
+  });
+
+  it("casal: plan_id divergente na RPC → invalid_rpc_payload", async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: { plan_id: "OUTRO", mode: "casal", partner_id: "new" },
+      error: null,
+    });
+    const { result } = renderHook(() => usePlanWriter());
+    let res: { data: unknown; error: string | null } = { data: null, error: null };
+    await act(async () => {
+      res = await result.current.setPlanMode("p1", "casal", { name: "Bia" });
+    });
+    expect(res.error).toBe("invalid_rpc_payload");
+  });
+
+  it("individual: payload divergente mas normalize confirma → mode confirmado e outcome=changed", async () => {
+    rpcMock
+      .mockResolvedValueOnce({
+        data: { plan_id: "p1", mode: "casal", removed_partner_id: "old" },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: { mode: "individual", primary_active: 1, partner_active: 0 },
+        error: null,
+      });
+    const { result } = renderHook(() => usePlanWriter());
+    let res: { data: any; error: string | null } = { data: null, error: "x" };
+    await act(async () => { res = await result.current.setPlanMode("p1", "individual"); });
+    expect(res.error).toBeNull();
+    expect(res.data.outcome).toBe("changed");
+    expect(res.data.mode).toBe("individual");
+    expect(res.data.removedPartnerId).toBe("old");
+  });
+
+  it("auditoria usa exatamente o resultado final (mode/outcome confirmados)", async () => {
+    const audit = await import("@/lib/services/auditService");
+    (audit.trackWriterChange as any).mockClear();
+    rpcMock
+      .mockResolvedValueOnce({
+        data: { plan_id: "p1", mode: "casal", removed_partner_id: "old" },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: { mode: "individual", primary_active: 1, partner_active: 0 },
+        error: null,
+      });
+    const { result } = renderHook(() => usePlanWriter());
+    await act(async () => { await result.current.setPlanMode("p1", "individual"); });
+    const call = (audit.trackWriterChange as any).mock.calls[0][0];
+    expect(call.eventProperties).toEqual({ mode: "individual", outcome: "changed" });
+    expect(call.newValue).toEqual({ mode: "individual" });
+  });
+});
+
+describe("friendlyError — invalid_rpc_payload", () => {
+  it("não expõe payload bruto", async () => {
+    const { toFriendlyError } = await import("@/lib/errors/friendlyError");
+    const msg = toFriendlyError("invalid_rpc_payload");
+    expect(msg).toMatch(/confirmar a resposta do servidor/i);
+    expect(msg).not.toMatch(/payload|rpc|json|null|undefined/i);
   });
 });
