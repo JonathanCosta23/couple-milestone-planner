@@ -43,39 +43,70 @@ describe("parseRemovePartnerPayload", () => {
     expect(parseRemovePartnerPayload(null).ok).toBe(false);
     expect(parseRemovePartnerPayload(undefined).ok).toBe(false);
   });
-  it("aceita removed_partner_id null", () => {
-    const r = parseRemovePartnerPayload({ plan_id: "p1", mode: "individual", removed_partner_id: null });
-    expect(r.ok).toBe(true);
-    expect(r.value).toEqual({ planId: "p1", mode: "individual", removedPartnerId: null });
-  });
-  it("aceita removed_partner_id ausente (interpreta como null)", () => {
+  it("rejeita removed_partner_id ausente", () => {
     const r = parseRemovePartnerPayload({ plan_id: "p1", mode: "individual" });
-    expect(r.ok).toBe(true);
-    expect(r.value?.removedPartnerId).toBeNull();
+    expect(r.ok).toBe(false);
+    expect(r.error).toBe("invalid_rpc_payload");
+  });
+  it("rejeita removed_partner_id null", () => {
+    expect(parseRemovePartnerPayload({ plan_id: "p1", mode: "individual", removed_partner_id: null }).ok).toBe(false);
+  });
+  it("rejeita removed_partner_id string vazia", () => {
+    expect(parseRemovePartnerPayload({ plan_id: "p1", mode: "individual", removed_partner_id: "" }).ok).toBe(false);
+  });
+  it("rejeita removed_partner_id numérico", () => {
+    expect(parseRemovePartnerPayload({ plan_id: "p1", mode: "individual", removed_partner_id: 42 }).ok).toBe(false);
+  });
+  it("rejeita removed_partner_id de outros tipos", () => {
+    expect(parseRemovePartnerPayload({ plan_id: "p1", mode: "individual", removed_partner_id: {} }).ok).toBe(false);
+    expect(parseRemovePartnerPayload({ plan_id: "p1", mode: "individual", removed_partner_id: [] }).ok).toBe(false);
   });
   it("aceita removed_partner_id string", () => {
     const r = parseRemovePartnerPayload({ plan_id: "p1", mode: "individual", removed_partner_id: "old" });
+    expect(r.ok).toBe(true);
     expect(r.value?.removedPartnerId).toBe("old");
   });
-  it("rejeita removed_partner_id de tipo inválido", () => {
-    expect(parseRemovePartnerPayload({ plan_id: "p1", mode: "individual", removed_partner_id: 42 }).ok).toBe(false);
-  });
   it("rejeita mode inválido", () => {
-    expect(parseRemovePartnerPayload({ plan_id: "p1", mode: "solo", removed_partner_id: null }).ok).toBe(false);
+    expect(parseRemovePartnerPayload({ plan_id: "p1", mode: "solo", removed_partner_id: "x" }).ok).toBe(false);
   });
 });
 
 describe("parseNormalizePayload", () => {
-  it("aceita mode válido", () => {
-    const r1 = parseNormalizePayload({ mode: "casal" });
-    expect(r1.ok).toBe(true);
-    expect(r1.value).toEqual({ mode: "casal" });
-    const r2 = parseNormalizePayload({ mode: "individual" });
-    expect(r2.value).toEqual({ mode: "individual" });
+  it("individual válido 1/0", () => {
+    const r = parseNormalizePayload({ mode: "individual", primary_active: 1, partner_active: 0 });
+    expect(r.ok).toBe(true);
+    expect(r.value).toEqual({ mode: "individual", primaryActiveCount: 1, partnerActiveCount: 0 });
+  });
+  it("casal válido 1/1", () => {
+    const r = parseNormalizePayload({ mode: "casal", primary_active: 1, partner_active: 1 });
+    expect(r.ok).toBe(true);
+    expect(r.value).toEqual({ mode: "casal", primaryActiveCount: 1, partnerActiveCount: 1 });
   });
   it("rejeita mode ausente ou inválido", () => {
     expect(parseNormalizePayload({}).ok).toBe(false);
-    expect(parseNormalizePayload({ mode: "solo" }).ok).toBe(false);
+    expect(parseNormalizePayload({ mode: "solo", primary_active: 1, partner_active: 0 }).ok).toBe(false);
     expect(parseNormalizePayload(null).ok).toBe(false);
+  });
+  it("rejeita quando primary_active está ausente", () => {
+    expect(parseNormalizePayload({ mode: "individual", partner_active: 0 }).ok).toBe(false);
+  });
+  it("rejeita quando partner_active está ausente", () => {
+    expect(parseNormalizePayload({ mode: "individual", primary_active: 1 }).ok).toBe(false);
+  });
+  it("rejeita contagens string", () => {
+    expect(parseNormalizePayload({ mode: "individual", primary_active: "1", partner_active: 0 }).ok).toBe(false);
+    expect(parseNormalizePayload({ mode: "individual", primary_active: 1, partner_active: "0" }).ok).toBe(false);
+  });
+  it("rejeita contagens negativas", () => {
+    expect(parseNormalizePayload({ mode: "individual", primary_active: -1, partner_active: 0 }).ok).toBe(false);
+  });
+  it("rejeita contagens fracionárias", () => {
+    expect(parseNormalizePayload({ mode: "casal", primary_active: 1.5, partner_active: 1 }).ok).toBe(false);
+  });
+  it("rejeita casal com contagem 1/0", () => {
+    expect(parseNormalizePayload({ mode: "casal", primary_active: 1, partner_active: 0 }).ok).toBe(false);
+  });
+  it("rejeita individual com contagem 1/1", () => {
+    expect(parseNormalizePayload({ mode: "individual", primary_active: 1, partner_active: 1 }).ok).toBe(false);
   });
 });
