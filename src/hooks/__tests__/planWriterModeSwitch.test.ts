@@ -259,17 +259,17 @@ describe("usePlanWriter.setPlanMode", () => {
         error: null,
       });
     const { result } = renderHook(() => usePlanWriter());
-    let res: { data: any; error: string | null } = { data: null, error: "x" };
+    let res: { data: ModeChangeResult | null; error: string | null } = { data: null, error: "x" };
     await act(async () => { res = await result.current.setPlanMode("p1", "individual"); });
     expect(res.error).toBeNull();
-    expect(res.data.outcome).toBe("changed");
-    expect(res.data.mode).toBe("individual");
-    expect(res.data.removedPartnerId).toBe("old");
+    expect(res.data?.outcome).toBe("changed");
+    expect(res.data?.mode).toBe("individual");
+    expect(res.data?.removedPartnerId).toBe("old");
   });
 
   it("auditoria usa exatamente o resultado final (mode/outcome confirmados)", async () => {
     const audit = await import("@/lib/services/auditService");
-    (audit.trackWriterChange as any).mockClear();
+    (audit.trackWriterChange as unknown as { mockClear: () => void; mock: { calls: unknown[][] } }).mockClear();
     rpcMock
       .mockResolvedValueOnce({
         data: { plan_id: "p1", mode: "casal", removed_partner_id: "old" },
@@ -281,7 +281,7 @@ describe("usePlanWriter.setPlanMode", () => {
       });
     const { result } = renderHook(() => usePlanWriter());
     await act(async () => { await result.current.setPlanMode("p1", "individual"); });
-    const call = (audit.trackWriterChange as any).mock.calls[0][0];
+    const call = (audit.trackWriterChange as unknown as { mock: { calls: Array<[Record<string, unknown>]> } }).mock.calls[0][0] as { eventProperties: unknown; newValue: unknown };
     expect(call.eventProperties).toEqual({ mode: "individual", outcome: "changed" });
     expect(call.newValue).toEqual({ mode: "individual" });
   });
