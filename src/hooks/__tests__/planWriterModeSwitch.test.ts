@@ -29,6 +29,7 @@ vi.mock("@/lib/services/auditService", () => ({
 
 import { renderHook, act } from "@testing-library/react";
 import { usePlanWriter } from "@/hooks/usePlanWriter";
+import type { ModeChangeResult } from "@/hooks/planWriter/modeChange";
 
 beforeEach(() => {
   rpcMock.mockReset();
