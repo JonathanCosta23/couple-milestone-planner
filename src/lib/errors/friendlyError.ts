@@ -34,6 +34,7 @@ const MESSAGE_PATTERNS: Array<{ test: RegExp; friendly: string }> = [
   // Códigos fechados vindos das triggers/RPCs do Plano do Milhão. Mantidos
   // no topo para preceder padrões genéricos (ex.: "check violation").
   { test: /explicit_reintegration_required/, friendly: "Este participante precisa ser reintegrado por um fluxo específico." },
+  { test: /invalid_rpc_payload/, friendly: "Não foi possível confirmar a resposta do servidor. Atualize e tente novamente." },
   { test: /member_lifecycle_action_required/, friendly: "Para mudar o modo do plano, use adicionar ou remover parceiro." },
   { test: /member_not_removed/, friendly: "Este participante não está marcado como removido." },
   { test: /identity_verification_required/, friendly: "É necessário confirmar a identidade antes de reintegrar." },
