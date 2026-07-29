@@ -2053,6 +2053,10 @@ export type Database = {
         Args: { p_age?: number; p_name: string; p_plan_id: string }
         Returns: Json
       }
+      assert_plan_mode_consistency_for: {
+        Args: { p_plan_id: string }
+        Returns: undefined
+      }
       get_plan_member_removal_impact_v1: {
         Args: { p_member_id: string; p_plan_id: string }
         Returns: Json

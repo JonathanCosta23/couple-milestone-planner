@@ -268,7 +268,30 @@ describe("usePlanWriter.setPlanMode", () => {
     expect(res.data?.removedPartnerId).toBe("old");
   });
 
+  it("casal: payload divergente mas normalize confirma → mode confirmado e outcome=changed", async () => {
+    rpcMock
+      .mockResolvedValueOnce({
+        data: { plan_id: "p1", mode: "individual", partner_id: "new" },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: { mode: "casal", primary_active: 1, partner_active: 1 },
+        error: null,
+      });
+    const { result } = renderHook(() => usePlanWriter());
+    let res: { data: ModeChangeResult | null; error: string | null } = { data: null, error: "x" };
+    await act(async () => {
+      res = await result.current.setPlanMode("p1", "casal", { name: "Bia" });
+    });
+    expect(res.error).toBeNull();
+    expect(res.data?.outcome).toBe("changed");
+    expect(res.data?.mode).toBe("casal");
+    expect(res.data?.partnerId).toBe("new");
+    expect(rpcMock).toHaveBeenNthCalledWith(2, "normalize_plan_mode_v1", { p_plan_id: "p1" });
+  });
+
   it("auditoria usa exatamente o resultado final (mode/outcome confirmados)", async () => {
+    // (ver teste simétrico de adição logo acima)
     const audit = await import("@/lib/services/auditService");
     (audit.trackWriterChange as unknown as { mockClear: () => void; mock: { calls: unknown[][] } }).mockClear();
     rpcMock

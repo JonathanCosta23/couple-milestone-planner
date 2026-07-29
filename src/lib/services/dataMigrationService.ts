@@ -112,125 +112,84 @@ export async function migrateLocalToCloud(userId: string): Promise<MigrationResu
     return (contribsWithPlans?.length ?? 0) > 1 ? "casal" : "individual";
   })();
 
-  // 4. Inserir plano canônico.
-  const planRow = {
-    user_id: userId,
-    mode,
-    goal_amount: localPlan?.config.targetAmount ?? 1_000_000,
-    initial_amount: localPlan?.config.initialAmount ?? 0,
-    monthly_contribution:
-      (localPlan?.config.contributors ?? []).reduce(
-        (sum, c) => sum + (c.plannedSelic || 0) + (c.plannedCDB || 0),
-        0,
-      ) || 0,
-    goal_years: localPlan?.config.years ?? 21,
-    goal_months: (localPlan?.config.years ?? 21) * 12,
-    assumption_selic: localPlan?.config.selicRate ?? 0.1315,
-    assumption_cdb_pct: localPlan?.config.cdbRate ?? 1.0,
-    assumption_inflation: 0.045,
-    assumption_ir: 0.15,
-    assumption_iof: 0,
-    start_date: localPlan?.startDate ?? new Date().toISOString().slice(0, 7),
-    wizard_complete: localPlan?.wizardComplete ?? false,
-    onboarding_complete: localPlan?.onboardingComplete ?? false,
-    goal_purpose: localPlan?.emotionalGoal ?? null,
-    goal_purpose_custom: localPlan?.emotionalGoalCustom ?? null,
-    status: "active",
-    engine_version: "1.0",
-  };
+  // 4. Criar plano + membros via RPC transacional (INSERT direto em
+  //    `plans`/`plan_members` é revogado: só as RPCs oficiais escrevem).
+  const primaryName =
+    localApp?.primaryProfile?.name?.trim() ||
+    localPlan?.config.contributors?.[0]?.name?.trim() ||
+    "Você";
+  const primaryAge =
+    localApp?.primaryProfile?.age ?? localPlan?.config.contributors?.[0]?.age ?? null;
 
-  const { data: createdPlan, error: insertPlanErr } = await supabase
-    .from("plans")
-    .insert(planRow)
-    .select("id")
-    .single();
+  const partnerName =
+    mode === "casal"
+      ? localApp?.partner?.profile.name?.trim() ||
+        localPlan?.config.contributors?.[1]?.name?.trim() ||
+        "Parceiro(a)"
+      : null;
+  const partnerAge =
+    mode === "casal"
+      ? localApp?.partner?.profile.age ?? localPlan?.config.contributors?.[1]?.age ?? null
+      : null;
 
-  if (insertPlanErr || !createdPlan) {
+  const monthlyContribution =
+    (localPlan?.config.contributors ?? []).reduce(
+      (sum, c) => sum + (c.plannedSelic || 0) + (c.plannedCDB || 0),
+      0,
+    ) || 0;
+
+  const { data: rpcData, error: rpcErr } = await supabase.rpc(
+    "upsert_plan_with_members_v3",
+    {
+      p_mode: mode,
+      p_primary_name: primaryName,
+      p_primary_age: primaryAge,
+      p_partner_name: partnerName,
+      p_partner_age: partnerAge,
+      p_goal_amount: localPlan?.config.targetAmount ?? 1_000_000,
+      p_initial_amount: localPlan?.config.initialAmount ?? 0,
+      p_monthly_contribution: monthlyContribution,
+      p_goal_years: localPlan?.config.years ?? 21,
+      p_goal_purpose: localPlan?.emotionalGoal ?? null,
+      p_goal_purpose_custom: localPlan?.emotionalGoalCustom ?? null,
+      p_wizard_complete: localPlan?.wizardComplete ?? false,
+      p_onboarding_complete: localPlan?.onboardingComplete ?? false,
+    },
+  );
+
+  if (rpcErr || !rpcData) {
     return {
       migrated: false,
-      reason: `erro ao criar plano: ${insertPlanErr?.message ?? "sem dados"}`,
+      reason: `erro ao criar plano: ${rpcErr?.message ?? "sem dados"}`,
     };
   }
 
-  const planId = createdPlan.id;
-
-  // 5. Criar plan_members a partir do app/plan local.
-  const members: Array<{
-    user_id: string;
-    plan_id: string;
-    name: string;
-    role: string;
-    is_primary: boolean;
-    is_active: boolean;
-    age: number | null;
-    avatar_color: string | null;
-  }> = [];
-
-  if (localApp?.primaryProfile) {
-    members.push({
-      user_id: userId,
-      plan_id: planId,
-      name: localApp.primaryProfile.name || "Você",
-      role: "titular",
-      is_primary: true,
-      is_active: true,
-      age: localApp.primaryProfile.age ?? null,
-      avatar_color: localApp.primaryProfile.avatarColor ?? "hsl(262, 83%, 58%)",
-    });
-    if (mode === "casal" && localApp.partner) {
-      members.push({
-        user_id: userId,
-        plan_id: planId,
-        name: localApp.partner.profile.name || "Parceiro(a)",
-        role: "parceiro",
-        is_primary: false,
-        is_active: true,
-        age: localApp.partner.profile.age ?? null,
-        avatar_color: localApp.partner.profile.avatarColor ?? "hsl(190, 80%, 50%)",
-      });
-    }
-  } else if (localPlan) {
-    const contribs = localPlan.config.contributors;
-    contribs.forEach((c, idx) => {
-      const hasPlans = c.plannedSelic > 0 || c.plannedCDB > 0;
-      if (idx > 0 && !hasPlans && !c.name?.trim()) return;
-      members.push({
-        user_id: userId,
-        plan_id: planId,
-        name: c.name?.trim() || (idx === 0 ? "Você" : "Parceiro(a)"),
-        role: idx === 0 ? "titular" : "parceiro",
-        is_primary: idx === 0,
-        is_active: true,
-        age: c.age ?? null,
-        avatar_color: idx === 0 ? "hsl(262, 83%, 58%)" : "hsl(190, 80%, 50%)",
-      });
-    });
-  } else {
-    // Fallback mínimo: pelo menos um titular.
-    members.push({
-      user_id: userId,
-      plan_id: planId,
-      name: "Você",
-      role: "titular",
-      is_primary: true,
-      is_active: true,
-      age: null,
-      avatar_color: "hsl(262, 83%, 58%)",
-    });
+  const payload = rpcData as unknown as {
+    plan?: { id?: string };
+    members?: unknown[];
+  };
+  const planId = payload.plan?.id;
+  if (!planId) {
+    return { migrated: false, reason: "erro ao criar plano: resposta inválida" };
   }
 
-  if (members.length > 0) {
-    const { error: memErr } = await supabase.from("plan_members").insert(members);
-    if (memErr) {
-      return {
-        migrated: false,
-        reason: `plano criado mas erro ao criar membros: ${memErr.message}`,
-        planId,
-      };
-    }
+  const membersCreated = Array.isArray(payload.members) ? payload.members.length : 0;
+
+  // 5. Premissas financeiras legadas (colunas com UPDATE liberado).
+  const assumptionSelic = localPlan?.config.selicRate;
+  const assumptionCdb = localPlan?.config.cdbRate;
+  if (assumptionSelic !== undefined || assumptionCdb !== undefined) {
+    await supabase
+      .from("plans")
+      .update({
+        ...(assumptionSelic !== undefined ? { assumption_selic: assumptionSelic } : {}),
+        ...(assumptionCdb !== undefined ? { assumption_cdb_pct: assumptionCdb } : {}),
+      })
+      .eq("id", planId)
+      .eq("user_id", userId);
   }
 
-  return { migrated: true, planId, membersCreated: members.length };
+  return { migrated: true, planId, membersCreated };
 }
 
 /**
