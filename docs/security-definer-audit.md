@@ -78,3 +78,30 @@ valida `auth.uid()` quando lida com dados do usuário e limita `EXECUTE` a
 - Permite: bloquear publicação de conteúdo inativo, não verificado, sem
   disclaimer/`last_verified_at` ou (para regulatórios) sem `source_url`.
 - Teste: `supabase/tests/editorial_publication_gate.sql`.
+## get_plan_member_removal_impact_v1 (contrato do payload)
+- `linked.expenses` conta TODAS as despesas do participante.
+- `linked.expenses_recurring` / `linked.recurring_expenses_count` é
+  **subconjunto** de `linked.expenses`: nunca somar os dois — recorrentes já
+  estão contabilizadas em `expenses`.
+- `linked.total` soma apenas categorias disjuntas (assets, income, expenses,
+  debts, monthly_member_tracking, fgc_events).
+- `unassigned.*` conta registros do plano **sem participante vinculado**
+  (dados legados anteriores à separação por `plan_member_id`).
+- `legacy_data_requires_review`: `true` quando `unassigned.total > 0`; sinaliza
+  que a remoção deixa dados órfãos que precisam de revisão manual.
+- `impact_scope`: `none` (nada vinculado), `cashflow_only` (só renda/gastos/
+  dívidas) ou `wealth_and_history` (patrimônio, FGC ou histórico mensal).
+
+## reintegrate_plan_member_v1 (reforço 4.b.1.1-B)
+- Além de `identity_status = 'verified'`, exige linha válida em
+  `plan_member_private_identity` (mesmo plano, mesmo usuário, `cpf_hmac`
+  com 64 hex, `hmac_key_version` não vazio) e `cpf_last4` com 4 dígitos.
+- Sem esses requisitos: `identity_verification_required`.
+
+## plans (privilégios 4.b.1.1-B)
+- `authenticated` não tem mais `INSERT` nem `DELETE` diretos em `public.plans`.
+- `UPDATE` restrito às colunas de configuração financeira/objetivo
+  (`goal_*`, `initial_amount`, `monthly_contribution`, `assumption_*`,
+  `wizard_complete`, `onboarding_complete`, `updated_at`).
+- Criação de plano só via `upsert_plan_with_members_v3`; `mode` só via
+  RPCs de ciclo de vida; exclusão só via `reset_user_plan_data`.
