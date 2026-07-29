@@ -269,6 +269,7 @@ describe("usePlanWriter.setPlanMode", () => {
   });
 
   it("auditoria usa exatamente o resultado final (mode/outcome confirmados)", async () => {
+    // (ver teste simétrico de adição logo acima)
     const audit = await import("@/lib/services/auditService");
     (audit.trackWriterChange as unknown as { mockClear: () => void; mock: { calls: unknown[][] } }).mockClear();
     rpcMock
