@@ -44,7 +44,9 @@ valida `auth.uid()` quando lida com dados do usuário e limita `EXECUTE` a
 - EXECUTE: `authenticated`, `service_role`.
 - Permite: manter titular/parceiro coerentes com o modo do plano.
 - Proibido: gravar em plano de outro usuário (checagem explícita `RAISE`).
-- Teste: `src/hooks/__tests__/planWriterV2.test.ts` (unit) + cenário RLS ao rodar em staging.
+- Teste: `src/hooks/__tests__/planWriterModeSwitch.test.ts` e
+  `src/hooks/planWriter/__tests__/modeChange.parsers.test.ts` (unit) +
+  cenário RLS ao rodar em staging.
 
 ## upsert_month_with_members
 - Motivo: sincroniza `monthly_tracking` + `monthly_member_tracking` numa
@@ -87,21 +89,58 @@ valida `auth.uid()` quando lida com dados do usuário e limita `EXECUTE` a
   debts, monthly_member_tracking, fgc_events).
 - `unassigned.*` conta registros do plano **sem participante vinculado**
   (dados legados anteriores à separação por `plan_member_id`).
-- `legacy_data_requires_review`: `true` quando `unassigned.total > 0`; sinaliza
-  que a remoção deixa dados órfãos que precisam de revisão manual.
-- `impact_scope`: `none` (nada vinculado), `cashflow_only` (só renda/gastos/
-  dívidas) ou `wealth_and_history` (patrimônio, FGC ou histórico mensal).
+  Inclui `assets_no_member`, `income_no_member`, `expenses_no_member`,
+  `debts_no_member` e `fgc_events_no_member` (eventos FGC do usuário sem
+  `holder_member_id`). `monthly_tracking` agregado **não** entra: é do plano,
+  não de um participante.
+- `legacy_blob_present`: `true` quando existe linha em
+  `public.user_financial_data` com `plan_data` ou `app_data` não vazio.
+  Apenas presença — o conteúdo do JSON nunca é retornado.
+- `legacy_unassigned_records_present`: `true` quando `unassigned.total > 0`.
+- `legacy_data_requires_review` = `legacy_blob_present OR unassigned.total > 0`.
+  Enquanto o app mantiver dual-write no blob `user_financial_data`, é
+  esperado que essa flag continue `true` para muitos usuários até a retirada
+  definitiva do blob.
+- `impact_category` (o que a remoção afeta): `none`, `cashflow_only`
+  (renda/gastos/dívidas) ou `wealth_and_history` (patrimônio, FGC ou
+  histórico mensal).
+- `data_coverage` (qualidade da leitura): `normalized_only` quando há blob
+  legado ou registros sem `member_id`; `normalized_and_legacy_clear` quando
+  não há nenhuma dessas pendências.
 
 ## reintegrate_plan_member_v1 (reforço 4.b.1.1-B)
 - Além de `identity_status = 'verified'`, exige linha válida em
   `plan_member_private_identity` (mesmo plano, mesmo usuário, `cpf_hmac`
-  com 64 hex, `hmac_key_version` não vazio) e `cpf_last4` com 4 dígitos.
+  com 64 hex) e `cpf_last4` com 4 dígitos.
+- `hmac_key_version` precisa estar na lista explícita de versões suportadas.
+  Hoje: `('1')`. Durante uma rotação futura, a lista poderá conter
+  temporariamente a versão antiga e a nova ao mesmo tempo; depois da rotação,
+  a antiga é removida. Valores arbitrários nunca são aceitos.
 - Sem esses requisitos: `identity_verification_required`.
+- Teste: `supabase/tests/plan_privileges_hardening.sql`.
+
+## assert_plan_mode_consistency / assert_plan_mode_consistency_for (4.b.1.1-B.1)
+- Motivo: o constraint trigger diferido precisa ler `plans` e `plan_members`
+  para validar a coerência de `mode` no COMMIT, mesmo com a função auxiliar
+  sem `EXECUTE` para o cliente.
+- Ambas são `SECURITY DEFINER` com `SET search_path TO pg_catalog, public` e
+  usam apenas nomes de tabela totalmente qualificados.
+- `auth.uid()`: não usam — a validação é estrutural, sobre o plano.
+- Grants: `REVOKE ALL` de `PUBLIC`, `anon` e `authenticated`; `EXECUTE`
+  apenas para `service_role` (e o owner). O trigger continua executando
+  automaticamente; o cliente não consegue chamar diretamente.
+- Proibido: qualquer escrita — as funções só leem e levantam
+  `check_violation` com `plan_members_inconsistent`.
+- Teste: `supabase/tests/plan_privileges_hardening.sql`.
 
 ## plans (privilégios 4.b.1.1-B)
-- `authenticated` não tem mais `INSERT` nem `DELETE` diretos em `public.plans`.
-- `UPDATE` restrito às colunas de configuração financeira/objetivo
-  (`goal_*`, `initial_amount`, `monthly_contribution`, `assumption_*`,
-  `wizard_complete`, `onboarding_complete`, `updated_at`).
+- `PUBLIC` e `anon`: sem `SELECT`, `INSERT`, `UPDATE` ou `DELETE`.
+- `authenticated`: apenas `SELECT` (filtrado por RLS) e `UPDATE` em colunas
+  de configuração financeira/objetivo (`goal_*`, `initial_amount`,
+  `monthly_contribution`, `assumption_*`, `wizard_complete`,
+  `onboarding_complete`).
+- `updated_at` **não** é atualizável pelo cliente: fica sob controle das RPCs,
+  do trigger de timestamp e de operações server-side.
+- `service_role`: privilégios completos.
 - Criação de plano só via `upsert_plan_with_members_v3`; `mode` só via
   RPCs de ciclo de vida; exclusão só via `reset_user_plan_data`.
