@@ -32,6 +32,10 @@ export function toCanonicalMode(mode: LegacyPlanMode | string | null | undefined
 
 interface MigrationResult {
   migrated: boolean;
+  /** true quando o plano foi criado mas alguma etapa secundária falhou. */
+  partial?: boolean;
+  /** Mensagem segura para UI. Nunca contém erro SQL bruto. */
+  warning?: string;
   reason?: string;
   planId?: string;
   membersCreated?: number;
@@ -179,7 +183,7 @@ export async function migrateLocalToCloud(userId: string): Promise<MigrationResu
   const assumptionSelic = localPlan?.config.selicRate;
   const assumptionCdb = localPlan?.config.cdbRate;
   if (assumptionSelic !== undefined || assumptionCdb !== undefined) {
-    await supabase
+    const { error: assumptionErr } = await supabase
       .from("plans")
       .update({
         ...(assumptionSelic !== undefined ? { assumption_selic: assumptionSelic } : {}),
@@ -187,6 +191,19 @@ export async function migrateLocalToCloud(userId: string): Promise<MigrationResu
       })
       .eq("id", planId)
       .eq("user_id", userId);
+
+    if (assumptionErr) {
+      // Plano e participantes já existem: nunca recriar em nova tentativa.
+      // O backup local permanece intacto para revisão manual.
+      return {
+        migrated: true,
+        partial: true,
+        planId,
+        membersCreated,
+        warning:
+          "Seu plano e participantes foram migrados, mas as premissas financeiras antigas não puderam ser aplicadas. Revise Selic e CDB nas configurações do plano.",
+      };
+    }
   }
 
   return { migrated: true, planId, membersCreated };
