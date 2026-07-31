@@ -21,19 +21,23 @@ const BACKUP_KEY = "plano-do-milhao-pre-migration-backup";
 
 /** `plans` é usado para o SELECT inicial e depois para o UPDATE das premissas. */
 function makePlansTable(updateError: unknown | null) {
+  const updateSpy = vi.fn(() => ({
+    eq: vi.fn(() => ({
+      eq: vi.fn(() => Promise.resolve({ error: updateError })),
+    })),
+  }));
+  lastUpdateSpy = updateSpy;
   return {
     select: vi.fn(() => ({
       eq: vi.fn(() => ({
         limit: vi.fn(() => Promise.resolve({ data: [], error: null })),
       })),
     })),
-    update: vi.fn(() => ({
-      eq: vi.fn(() => ({
-        eq: vi.fn(() => Promise.resolve({ error: updateError })),
-      })),
-    })),
+    update: updateSpy,
   };
 }
+
+let lastUpdateSpy: ReturnType<typeof vi.fn> | null = null;
 
 const localPlan = {
   config: {
@@ -107,5 +111,18 @@ describe("migrateLocalToCloud", () => {
     const result = await migrateLocalToCloud("user-1");
     expect(result.migrated).toBe(false);
     expect(rpcMock).not.toHaveBeenCalled();
+  });
+
+  it("envia apenas premissas financeiras no update do plano", async () => {
+    fromMock.mockImplementation(() => makePlansTable(null));
+    await migrateLocalToCloud("user-1");
+    const payload = (lastUpdateSpy as ReturnType<typeof vi.fn>).mock.calls[0][0] as Record<
+      string,
+      unknown
+    >;
+    expect(Object.keys(payload).sort()).toEqual(["assumption_cdb_pct", "assumption_selic"]);
+    for (const forbidden of ["mode", "updated_at", "user_id", "status", "start_date"]) {
+      expect(payload).not.toHaveProperty(forbidden);
+    }
   });
 });
