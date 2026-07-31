@@ -498,7 +498,7 @@ BEGIN
   VALUES (p, u, 'P', false,'parceiro','active') RETURNING id INTO parceiro;
   INSERT INTO public.expenses (plan_id, user_id, member_id, category, expense_type,
                                is_essential, amount, is_recurring)
-  VALUES (p, u, parceiro, 'moradia', 'fixa', true, 1500, true);
+  VALUES (p, u, parceiro, 'moradia', 'fixed', true, 1500, true);
 
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', u::text, 'role','authenticated')::text, true);
@@ -686,8 +686,8 @@ BEGIN
   VALUES (p, u, parceiro, 'Salário', 'salary', 5000);
   INSERT INTO public.expenses (plan_id, user_id, member_id, category, expense_type,
                                is_essential, amount, is_recurring)
-  VALUES (p, u, parceiro, 'moradia', 'fixa', true, 1500, true),
-         (p, u, parceiro, 'lazer', 'variavel', false, 200, false);
+  VALUES (p, u, parceiro, 'moradia', 'fixed', true, 1500, true),
+         (p, u, parceiro, 'lazer', 'variable', false, 200, false);
   INSERT INTO public.debts (plan_id, user_id, member_id, debt_type, total_balance,
                             monthly_payment, interest_rate, effective_cost)
   VALUES (p, u, parceiro, 'cartao', 1000, 100, 0.1, 0.12);
@@ -865,7 +865,7 @@ BEGIN
   VALUES (p, u, 'R2', false,'parceiro','removed') RETURNING id INTO removido_2;
   INSERT INTO public.expenses (plan_id, user_id, member_id, category, expense_type,
                                is_essential, amount, is_recurring)
-  VALUES (p, u, titular, 'moradia', 'fixa', true, 1000, true);
+  VALUES (p, u, titular, 'moradia', 'fixed', true, 1000, true);
   SELECT count(*) INTO expenses_before FROM public.expenses WHERE plan_id = p;
 
   PERFORM set_config('request.jwt.claims',
