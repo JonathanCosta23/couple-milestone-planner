@@ -924,17 +924,15 @@ BEGIN
     END IF;
   END LOOP;
 
-  -- cpf_last4 malformado
+  -- cpf_last4 malformado é barrado pelo CHECK da própria tabela
   PERFORM set_config('role','postgres', true);
   UPDATE public.plan_member_private_identity SET hmac_key_version = '1'
    WHERE member_id = removido_2;
-  UPDATE public.plan_members SET cpf_last4 = '12' WHERE id = removido_2;
-  PERFORM set_config('request.jwt.claims',
-    json_build_object('sub', u::text, 'role','authenticated')::text, true);
   blocked := false;
-  BEGIN PERFORM public.reintegrate_plan_member_v1(p, removido_2);
+  BEGIN
+    UPDATE public.plan_members SET cpf_last4 = '12' WHERE id = removido_2;
   EXCEPTION WHEN check_violation THEN blocked := true; END;
-  IF NOT blocked THEN RAISE EXCEPTION 'L10: cpf_last4 malformado aceito'; END IF;
+  IF NOT blocked THEN RAISE EXCEPTION 'L10: CHECK de cpf_last4 ausente'; END IF;
 
   -- sucesso: member_id explícito, nunca o primeiro removido por acaso
   PERFORM set_config('role','postgres', true);
