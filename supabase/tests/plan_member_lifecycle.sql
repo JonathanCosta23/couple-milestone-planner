@@ -895,17 +895,18 @@ BEGIN
   EXCEPTION WHEN check_violation THEN blocked := true; END;
   IF NOT blocked THEN RAISE EXCEPTION 'L10: sem identidade privada aceito'; END IF;
 
-  -- HMAC malformado => rejeitado
+  -- HMAC malformado é barrado pelo CHECK da própria tabela privada
   PERFORM set_config('role','postgres', true);
+  blocked := false;
+  BEGIN
+    INSERT INTO public.plan_member_private_identity
+      (member_id, plan_id, user_id, cpf_hmac, hmac_key_version)
+    VALUES (removido_2, p, u, 'nao-hex', '1');
+  EXCEPTION WHEN check_violation THEN blocked := true; END;
+  IF NOT blocked THEN RAISE EXCEPTION 'L10: CHECK de HMAC hexadecimal ausente'; END IF;
   INSERT INTO public.plan_member_private_identity
     (member_id, plan_id, user_id, cpf_hmac, hmac_key_version)
-  VALUES (removido_2, p, u, 'nao-hex', '1');
-  PERFORM set_config('request.jwt.claims',
-    json_build_object('sub', u::text, 'role','authenticated')::text, true);
-  blocked := false;
-  BEGIN PERFORM public.reintegrate_plan_member_v1(p, removido_2);
-  EXCEPTION WHEN check_violation THEN blocked := true; END;
-  IF NOT blocked THEN RAISE EXCEPTION 'L10: HMAC malformado aceito'; END IF;
+  VALUES (removido_2, p, u, repeat('a', 64), '1');
 
   -- versões não suportadas
   FOREACH v IN ARRAY ARRAY['', '2', '999'] LOOP
