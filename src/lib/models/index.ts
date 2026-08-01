@@ -3,6 +3,7 @@
  * Mantido para permitir `import { ... } from "@/lib/models"` continuar funcionando.
  */
 
+export * from "./ownership";
 export * from "./identity";
 export * from "./cashflow";
 export * from "./debts";
