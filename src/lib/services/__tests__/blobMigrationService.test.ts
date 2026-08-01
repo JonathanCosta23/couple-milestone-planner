@@ -54,19 +54,25 @@ const baseAppData = {
   ],
 } as unknown as AppData;
 
-const individualMembers: PlanMemberRow[] = [
-  {
-    id: "m-primary", is_primary: true, is_active: true, status: "active",
-  } as PlanMemberRow,
-];
+function member(id: string, isPrimary: boolean): PlanMemberRow {
+  return {
+    id,
+    plan_id: "plan-1",
+    user_id: "user-1",
+    name: isPrimary ? "Ana" : "Bia",
+    role: isPrimary ? "titular" : "parceiro",
+    is_primary: isPrimary,
+    is_active: true,
+    status: "active",
+    age: null,
+    avatar_color: null,
+  };
+}
 
+const individualMembers: PlanMemberRow[] = [member("m-primary", true)];
 const coupleMembers: PlanMemberRow[] = [
-  {
-    id: "m-primary", is_primary: true, is_active: true, status: "active",
-  } as PlanMemberRow,
-  {
-    id: "m-partner", is_primary: false, is_active: true, status: "active",
-  } as PlanMemberRow,
+  member("m-primary", true),
+  member("m-partner", false),
 ];
 
 function tableMock(args: {
