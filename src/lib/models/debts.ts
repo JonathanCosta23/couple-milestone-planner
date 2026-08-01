@@ -1,6 +1,7 @@
 /**
  * Dívidas e parcelamentos.
  */
+import type { OwnershipScope } from "./ownership";
 
 export type DebtType = "credit-card" | "loan" | "financing" | "informal" | "recurring-bill" | "installment";
 export type DebtRisk = "low" | "medium" | "high" | "toxic";
@@ -23,6 +24,7 @@ export interface Debt {
   endDate?: string;
   active: boolean;
   profileId?: string;
+  ownershipScope?: OwnershipScope;
   createdAt: string;
   updatedAt: string;
 }
