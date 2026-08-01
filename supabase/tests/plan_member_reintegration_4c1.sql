@@ -47,15 +47,9 @@ BEGIN
   SET CONSTRAINTS ALL IMMEDIATE;
   SET CONSTRAINTS ALL DEFERRED;
 
-  PERFORM set_config('role', 'authenticated', true);
-  PERFORM set_config('request.jwt.claims',
-    json_build_object('sub', u::text, 'role', 'authenticated')::text, true);
-  PERFORM set_config('request.jwt.claim.sub', u::text, true);
-  ASSERT auth.uid()=u, 'auth.uid do titular não foi configurado para remoção';
-  PERFORM public.remove_plan_partner_v1(p);
-
-  -- Preparação pelo mesmo caminho atômico usado pela Edge Function. A RPC
-  -- grava primeiro a identidade privada e só depois publica last4/status.
+  -- A identidade só pode ser definida enquanto o participante está ativo.
+  -- Este é o mesmo contrato usado pela Edge Function antes de uma futura
+  -- remoção e posterior reintegração explícita.
   PERFORM set_config('role', 'postgres', true);
   PERFORM set_config('request.jwt.claims', '', true);
   PERFORM set_config('request.jwt.claim.sub', '', true);
@@ -70,7 +64,7 @@ BEGIN
   ASSERT EXISTS (
     SELECT 1 FROM public.plan_members
      WHERE id=parceiro AND plan_id=p AND user_id=u
-       AND status='removed' AND identity_status='verified'
+       AND status='active' AND identity_status='verified'
        AND cpf_last4 ~ '^[0-9]{4}$'
   ), 'pré-condição pública da identidade não foi persistida pela RPC';
   ASSERT EXISTS (
@@ -80,7 +74,27 @@ BEGIN
        AND hmac_key_version='1'
   ), 'pré-condição privada da identidade não foi persistida pela RPC';
 
+  -- Remove depois de a identidade ter sido verificada. A remoção deve manter
+  -- a identidade e o ownership financeiro histórico intactos.
   PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims',
+    json_build_object('sub', u::text, 'role', 'authenticated')::text, true);
+  PERFORM set_config('request.jwt.claim.sub', u::text, true);
+  ASSERT auth.uid()=u, 'auth.uid do titular não foi configurado para remoção';
+  PERFORM public.remove_plan_partner_v1(p);
+
+  ASSERT EXISTS (
+    SELECT 1 FROM public.plan_members
+     WHERE id=parceiro AND plan_id=p AND user_id=u
+       AND status='removed' AND identity_status='verified'
+       AND cpf_last4='1234'
+  ), 'remoção não preservou a identidade pública verificada';
+  ASSERT EXISTS (
+    SELECT 1 FROM public.plan_member_private_identity
+     WHERE member_id=parceiro AND plan_id=p AND user_id=u
+       AND cpf_hmac=repeat('a', 64) AND hmac_key_version='1'
+  ), 'remoção não preservou a identidade privada';
+
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', u2::text, 'role', 'authenticated')::text, true);
   PERFORM set_config('request.jwt.claim.sub', u2::text, true);
