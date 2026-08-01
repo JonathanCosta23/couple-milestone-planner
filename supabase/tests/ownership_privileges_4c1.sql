@@ -9,6 +9,7 @@ DECLARE
   privilege_name text;
   rls_enabled boolean;
   public_grants bigint;
+  legacy_resolvers bigint;
 BEGIN
   FOREACH table_name IN ARRAY ARRAY['assets','income','expenses','debts'] LOOP
     SELECT c.relrowsecurity INTO rls_enabled
@@ -63,6 +64,14 @@ BEGIN
      AND a.privilege_type IN ('SELECT','INSERT','UPDATE','DELETE');
   ASSERT public_grants=0,
     'PUBLIC não pode ter SELECT/INSERT/UPDATE/DELETE em financeiro ou participantes';
+
+  SELECT count(*) INTO legacy_resolvers
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid=p.pronamespace
+   WHERE n.nspname='public'
+     AND p.proname IN ('validate_asset_member_link','validate_flow_member_link');
+  ASSERT legacy_resolvers=0,
+    'resolvers legados de ownership não podem permanecer ativos';
 
   RAISE NOTICE 'ownership financial/member privilege matrix: OK';
 END $$;
