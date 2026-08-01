@@ -50,9 +50,6 @@ BEGIN
   -- A identidade só pode ser definida enquanto o participante está ativo.
   -- Este é o mesmo contrato usado pela Edge Function antes de uma futura
   -- remoção e posterior reintegração explícita.
-  PERFORM set_config('role', 'postgres', true);
-  PERFORM set_config('request.jwt.claims', '', true);
-  PERFORM set_config('request.jwt.claim.sub', '', true);
   PERFORM public.set_plan_member_identity_v1(
     u,
     parceiro,
@@ -89,12 +86,21 @@ BEGIN
        AND status='removed' AND identity_status='verified'
        AND cpf_last4='1234'
   ), 'remoção não preservou a identidade pública verificada';
+
+  -- A tabela de identidade privada é deliberadamente inacessível a
+  -- authenticated. As invariantes privadas são verificadas apenas sob papel
+  -- administrativo, sem conceder SELECT ao cliente.
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  PERFORM set_config('request.jwt.claim.sub', '', true);
   ASSERT EXISTS (
     SELECT 1 FROM public.plan_member_private_identity
      WHERE member_id=parceiro AND plan_id=p AND user_id=u
        AND cpf_hmac=repeat('a', 64) AND hmac_key_version='1'
   ), 'remoção não preservou a identidade privada';
 
+  -- Cross-user deve executar como um cliente authenticated real.
+  PERFORM set_config('role', 'authenticated', true);
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', u2::text, 'role', 'authenticated')::text, true);
   PERFORM set_config('request.jwt.claim.sub', u2::text, true);
@@ -105,6 +111,12 @@ BEGIN
     blocked := true;
   END;
   ASSERT blocked, 'cross-user deveria falhar';
+
+  -- Verificações pós-tentativa cross-user usam papel administrativo para não
+  -- confundir bloqueio RLS com preservação efetiva do estado.
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  PERFORM set_config('request.jwt.claim.sub', '', true);
   ASSERT (SELECT status FROM public.plan_members WHERE id=parceiro)='removed',
     'cross-user alterou status';
   ASSERT (SELECT mode FROM public.plans WHERE id=p)='individual',
@@ -113,11 +125,6 @@ BEGIN
     'cross-user alterou valor';
   ASSERT (SELECT ownership_scope FROM public.expenses WHERE id=expense_id)='individual',
     'cross-user alterou ownership';
-
-  PERFORM set_config('request.jwt.claims',
-    json_build_object('sub', u::text, 'role', 'authenticated')::text, true);
-  PERFORM set_config('request.jwt.claim.sub', u::text, true);
-  ASSERT auth.uid()=u, 'auth.uid do proprietário não foi restaurado';
   ASSERT EXISTS (
     SELECT 1 FROM public.plan_members
      WHERE id=parceiro AND status='removed'
@@ -129,9 +136,20 @@ BEGIN
        AND cpf_hmac ~ '^[a-f0-9]{64}$' AND hmac_key_version='1'
   ), 'identidade privada mudou após tentativa cross-user';
 
+  -- Reintegração legítima volta a ser chamada como authenticated proprietário.
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims',
+    json_build_object('sub', u::text, 'role', 'authenticated')::text, true);
+  PERFORM set_config('request.jwt.claim.sub', u::text, true);
+  ASSERT auth.uid()=u, 'auth.uid do proprietário não foi restaurado';
+
   j := public.reintegrate_plan_member_v1(p, parceiro);
   ASSERT (j->>'member_id')::uuid=parceiro, 'membro reintegrado incorreto';
   ASSERT j->>'mode'='casal', 'mode deveria ser casal';
+
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  PERFORM set_config('request.jwt.claim.sub', '', true);
   ASSERT (SELECT status FROM public.plan_members WHERE id=parceiro)='active',
     'parceiro deveria estar active';
   ASSERT (SELECT mode FROM public.plans WHERE id=p)='casal',
