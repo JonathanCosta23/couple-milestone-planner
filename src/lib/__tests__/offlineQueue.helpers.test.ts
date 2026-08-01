@@ -81,7 +81,7 @@ describe("validateCreatePayload — entidades financeiras", () => {
         entity, op: "create", memberId: "m-1", payload: {},
       }));
       expect(result.ok).toBe(false);
-      if (!result.ok) expect(result.reason).toMatch(/ownership/i);
+      if (result.ok === false) expect(result.reason).toMatch(/ownership/i);
     });
 
     it(`${entity} aceita create individual completo e não confia em user_id`, () => {
@@ -97,7 +97,7 @@ describe("validateCreatePayload — entidades financeiras", () => {
         },
       }));
       expect(result.ok).toBe(true);
-      if (result.ok) {
+      if (result.ok === true) {
         expect(result.payload.plan_id).toBe("plan-1");
         expect(result.payload.member_id).toBe("m-1");
         expect(result.payload.ownership_scope).toBe("individual");
@@ -123,7 +123,7 @@ describe("validateCreatePayload — entidades financeiras", () => {
       payload: { month_key: "2026-08" },
     }));
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.payload.user_id).toBe("user-1");
+    if (result.ok === true) expect(result.payload.user_id).toBe("user-1");
   });
 });
 
