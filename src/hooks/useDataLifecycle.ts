@@ -69,6 +69,7 @@ export function useDataLifecycle({
   });
   const [blobAppDataCache, setBlobAppDataCache] = useState<AppData | null>(null);
   const [cloudAssetCount, setCloudAssetCount] = useState(0);
+  const [assetsReady, setAssetsReady] = useState(false);
 
   const hydratedRef = useRef(false);
   const syncRanRef = useRef<string | null>(null);
@@ -82,6 +83,7 @@ export function useDataLifecycle({
       assetsHydratedRef.current = null;
       blobCheckedRef.current = false;
       setCloudAssetCount(0);
+      setAssetsReady(false);
       setStatus("idle");
     }
   }, [user]);
@@ -185,16 +187,18 @@ export function useDataLifecycle({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  // Assets normalizados vencem o blob. O mapper preserva ownership_scope,
-  // inclusive needs_review, sem atribuí-lo ao titular.
+  // Assets normalizados vencem o blob. A detecção de legado só é liberada
+  // depois que esta leitura termina com sucesso, evitando migração duplicada.
   useEffect(() => {
     if (!user || !cloudPlanRow || assetsHydratedRef.current === cloudPlanRow.id) return;
     assetsHydratedRef.current = cloudPlanRow.id;
+    setAssetsReady(false);
     let cancelled = false;
     (async () => {
       const result = await assetWriter.listAssets(cloudPlanRow.id);
       if (cancelled || !result.data) return;
       setCloudAssetCount(result.data.length);
+      setAssetsReady(true);
       const cloudInvestments = result.data.map(assetRowToInvestment);
       setAppData((prev) => {
         const localIds = new Set(prev.investments.map((item) => item.id));
@@ -212,7 +216,10 @@ export function useDataLifecycle({
   }, [user, cloudPlanRow, assetWriter, setAppData]);
 
   useEffect(() => {
-    if (!user || !cloudPlanRow || !hydration.hydrated || blobCheckedRef.current) return;
+    if (
+      !user || !cloudPlanRow || !hydration.hydrated || !assetsReady
+      || blobCheckedRef.current
+    ) return;
     if (isMigrationDone(user.id)) {
       blobCheckedRef.current = true;
       return;
@@ -241,7 +248,7 @@ export function useDataLifecycle({
     })();
   }, [
     user, cloudPlanRow, hydration.hydrated, hydration.counts,
-    appData, cloudAssetCount,
+    appData, cloudAssetCount, assetsReady,
   ]);
 
   const handleUseLocal = useCallback(async () => {
@@ -304,6 +311,7 @@ export function useDataLifecycle({
     }
     hydration.forceRefresh();
     assetsHydratedRef.current = null;
+    setAssetsReady(false);
   }, [user, cloudPlanRow, blobAppDataCache, cloudMembers, hydration]);
 
   const handleBlobLater = useCallback(() => {
