@@ -54,28 +54,31 @@ BEGIN
   ASSERT auth.uid()=u, 'auth.uid do titular não foi configurado para remoção';
   PERFORM public.remove_plan_partner_v1(p);
 
+  -- Preparação pelo mesmo caminho atômico usado pela Edge Function. A RPC
+  -- grava primeiro a identidade privada e só depois publica last4/status.
   PERFORM set_config('role', 'postgres', true);
   PERFORM set_config('request.jwt.claims', '', true);
   PERFORM set_config('request.jwt.claim.sub', '', true);
-  UPDATE public.plan_members
-     SET identity_status='verified', cpf_last4='1234'
-   WHERE id=parceiro;
-  INSERT INTO public.plan_member_private_identity
-    (member_id, plan_id, user_id, cpf_hmac, hmac_key_version)
-  VALUES (parceiro, p, u, repeat('a', 64), '1');
+  PERFORM public.set_plan_member_identity_v1(
+    u,
+    parceiro,
+    repeat('a', 64),
+    '1234',
+    '1'
+  );
 
   ASSERT EXISTS (
     SELECT 1 FROM public.plan_members
      WHERE id=parceiro AND plan_id=p AND user_id=u
        AND status='removed' AND identity_status='verified'
        AND cpf_last4 ~ '^[0-9]{4}$'
-  ), 'pré-condição pública da identidade não foi persistida';
+  ), 'pré-condição pública da identidade não foi persistida pela RPC';
   ASSERT EXISTS (
     SELECT 1 FROM public.plan_member_private_identity
      WHERE member_id=parceiro AND plan_id=p AND user_id=u
        AND cpf_hmac ~ '^[a-f0-9]{64}$'
        AND hmac_key_version='1'
-  ), 'pré-condição privada da identidade não foi persistida';
+  ), 'pré-condição privada da identidade não foi persistida pela RPC';
 
   PERFORM set_config('role', 'authenticated', true);
   PERFORM set_config('request.jwt.claims',
