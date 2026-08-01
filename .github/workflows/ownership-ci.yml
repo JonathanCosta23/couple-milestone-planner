@@ -13,8 +13,10 @@ on:
       - ".github/workflows/ownership-ci.yml"
   workflow_dispatch:
 
+# Permissão temporária somente para sincronizar package-lock.json na branch do PR.
+# Será reduzida novamente para contents: read após o commit automático.
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ownership-4c1-${{ github.ref }}
@@ -26,8 +28,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Checkout
+      - name: Checkout feature branch
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Setup Node.js 24
         uses: actions/setup-node@v7
@@ -41,12 +45,19 @@ jobs:
       - name: Refresh lockfile in runner
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
 
-      - name: Upload refreshed package lock
-        uses: actions/upload-artifact@v5
-        with:
-          name: package-lock-node24
-          path: package-lock.json
-          retention-days: 1
+      - name: Commit refreshed package lock
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            echo "package-lock.json já está sincronizado"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "chore: sincroniza package-lock com Node 24"
+          git push origin HEAD:${{ github.head_ref }}
 
       - name: Install dependencies reproducibly
         run: npm ci --no-audit --no-fund
