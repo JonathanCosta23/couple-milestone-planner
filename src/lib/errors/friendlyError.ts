@@ -1,22 +1,15 @@
 /**
  * friendlyError — Mapeia erros crus do Supabase/Postgres para mensagens
- * amigáveis em português, evitando vazamento de detalhes internos
- * (nomes de tabela, constraints, colunas) para a UI.
- *
- * Uso:
- *   const friendly = toFriendlyError(error);
- *   toast.error(`Falha ao salvar: ${friendly}`);
- *
- * O erro cru é logado apenas no logger central para diagnóstico.
+ * amigáveis em português, evitando vazamento de detalhes internos.
  */
-
 import { logger } from "@/lib/logger";
 
-type MaybeError =
-  | string
-  | null
-  | undefined
-  | { message?: string; code?: string; details?: string; hint?: string };
+type MaybeError = string | null | undefined | {
+  message?: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+};
 
 const CODE_MAP: Record<string, string> = {
   "23503": "Referência inválida entre registros.",
@@ -31,11 +24,13 @@ const CODE_MAP: Record<string, string> = {
 };
 
 const MESSAGE_PATTERNS: Array<{ test: RegExp; friendly: string }> = [
-  // Códigos fechados vindos das triggers/RPCs do Plano do Milhão. Mantidos
-  // no topo para preceder padrões genéricos (ex.: "check violation").
   { test: /explicit_reintegration_required/, friendly: "Este participante precisa ser reintegrado por um fluxo específico." },
   { test: /invalid_rpc_payload/, friendly: "Não foi possível confirmar a resposta do servidor. Atualize e tente novamente." },
   { test: /member_lifecycle_action_required/, friendly: "Para mudar o modo do plano, use adicionar ou remover parceiro." },
+  { test: /ownership_member_mismatch/, friendly: "A propriedade deste registro não corresponde ao participante informado." },
+  { test: /ownership_scope_invalid/, friendly: "O tipo de propriedade informado não é válido." },
+  { test: /ownership_required/, friendly: "Defina quem é responsável por este registro antes de salvar." },
+  { test: /member_required/, friendly: "Selecione um participante ativo antes de salvar." },
   { test: /member_not_removed/, friendly: "Este participante não está marcado como removido." },
   { test: /identity_verification_required/, friendly: "É necessário confirmar a identidade antes de reintegrar." },
   { test: /plan_members_inconsistent/, friendly: "Os participantes deste plano estão inconsistentes. Revise antes de continuar." },
@@ -60,19 +55,13 @@ const FALLBACK = "Não foi possível concluir agora. Tente novamente.";
 
 export function toFriendlyError(err: MaybeError): string {
   if (!err) return FALLBACK;
-
-  const raw =
-    typeof err === "string"
-      ? { message: err, code: undefined as string | undefined }
-      : { message: err.message ?? "", code: err.code };
-
+  const raw = typeof err === "string"
+    ? { message: err, code: undefined as string | undefined }
+    : { message: err.message ?? "", code: err.code };
   logger.warn("supabase.friendly_error.raw", {}, err);
-
   if (raw.code && CODE_MAP[raw.code]) return CODE_MAP[raw.code];
-
   for (const { test, friendly } of MESSAGE_PATTERNS) {
     if (test.test(raw.message)) return friendly;
   }
-
   return FALLBACK;
 }
