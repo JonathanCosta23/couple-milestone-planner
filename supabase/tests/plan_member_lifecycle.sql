@@ -882,14 +882,17 @@ END $$;
 DO $$
 DECLARE
   u  uuid := '00000000-0000-0000-0000-0000000c1010';
+  u2 uuid := '00000000-0000-0000-0000-0000000c1110';
   p uuid; titular uuid; removido_1 uuid; removido_2 uuid;
   j jsonb;
   expenses_before integer; expenses_after integer;
+  hmac_before text; hmac_after text;
   blocked boolean;
   v text;
 BEGIN
-  INSERT INTO auth.users (id, email, aud, role)
-  VALUES (u,'l10@test.local','authenticated','authenticated')
+  INSERT INTO auth.users (id, email, aud, role) VALUES
+    (u,'l10a@test.local','authenticated','authenticated'),
+    (u2,'l10b@test.local','authenticated','authenticated')
   ON CONFLICT (id) DO NOTHING;
 
   INSERT INTO public.plans (user_id, mode, goal_amount, initial_amount,
@@ -975,6 +978,32 @@ BEGIN
   -- sucesso: member_id explícito, nunca o primeiro removido por acaso
   PERFORM set_config('role','postgres', true);
   UPDATE public.plan_members SET cpf_last4 = '1234' WHERE id = removido_2;
+
+  -- cross-user: B não reintegra membro do plano de A
+  SELECT cpf_hmac INTO hmac_before
+    FROM public.plan_member_private_identity WHERE member_id = removido_2;
+  PERFORM set_config('request.jwt.claims',
+    json_build_object('sub', u2::text, 'role','authenticated')::text, true);
+  blocked := false;
+  BEGIN PERFORM public.reintegrate_plan_member_v1(p, removido_2);
+  EXCEPTION WHEN no_data_found THEN blocked := true; END;
+  IF NOT blocked THEN RAISE EXCEPTION 'L10: cross-user reintegrou membro alheio'; END IF;
+  PERFORM set_config('role','postgres', true);
+  IF (SELECT status FROM public.plan_members WHERE id = removido_2) <> 'removed' THEN
+    RAISE EXCEPTION 'L10: cross-user alterou status do membro';
+  END IF;
+  IF (SELECT mode FROM public.plans WHERE id = p) <> 'individual' THEN
+    RAISE EXCEPTION 'L10: cross-user alterou o mode do plano';
+  END IF;
+  SELECT cpf_hmac INTO hmac_after
+    FROM public.plan_member_private_identity WHERE member_id = removido_2;
+  IF hmac_after IS DISTINCT FROM hmac_before THEN
+    RAISE EXCEPTION 'L10: cross-user alterou a identidade privada';
+  END IF;
+  IF (SELECT count(*) FROM public.expenses WHERE plan_id = p) <> expenses_before THEN
+    RAISE EXCEPTION 'L10: cross-user alterou dados financeiros';
+  END IF;
+
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', u::text, 'role','authenticated')::text, true);
   j := public.reintegrate_plan_member_v1(p, removido_2);
@@ -1018,7 +1047,7 @@ BEGIN
   DELETE FROM public.expenses WHERE plan_id = p;
   DELETE FROM public.plan_members WHERE plan_id = p;
   DELETE FROM public.plans WHERE id = p;
-  DELETE FROM auth.users WHERE id = u;
+  DELETE FROM auth.users WHERE id IN (u, u2);
   RAISE NOTICE 'L10 reintegrate_plan_member_v1: OK';
 END $$;
 
