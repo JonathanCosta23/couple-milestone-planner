@@ -11,7 +11,15 @@ Executar contra o Postgres do projeto (usa `psql`):
 psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/editorial_publication_gate.sql
 psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/learning_progress_rls.sql
 psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/user_action_state_rls.sql
+psql -v ON_ERROR_STOP=1 -f supabase/tests/plan_privileges_hardening.sql
+psql -v ON_ERROR_STOP=1 -f supabase/tests/plan_member_lifecycle.sql
 ```
+
+`plan_privileges_hardening.sql` e `plan_member_lifecycle.sql` precisam ser
+executados por um papel administrativo (postgres/supabase_admin), pois criam
+usuários em `auth.users` e alternam para `authenticated` via `set_config`.
+Executar sempre o arquivo inteiro, do `BEGIN` ao `ROLLBACK` — nunca blocos
+isolados.
 
 Cada teste usa `DO $$ ... $$` com `RAISE EXCEPTION` para falhar de forma
 determinística; sucesso é ausência de erro. Nenhum teste deve ser executado
