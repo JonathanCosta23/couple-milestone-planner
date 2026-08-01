@@ -1,6 +1,7 @@
 /**
  * Fluxo de caixa: rendas, gastos e gastos recorrentes (templates).
  */
+import type { OwnershipScope } from "./ownership";
 
 // ===== Income =====
 
@@ -12,6 +13,8 @@ export interface Income {
   type: "salary" | "freelance" | "rental" | "dividends" | "bonus" | "other";
   recurrence: "monthly" | "biweekly" | "weekly" | "yearly" | "one-time";
   active: boolean;
+  /** Scope preservado na hidratação. Novos writes normais usam individual. */
+  ownershipScope?: OwnershipScope;
   startDate?: string;
   endDate?: string;
   notes?: string;
@@ -70,7 +73,7 @@ export const EXPENSE_CATEGORY_ICONS: Record<ExpenseCategory, string> = {
 };
 
 export type ExpenseType = "fixed" | "variable";
-export type ExpenseOwnership = "individual" | "shared";
+export type ExpenseOwnership = OwnershipScope;
 export type ExpenseStatus = "pending" | "paid" | "overdue" | "cancelled";
 export type ExpensePriority = "essential" | "important" | "optional";
 
@@ -84,6 +87,8 @@ export interface Expense {
   recurrence: "one-time" | "monthly" | "weekly" | "yearly";
   status: ExpenseStatus;
   ownership: ExpenseOwnership;
+  /** Alias explícito do contrato persistido. */
+  ownershipScope?: OwnershipScope;
   responsibleProfileId?: string; // who pays in couple mode
   dueDate?: string; // YYYY-MM-DD
   paidDate?: string;
@@ -107,6 +112,7 @@ export interface RecurringExpense {
   subcategory?: string;
   type: ExpenseType;
   ownership: ExpenseOwnership;
+  ownershipScope?: OwnershipScope;
   responsibleProfileId?: string;
   dayOfMonth?: number;
   priority: ExpensePriority;
