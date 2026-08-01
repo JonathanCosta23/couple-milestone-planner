@@ -1,15 +1,3 @@
--- Microfechamento 4.b.1.1-B.1 (revisado em 4.b.1.1-C.1)
--- Cobre: privilégios de public.plans, constraint trigger SECURITY DEFINER,
--- e integridade de modo no COMMIT.
--- Os cenários de HMAC, reintegração e preview de remoção NÃO ficam aqui:
--- estão cobertos de forma completa em supabase/tests/plan_member_lifecycle.sql
--- (blocos L9 e L10).
---
--- Execução: psql -v ON_ERROR_STOP=1 -f supabase/tests/plan_privileges_hardening.sql
--- Requer papel administrativo (postgres/supabase_admin): cria usuários em
--- auth.users e alterna para `authenticated` via set_config.
--- Sempre roda em transação e faz ROLLBACK ao final.
-
 BEGIN;
 
 DO $$
@@ -40,19 +28,16 @@ BEGIN
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', owner_id::text, 'role', 'authenticated')::text, true);
 
-  -- 1. authenticated atualiza coluna permitida.
   UPDATE public.plans SET goal_amount = 2000000 WHERE id = v_plan;
   ASSERT (SELECT goal_amount FROM public.plans WHERE id = v_plan) = 2000000,
     'authenticated deveria atualizar goal_amount';
 
-  -- 2. authenticated NAO pode atualizar updated_at diretamente.
   BEGIN
     UPDATE public.plans SET updated_at = now() WHERE id = v_plan;
     RAISE EXCEPTION 'FALHA: authenticated atualizou updated_at';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
 
-  -- 3. authenticated NAO pode inserir nem deletar planos.
   BEGIN
     INSERT INTO public.plans (user_id, mode, goal_amount, initial_amount,
                               monthly_contribution, goal_years, goal_months)
@@ -66,19 +51,17 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
 
-  -- 4. authenticated NAO pode chamar a funcao auxiliar do constraint trigger.
   BEGIN
     PERFORM public.assert_plan_mode_consistency_for(v_plan);
     RAISE EXCEPTION 'FALHA: authenticated executou assert_plan_mode_consistency_for';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
 
-  -- 5. Contrato minimo do preview (cenarios completos: plan_member_lifecycle.sql L9).
   v_json := public.get_plan_member_removal_impact_v1(v_plan, v_partner);
   ASSERT v_json ? 'impact_category' AND v_json ? 'data_coverage',
     'preview deveria expor impact_category e data_coverage';
   ASSERT NOT (v_json::text ILIKE '%cpf%' OR v_json::text ILIKE '%hmac%'),
-    'preview nao pode expor identidade';
+    'preview não pode expor identidade';
 
   PERFORM set_config('role', 'postgres', true);
   DELETE FROM public.plan_members WHERE plan_id = v_plan;
@@ -87,7 +70,6 @@ BEGIN
   RAISE NOTICE 'plan_privileges_hardening: OK';
 END $$;
 
--- 6. Estado inconsistente e bloqueado pelo constraint trigger.
 DO $$
 DECLARE
   owner_id uuid := '00000000-0000-0000-0000-000000000c02';
@@ -104,7 +86,7 @@ BEGIN
   VALUES (v_plan, owner_id, 'Titular', true, 'titular', 'active');
   BEGIN
     PERFORM public.assert_plan_mode_consistency_for(v_plan);
-    RAISE EXCEPTION 'FALHA: estado inconsistente nao foi bloqueado';
+    RAISE EXCEPTION 'FALHA: estado inconsistente não foi bloqueado';
   EXCEPTION WHEN check_violation THEN
     RAISE NOTICE 'constraint trigger bloqueou estado inconsistente: OK';
   END;
@@ -113,7 +95,6 @@ BEGIN
   DELETE FROM auth.users WHERE id = owner_id;
 END $$;
 
--- 9. PUBLIC/anon não têm SELECT/INSERT/UPDATE/DELETE em public.plans.
 DO $$
 BEGIN
   ASSERT NOT has_table_privilege('anon', 'public.plans', 'SELECT'), 'anon não pode ler plans';
@@ -135,7 +116,6 @@ BEGIN
   RAISE NOTICE 'privilégios de plans: OK';
 END $$;
 
--- 10. Matriz completa de privilégios de public.plans (colunas sensíveis).
 DO $$
 DECLARE
   col text;
@@ -153,8 +133,6 @@ BEGIN
   RAISE NOTICE 'matriz de colunas de plans: OK';
 END $$;
 
--- 11. PUBLIC não pode ter ACL de DML/SELECT em plans nem na tabela privada.
---     Testado diretamente no catálogo, não pela role anon.
 DO $$
 DECLARE
   r record;
@@ -167,7 +145,7 @@ BEGIN
       CROSS JOIN LATERAL aclexplode(c.relacl) a
      WHERE n.nspname = 'public'
        AND c.relname IN ('plans','plan_member_private_identity')
-       AND a.grantee = 0  -- 0 = PUBLIC
+       AND a.grantee = 0
        AND a.privilege_type IN ('SELECT','INSERT','UPDATE','DELETE')
   LOOP
     offenders := offenders + 1;
@@ -177,8 +155,6 @@ BEGIN
   RAISE NOTICE 'ACL de PUBLIC: OK';
 END $$;
 
--- 12. Tabela privada e RPC de identidade: authenticated e anon sem acesso,
---     service_role com o acesso necessário.
 DO $$
 DECLARE
   role_name text;

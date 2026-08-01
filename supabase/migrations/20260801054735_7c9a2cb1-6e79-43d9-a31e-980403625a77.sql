@@ -1,26 +1,5 @@
--- Lote 4.b.1.1-C — Cobertura SQL integral do ciclo de vida de participantes.
---
--- Execução: psql -v ON_ERROR_STOP=1 -f supabase/tests/plan_member_lifecycle.sql
--- Requer papel administrativo (postgres/supabase_admin): os blocos criam
--- usuários de teste em auth.users e alternam para `authenticated` via
--- set_config('role', ...).
---
--- Convenções de todos os blocos:
---  * dados isolados por UUID fixo de teste, nunca dados reais;
---  * cada bloco limpa o que criou e o arquivo inteiro roda em BEGIN ... ROLLBACK;
---  * cada bloco emite RAISE NOTICE com o resultado;
---  * qualquer asserção falha aborta com código diferente de zero.
---
--- Os constraint triggers trg_plans_mode_consistency e
--- trg_members_mode_consistency são DEFERRABLE INITIALLY DEFERRED: os blocos
--- usam SET CONSTRAINTS ALL IMMEDIATE para forçar a validação real e voltam
--- para SET CONSTRAINTS ALL DEFERRED ao final.
-
 BEGIN;
 
--- =====================================================================
--- L1. Constraint trigger real: estados válidos, inválidos e intermediários
--- =====================================================================
 DO $$
 DECLARE
   u uuid := '00000000-0000-0000-0000-0000000c1001';
@@ -32,7 +11,6 @@ BEGIN
   VALUES (u, 'l1@test.local', 'authenticated', 'authenticated')
   ON CONFLICT (id) DO NOTHING;
 
-  -- individual: 1 titular, 0 parceiros => passa no IMMEDIATE
   INSERT INTO public.plans (user_id, mode, goal_amount, initial_amount,
                             monthly_contribution, goal_years, goal_months)
   VALUES (u,'individual',1000000,0,0,21,252) RETURNING id INTO p_ind;
@@ -41,7 +19,6 @@ BEGIN
   SET CONSTRAINTS ALL IMMEDIATE;
   SET CONSTRAINTS ALL DEFERRED;
 
-  -- casal: 1 titular + 1 parceiro => passa
   INSERT INTO public.plans (user_id, mode, goal_amount, initial_amount,
                             monthly_contribution, goal_years, goal_months)
   VALUES (u,'casal',1000000,0,0,21,252) RETURNING id INTO p_cas;
@@ -52,7 +29,6 @@ BEGIN
   SET CONSTRAINTS ALL IMMEDIATE;
   SET CONSTRAINTS ALL DEFERRED;
 
-  -- casal sem parceiro ativo => falha no IMMEDIATE
   failed := false;
   BEGIN
     UPDATE public.plan_members SET status = 'removed' WHERE id = m_cas_p;
@@ -61,12 +37,10 @@ BEGIN
   END;
   SET CONSTRAINTS ALL DEFERRED;
   IF NOT failed THEN RAISE EXCEPTION 'L1: casal sem parceiro ativo deveria falhar'; END IF;
-  -- o savepoint interno reverteu o UPDATE: parceiro continua ativo
   IF (SELECT status FROM public.plan_members WHERE id = m_cas_p) <> 'active' THEN
     RAISE EXCEPTION 'L1: rollback do sub-bloco não restaurou o parceiro';
   END IF;
 
-  -- individual com parceiro ativo => falha
   failed := false;
   BEGIN
     INSERT INTO public.plan_members (plan_id, user_id, name, is_primary, role, status)
@@ -77,7 +51,6 @@ BEGIN
   SET CONSTRAINTS ALL DEFERRED;
   IF NOT failed THEN RAISE EXCEPTION 'L1: individual com parceiro ativo deveria falhar'; END IF;
 
-  -- casal com dois parceiros ativos => bloqueado (índice único ou trigger)
   failed := false;
   BEGIN
     INSERT INTO public.plan_members (plan_id, user_id, name, is_primary, role, status)
@@ -88,7 +61,6 @@ BEGIN
   SET CONSTRAINTS ALL DEFERRED;
   IF NOT failed THEN RAISE EXCEPTION 'L1: dois parceiros ativos deveriam falhar'; END IF;
 
-  -- dois titulares ativos => bloqueado
   failed := false;
   BEGIN
     INSERT INTO public.plan_members (plan_id, user_id, name, is_primary, role, status)
@@ -99,7 +71,6 @@ BEGIN
   SET CONSTRAINTS ALL DEFERRED;
   IF NOT failed THEN RAISE EXCEPTION 'L1: dois titulares ativos deveriam falhar'; END IF;
 
-  -- zero titulares ativos => falha
   failed := false;
   BEGIN
     UPDATE public.plan_members SET status = 'removed' WHERE id = m_ind;
@@ -109,10 +80,8 @@ BEGIN
   SET CONSTRAINTS ALL DEFERRED;
   IF NOT failed THEN RAISE EXCEPTION 'L1: zero titulares ativos deveria falhar'; END IF;
 
-  -- estado intermediário inválido é permitido enquanto DEFERRED e o estado
-  -- final válido confirma sem erro.
-  UPDATE public.plan_members SET status = 'removed' WHERE id = m_cas_p;   -- casal inválido
-  UPDATE public.plans SET mode = 'individual' WHERE id = p_cas;           -- volta a ser válido
+  UPDATE public.plan_members SET status = 'removed' WHERE id = m_cas_p;
+  UPDATE public.plans SET mode = 'individual' WHERE id = p_cas;
   SET CONSTRAINTS ALL IMMEDIATE;
   SET CONSTRAINTS ALL DEFERRED;
 
@@ -122,9 +91,6 @@ BEGIN
   RAISE NOTICE 'L1 constraint trigger real: OK';
 END $$;
 
--- =====================================================================
--- L2. OLD.plan_id e NEW.plan_id no constraint trigger
--- =====================================================================
 DO $$
 DECLARE
   u uuid := '00000000-0000-0000-0000-0000000c1002';
@@ -152,8 +118,6 @@ BEGIN
   SET CONSTRAINTS ALL IMMEDIATE;
   SET CONSTRAINTS ALL DEFERRED;
 
-  -- Mover o parceiro de A para B quebra os DOIS planos:
-  -- A (casal) fica sem parceiro ativo e B (individual) ganha um parceiro ativo.
   failed := false;
   BEGIN
     UPDATE public.plan_members SET plan_id = pB WHERE id = partnerA;
@@ -168,7 +132,6 @@ BEGIN
     RAISE EXCEPTION 'L2: membro não voltou ao plano original após rollback';
   END IF;
 
-  -- Movimentação válida: ajustar os dois modos na mesma transação.
   UPDATE public.plan_members SET plan_id = pB WHERE id = partnerA;
   UPDATE public.plans SET mode = 'individual' WHERE id = pA;
   UPDATE public.plans SET mode = 'casal' WHERE id = pB;
@@ -184,9 +147,6 @@ BEGIN
   RAISE NOTICE 'L2 OLD.plan_id/NEW.plan_id: OK';
 END $$;
 
--- =====================================================================
--- L3. UPDATE permitido como authenticated dispara o trigger sem negar acesso
--- =====================================================================
 DO $$
 DECLARE
   u uuid := '00000000-0000-0000-0000-0000000c1003';
@@ -209,7 +169,7 @@ BEGIN
   UPDATE public.plans SET goal_amount = 2500000 WHERE id = p;
   UPDATE public.plans SET assumption_selic = 0.11 WHERE id = p;
   UPDATE public.plans SET wizard_complete = true WHERE id = p;
-  SET CONSTRAINTS ALL IMMEDIATE;   -- executa o constraint trigger SECURITY DEFINER
+  SET CONSTRAINTS ALL IMMEDIATE;
   SET CONSTRAINTS ALL DEFERRED;
 
   SELECT goal_amount, assumption_selic, wizard_complete
@@ -226,9 +186,6 @@ BEGIN
   RAISE NOTICE 'L3 update permitido + trigger: OK';
 END $$;
 
--- =====================================================================
--- L4. Isolamento RLS entre usuários
--- =====================================================================
 DO $$
 DECLARE
   uA uuid := '00000000-0000-0000-0000-0000000c1004';
@@ -287,9 +244,6 @@ BEGIN
   RAISE NOTICE 'L4 isolamento RLS de plans: OK';
 END $$;
 
--- =====================================================================
--- L5. normalize_plan_mode_v1
--- =====================================================================
 DO $$
 DECLARE
   u  uuid := '00000000-0000-0000-0000-0000000c1005';
@@ -333,7 +287,6 @@ BEGIN
   END IF;
   IF (j->>'plan_id')::uuid <> p THEN RAISE EXCEPTION 'L5: plan_id divergente'; END IF;
 
-  -- 1 titular + 1 parceiro => casal
   INSERT INTO public.plan_members (plan_id, user_id, name, is_primary, role, status)
   VALUES (p, u, 'P', false,'parceiro','active') RETURNING id INTO partner_id;
   j := public.normalize_plan_mode_v1(p);
@@ -341,7 +294,6 @@ BEGIN
     RAISE EXCEPTION 'L5: esperava casal: %', j;
   END IF;
 
-  -- Não reativa membro removido.
   UPDATE public.plan_members SET status = 'removed' WHERE id = partner_id;
   j := public.normalize_plan_mode_v1(p);
   IF j->>'mode' <> 'individual' THEN RAISE EXCEPTION 'L5: esperava individual após remoção'; END IF;
@@ -349,7 +301,6 @@ BEGIN
     RAISE EXCEPTION 'L5: normalize reativou membro removido';
   END IF;
 
-  -- Estado estrutural inválido (0 titulares ativos) => plan_members_inconsistent
   UPDATE public.plan_members SET status = 'removed'
    WHERE plan_id = p AND is_primary = true;
   blocked := false;
@@ -360,7 +311,6 @@ BEGIN
   UPDATE public.plan_members SET status = 'active'
    WHERE plan_id = p AND is_primary = true;
 
-  -- cross-user => plan_not_found
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', u2::text, 'role','authenticated')::text, true);
   blocked := false;
@@ -377,9 +327,6 @@ BEGIN
   RAISE NOTICE 'L5 normalize_plan_mode_v1: OK';
 END $$;
 
--- =====================================================================
--- L6. add_plan_partner_v1
--- =====================================================================
 DO $$
 DECLARE
   u  uuid := '00000000-0000-0000-0000-0000000c1006';
@@ -404,7 +351,6 @@ BEGIN
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', u::text, 'role','authenticated')::text, true);
 
-  -- Validações de entrada
   FOREACH j IN ARRAY ARRAY['{"n":"","a":30}'::jsonb, '{"n":"   ","a":30}'::jsonb] LOOP
     blocked := false;
     BEGIN
@@ -428,7 +374,6 @@ BEGIN
   EXCEPTION WHEN check_violation THEN blocked := true; END;
   IF NOT blocked THEN RAISE EXCEPTION 'L6: idade > 130 aceita'; END IF;
 
-  -- Sucesso
   j := public.add_plan_partner_v1(p, 'Parceira', 30);
   new_partner := (j->>'partner_id')::uuid;
   IF new_partner = removed_partner THEN
@@ -448,13 +393,11 @@ BEGIN
     RAISE EXCEPTION 'L6: payload expõe campo privado: %', partner;
   END IF;
 
-  -- Segundo parceiro ativo => partner_already_active
   blocked := false;
   BEGIN PERFORM public.add_plan_partner_v1(p, 'Outra', 25);
   EXCEPTION WHEN unique_violation THEN blocked := true; END;
   IF NOT blocked THEN RAISE EXCEPTION 'L6: segundo parceiro ativo aceito'; END IF;
 
-  -- cross-user
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', u2::text, 'role','authenticated')::text, true);
   blocked := false;
@@ -462,7 +405,6 @@ BEGIN
   EXCEPTION WHEN no_data_found THEN blocked := true; END;
   IF NOT blocked THEN RAISE EXCEPTION 'L6: cross-user aceito'; END IF;
 
-  -- Estado final passa no constraint trigger real
   SET CONSTRAINTS ALL IMMEDIATE;
   SET CONSTRAINTS ALL DEFERRED;
 
@@ -472,9 +414,6 @@ BEGIN
   RAISE NOTICE 'L6 add_plan_partner_v1: OK';
 END $$;
 
--- =====================================================================
--- L7. remove_plan_partner_v1
--- =====================================================================
 DO $$
 DECLARE
   u  uuid := '00000000-0000-0000-0000-0000000c1007';
@@ -546,9 +485,6 @@ BEGIN
   RAISE NOTICE 'L7 remove_plan_partner_v1: OK';
 END $$;
 
--- =====================================================================
--- L8. upsert_plan_with_members_v3 — plano novo e plano existente
--- =====================================================================
 DO $$
 DECLARE
   u  uuid := '00000000-0000-0000-0000-0000000c1008';
@@ -567,7 +503,6 @@ BEGIN
     (u3,'l8c@test.local','authenticated','authenticated')
   ON CONFLICT (id) DO NOTHING;
 
-  -- Plano novo individual
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', u::text, 'role','authenticated')::text, true);
   j := public.upsert_plan_with_members_v3('individual', 'Titular A');
@@ -589,7 +524,6 @@ BEGIN
     END IF;
   END LOOP;
 
-  -- Plano novo casal (outro usuário)
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', u2::text, 'role','authenticated')::text, true);
   j := public.upsert_plan_with_members_v3('casal', 'Titular B', NULL, 40, 'Parceiro B', 38);
@@ -603,8 +537,6 @@ BEGIN
     RAISE EXCEPTION 'L8: parceiro não deveria ter linked_auth_user_id';
   END IF;
 
-  -- casal sem nome de parceiro em plano novo => partner_name_required.
-  -- O usuário existe de verdade: foreign_key_violation NÃO conta como sucesso.
   blocked := false;
   err := NULL;
   BEGIN
@@ -624,7 +556,6 @@ BEGIN
     RAISE EXCEPTION 'L8: membro persistido apesar de partner_name_required';
   END IF;
 
-  -- Plano existente: atualiza meta e perfis, sem lifecycle
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', u::text, 'role','authenticated')::text, true);
   j := public.upsert_plan_with_members_v3('individual', 'Titular A2', p_ind, 45,
@@ -643,7 +574,6 @@ BEGIN
     RAISE EXCEPTION 'L8: upsert criou ou removeu membro em plano existente';
   END IF;
 
-  -- Troca de modo em plano existente => member_lifecycle_action_required
   blocked := false;
   BEGIN
     PERFORM public.upsert_plan_with_members_v3('casal', 'Titular A2', p_ind, 45, 'X', 30);
@@ -654,7 +584,6 @@ BEGIN
     RAISE EXCEPTION 'L8: falha não fez rollback integral';
   END IF;
 
-  -- v3 nunca reativa parceiro removed em plano existente.
   PERFORM set_config('role','postgres', true);
   INSERT INTO public.plan_members (plan_id, user_id, name, is_primary, role, status)
   VALUES (p_ind, u, 'Ex-parceiro', false, 'parceiro', 'removed')
@@ -689,9 +618,6 @@ BEGIN
   RAISE NOTICE 'L8 upsert_plan_with_members_v3: OK';
 END $$;
 
--- =====================================================================
--- L9. get_plan_member_removal_impact_v1 — validação, contagens e semântica
--- =====================================================================
 DO $$
 DECLARE
   u  uuid := '00000000-0000-0000-0000-0000000c1009';
@@ -715,7 +641,6 @@ BEGIN
   INSERT INTO public.plan_members (plan_id, user_id, name, is_primary, role, status)
   VALUES (p, u, 'P', false,'parceiro','active') RETURNING id INTO parceiro;
 
-  -- Dados vinculados ao parceiro
   INSERT INTO public.assets (plan_id, user_id, member_id, asset_type,
     invested_amount, current_amount, net_estimated,
     has_fgc, has_sovereign_guarantee, mark_to_market, is_active)
@@ -751,7 +676,6 @@ BEGIN
      OR (j#>>'{linked,fgc_events}')::int <> 1 THEN
     RAISE EXCEPTION 'L9: contagens vinculadas incorretas: %', j->'linked';
   END IF;
-  -- recurring é subconjunto de expenses e não entra novamente no total
   IF (j#>>'{linked,recurring_expenses_count}')::int > (j#>>'{linked,expenses}')::int THEN
     RAISE EXCEPTION 'L9: recurring maior que expenses';
   END IF;
@@ -771,7 +695,6 @@ BEGIN
     RAISE EXCEPTION 'L9: payload expõe identidade';
   END IF;
 
-  -- Legado: registros sem member_id, FGC sem holder e blob não vazio
   PERFORM set_config('role','postgres', true);
   INSERT INTO public.income (plan_id, user_id, member_id, source, income_type, amount)
   VALUES (p, u, NULL, 'Legado', 'other', 100);
@@ -806,7 +729,6 @@ BEGIN
     RAISE EXCEPTION 'L9: payload devolveu conteúdo do blob';
   END IF;
 
-  -- Blob vazio volta a ser false
   PERFORM set_config('role','postgres', true);
   UPDATE public.user_financial_data
      SET plan_data = '{}'::jsonb, app_data = '{}'::jsonb WHERE user_id = u;
@@ -817,7 +739,6 @@ BEGIN
     RAISE EXCEPTION 'L9: blob vazio deveria ser false';
   END IF;
 
-  -- Validações negativas
   blocked := false;
   BEGIN PERFORM public.get_plan_member_removal_impact_v1(p, titular);
   EXCEPTION WHEN check_violation THEN blocked := true; END;
@@ -876,9 +797,6 @@ BEGIN
   RAISE NOTICE 'L9 get_plan_member_removal_impact_v1: OK';
 END $$;
 
--- =====================================================================
--- L10. reintegrate_plan_member_v1
--- =====================================================================
 DO $$
 DECLARE
   u  uuid := '00000000-0000-0000-0000-0000000c1010';
@@ -912,13 +830,11 @@ BEGIN
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', u::text, 'role','authenticated')::text, true);
 
-  -- titular é rejeitado
   blocked := false;
   BEGIN PERFORM public.reintegrate_plan_member_v1(p, titular);
   EXCEPTION WHEN check_violation THEN blocked := true; END;
   IF NOT blocked THEN RAISE EXCEPTION 'L10: titular aceito'; END IF;
 
-  -- identity_status pendente => rejeitado
   blocked := false;
   BEGIN PERFORM public.reintegrate_plan_member_v1(p, removido_2);
   EXCEPTION WHEN check_violation THEN blocked := true; END;
@@ -930,13 +846,11 @@ BEGIN
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', u::text, 'role','authenticated')::text, true);
 
-  -- sem linha privada => rejeitado
   blocked := false;
   BEGIN PERFORM public.reintegrate_plan_member_v1(p, removido_2);
   EXCEPTION WHEN check_violation THEN blocked := true; END;
   IF NOT blocked THEN RAISE EXCEPTION 'L10: sem identidade privada aceito'; END IF;
 
-  -- HMAC malformado é barrado pelo CHECK da própria tabela privada
   PERFORM set_config('role','postgres', true);
   blocked := false;
   BEGIN
@@ -949,7 +863,6 @@ BEGIN
     (member_id, plan_id, user_id, cpf_hmac, hmac_key_version)
   VALUES (removido_2, p, u, repeat('a', 64), '1');
 
-  -- versões não suportadas
   FOREACH v IN ARRAY ARRAY['', '2', '999'] LOOP
     PERFORM set_config('role','postgres', true);
     UPDATE public.plan_member_private_identity
@@ -965,7 +878,6 @@ BEGIN
     END IF;
   END LOOP;
 
-  -- cpf_last4 malformado é barrado pelo CHECK da própria tabela
   PERFORM set_config('role','postgres', true);
   UPDATE public.plan_member_private_identity SET hmac_key_version = '1'
    WHERE member_id = removido_2;
@@ -975,11 +887,9 @@ BEGIN
   EXCEPTION WHEN check_violation THEN blocked := true; END;
   IF NOT blocked THEN RAISE EXCEPTION 'L10: CHECK de cpf_last4 ausente'; END IF;
 
-  -- sucesso: member_id explícito, nunca o primeiro removido por acaso
   PERFORM set_config('role','postgres', true);
   UPDATE public.plan_members SET cpf_last4 = '1234' WHERE id = removido_2;
 
-  -- cross-user: B não reintegra membro do plano de A
   SELECT cpf_hmac INTO hmac_before
     FROM public.plan_member_private_identity WHERE member_id = removido_2;
   PERFORM set_config('request.jwt.claims',
@@ -1025,7 +935,6 @@ BEGIN
     RAISE EXCEPTION 'L10: dados financeiros alterados';
   END IF;
 
-  -- já existe parceiro ativo => bloqueado
   PERFORM set_config('role','postgres', true);
   UPDATE public.plan_members SET identity_status = 'verified', cpf_last4 = '5678'
    WHERE id = removido_1;
@@ -1051,11 +960,6 @@ BEGIN
   RAISE NOTICE 'L10 reintegrate_plan_member_v1: OK';
 END $$;
 
--- =====================================================================
--- L11. Rollback real de set_plan_member_identity_v1
---      Trigger temporário falha no UPDATE público feito DEPOIS do upsert
---      da identidade privada. Nada pode sobrar.
--- =====================================================================
 CREATE OR REPLACE FUNCTION public.__test_fail_member_identity_update()
 RETURNS trigger LANGUAGE plpgsql AS $fn$
 BEGIN
