@@ -80,13 +80,13 @@ jobs:
             -h 127.0.0.1 -p 54322 -U postgres -d postgres \
             -f supabase/tests/ownership_scope_4c1.sql
 
-      - name: Run participant lifecycle regression
+      - name: Run post-ownership lifecycle regression
         env:
           PGPASSWORD: postgres
         run: |
           psql -v ON_ERROR_STOP=1 \
             -h 127.0.0.1 -p 54322 -U postgres -d postgres \
-            -f supabase/tests/plan_member_lifecycle.sql
+            -f supabase/tests/plan_member_lifecycle_4c1.sql
 
       - name: Run privilege regression
         env:
