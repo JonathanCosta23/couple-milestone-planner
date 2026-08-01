@@ -553,14 +553,18 @@ DO $$
 DECLARE
   u  uuid := '00000000-0000-0000-0000-0000000c1008';
   u2 uuid := '00000000-0000-0000-0000-0000000c1108';
+  u3 uuid := '00000000-0000-0000-0000-0000000c1208';
   j jsonb; m jsonb;
   p_ind uuid; p_cas uuid;
   titular uuid; parceiro uuid;
+  removed_partner uuid; still_removed uuid;
+  err text;
   blocked boolean;
 BEGIN
   INSERT INTO auth.users (id, email, aud, role) VALUES
     (u,'l8a@test.local','authenticated','authenticated'),
-    (u2,'l8b@test.local','authenticated','authenticated')
+    (u2,'l8b@test.local','authenticated','authenticated'),
+    (u3,'l8c@test.local','authenticated','authenticated')
   ON CONFLICT (id) DO NOTHING;
 
   -- Plano novo individual
@@ -599,17 +603,26 @@ BEGIN
     RAISE EXCEPTION 'L8: parceiro não deveria ter linked_auth_user_id';
   END IF;
 
-  -- casal sem nome de parceiro em plano novo => rejeitado
+  -- casal sem nome de parceiro em plano novo => partner_name_required.
+  -- O usuário existe de verdade: foreign_key_violation NÃO conta como sucesso.
   blocked := false;
+  err := NULL;
   BEGIN
     PERFORM set_config('request.jwt.claims',
-      json_build_object('sub', '00000000-0000-0000-0000-0000000c1208'::text,
-                        'role','authenticated')::text, true);
+      json_build_object('sub', u3::text, 'role','authenticated')::text, true);
     PERFORM public.upsert_plan_with_members_v3('casal', 'Sem parceiro');
-  EXCEPTION WHEN check_violation THEN blocked := true;
-            WHEN foreign_key_violation THEN blocked := true;
+  EXCEPTION WHEN check_violation THEN blocked := true; err := SQLERRM;
   END;
   IF NOT blocked THEN RAISE EXCEPTION 'L8: casal sem parceiro aceito'; END IF;
+  IF err IS NULL OR err NOT ILIKE '%partner_name_required%' THEN
+    RAISE EXCEPTION 'L8: erro inesperado para casal sem parceiro: %', err;
+  END IF;
+  IF (SELECT count(*) FROM public.plans WHERE user_id = u3) <> 0 THEN
+    RAISE EXCEPTION 'L8: plano persistido apesar de partner_name_required';
+  END IF;
+  IF (SELECT count(*) FROM public.plan_members WHERE user_id = u3) <> 0 THEN
+    RAISE EXCEPTION 'L8: membro persistido apesar de partner_name_required';
+  END IF;
 
   -- Plano existente: atualiza meta e perfis, sem lifecycle
   PERFORM set_config('request.jwt.claims',
@@ -641,13 +654,38 @@ BEGIN
     RAISE EXCEPTION 'L8: falha não fez rollback integral';
   END IF;
 
+  -- v3 nunca reativa parceiro removed em plano existente.
+  PERFORM set_config('role','postgres', true);
+  INSERT INTO public.plan_members (plan_id, user_id, name, is_primary, role, status)
+  VALUES (p_ind, u, 'Ex-parceiro', false, 'parceiro', 'removed')
+  RETURNING id INTO removed_partner;
+  PERFORM set_config('request.jwt.claims',
+    json_build_object('sub', u::text, 'role','authenticated')::text, true);
+  j := public.upsert_plan_with_members_v3('individual', 'Titular A2', p_ind, 45,
+                                          NULL, NULL, 2100000);
+  SELECT id INTO still_removed FROM public.plan_members
+   WHERE plan_id = p_ind AND is_primary = false;
+  IF still_removed IS DISTINCT FROM removed_partner THEN
+    RAISE EXCEPTION 'L8: member_id do parceiro removed foi substituído';
+  END IF;
+  IF (SELECT status FROM public.plan_members WHERE id = removed_partner) <> 'removed'
+     OR (SELECT is_active FROM public.plan_members WHERE id = removed_partner) <> false THEN
+    RAISE EXCEPTION 'L8: v3 reativou parceiro removed';
+  END IF;
+  IF (SELECT count(*) FROM public.plan_members WHERE plan_id = p_ind) <> 2 THEN
+    RAISE EXCEPTION 'L8: v3 criou parceiro novo em plano existente';
+  END IF;
+  IF (SELECT mode FROM public.plans WHERE id = p_ind) <> 'individual' THEN
+    RAISE EXCEPTION 'L8: mode mudou indevidamente';
+  END IF;
+
   SET CONSTRAINTS ALL IMMEDIATE;
   SET CONSTRAINTS ALL DEFERRED;
 
   PERFORM set_config('role','postgres', true);
   DELETE FROM public.plan_members WHERE plan_id IN (p_ind, p_cas);
   DELETE FROM public.plans WHERE id IN (p_ind, p_cas);
-  DELETE FROM auth.users WHERE id IN (u, u2);
+  DELETE FROM auth.users WHERE id IN (u, u2, u3);
   RAISE NOTICE 'L8 upsert_plan_with_members_v3: OK';
 END $$;
 
