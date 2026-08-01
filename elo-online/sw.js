@@ -1,4 +1,4 @@
-const CACHE='elo-casal-v1';
+const CACHE='elo-casal-v2';
 const APP=['./','./index.html','./manifest.webmanifest','./icon.svg'];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(APP)).then(()=>self.skipWaiting()));
