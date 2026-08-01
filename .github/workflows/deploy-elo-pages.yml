@@ -29,6 +29,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate ELO files
+        shell: bash
+        run: |
+          test -f elo-online/index.html
+          test -f elo-online/manifest.webmanifest
+          test -f elo-online/sw.js
+          test -f elo-online/icon.svg
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          html = Path('elo-online/index.html').read_text(encoding='utf-8')
+          scripts = re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>', html, flags=re.S | re.I)
+          if not scripts:
+              raise SystemExit('Nenhum JavaScript inline encontrado')
+          Path('/tmp/elo-inline.js').write_text(scripts[-1], encoding='utf-8')
+          PY
+          node --check /tmp/elo-inline.js
+          node --check elo-online/sw.js
+          python -m json.tool elo-online/manifest.webmanifest >/dev/null
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
