@@ -6,6 +6,11 @@ on:
     paths:
       - "elo-online/**"
       - ".github/workflows/deploy-elo-pages.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "elo-online/**"
+      - ".github/workflows/deploy-elo-pages.yml"
   workflow_dispatch:
 
 permissions:
