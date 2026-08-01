@@ -16,7 +16,6 @@ interface Deps {
   addDebtLocal: (debt: Debt) => void;
   updateDebtLocal: (id: string, updates: Partial<Debt>) => void;
   deleteDebtLocal: (id: string) => void;
-  /** Necessário para rollback otimista em update/delete. */
   getDebtById?: (id: string) => Debt | undefined;
 }
 
@@ -26,22 +25,42 @@ export interface DebtActions {
   remove: (id: string) => Promise<void>;
 }
 
+const NO_MEMBER_MSG =
+  "Selecione um participante ativo para esta dívida antes de salvar.";
+
 export function useDebtActions(deps: Deps): DebtActions {
-  const { user, planId, resolveMemberId, addDebtLocal, updateDebtLocal, deleteDebtLocal, getDebtById } = deps;
+  const {
+    user, planId, resolveMemberId,
+    addDebtLocal, updateDebtLocal, deleteDebtLocal, getDebtById,
+  } = deps;
   const writer = useDebtWriter();
   const offlineQueue = useOfflineQueue();
 
   const add = useCallback(async (debt: Debt) => {
-    addDebtLocal(debt);
-    if (!user || !planId) return;
-    const memberId = resolveMemberId(debt.profileId);
+    let memberId: string | null = null;
+    if (user && planId) {
+      memberId = resolveMemberId(debt.profileId);
+      if (!memberId) {
+        toast.error(NO_MEMBER_MSG);
+        return;
+      }
+    }
+
+    addDebtLocal({ ...debt, ownershipScope: debt.ownershipScope ?? "individual" });
+    if (!user || !planId || !memberId) return;
+
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      const payload = debtToPayload(debt, { userId: user.id, planId, memberId });
-      await offlineQueue.enqueue({ entity: "debt", op: "create", entityId: debt.id, planId, payload, memberId });
+      const payload = debtToPayload(debt, {
+        userId: user.id, planId, memberId, ownershipScope: "individual",
+      });
+      await offlineQueue.enqueue({
+        entity: "debt", op: "create", entityId: debt.id, planId, payload, memberId,
+      });
       toast.success("Sem conexão — salvaremos quando a internet voltar.");
       logger.warn("writer.debt.offline.enqueued", { userId: user.id, planId });
       return;
     }
+
     const r = await withRetry(
       () => writer.createDebt(planId, debt, memberId),
       { event: "writer.debt.create", context: { userId: user.id, planId } },
@@ -50,27 +69,48 @@ export function useDebtActions(deps: Deps): DebtActions {
       deleteDebtLocal(debt.id);
       toast.error(`Falha ao salvar dívida: ${toFriendlyError(r.error)}`);
     } else if (r.data) {
-      updateDebtLocal(debt.id, { id: r.data.id } as Partial<Debt>);
+      updateDebtLocal(debt.id, {
+        id: r.data.id,
+        ownershipScope: r.data.ownership_scope,
+        profileId: r.data.member_id ?? debt.profileId,
+      });
     }
   }, [user, planId, writer, resolveMemberId, addDebtLocal, updateDebtLocal, deleteDebtLocal, offlineQueue]);
 
   const update = useCallback(async (id: string, updates: Partial<Debt>) => {
-    // Só resolve memberId quando o titular foi explicitamente alterado.
-    const titularChanged = updates.profileId !== undefined;
-    const memberId: string | null | undefined = titularChanged
+    const ownerChanged = updates.profileId !== undefined;
+    const memberId: string | null | undefined = ownerChanged
       ? resolveMemberId(updates.profileId)
       : undefined;
+    if (ownerChanged && !memberId) {
+      toast.error(NO_MEMBER_MSG);
+      return;
+    }
+
     const prev = getDebtById?.(id);
-    updateDebtLocal(id, updates);
+    const localPatch: Partial<Debt> = ownerChanged
+      ? { ...updates, ownershipScope: "individual" }
+      : updates;
+    updateDebtLocal(id, localPatch);
     if (!user || !planId) return;
+
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      const payload = debtToPayload(updates, { userId: user.id, planId, memberId });
-      await offlineQueue.enqueue({ entity: "debt", op: "update", entityId: id, planId, payload, memberId: memberId ?? null });
+      const payload = debtToPayload(localPatch, {
+        userId: user.id,
+        planId,
+        memberId,
+        ownershipScope: ownerChanged ? "individual" : undefined,
+      });
+      await offlineQueue.enqueue({
+        entity: "debt", op: "update", entityId: id, planId, payload,
+        memberId: memberId ?? null,
+      });
       toast.success("Sem conexão — sua alteração ficou em fila.");
       return;
     }
+
     const r = await withRetry(
-      () => writer.updateDebt(planId, id, updates, memberId),
+      () => writer.updateDebt(planId, id, localPatch, memberId),
       { event: "writer.debt.update", context: { userId: user.id, planId } },
     );
     if (r.error) {
@@ -84,7 +124,9 @@ export function useDebtActions(deps: Deps): DebtActions {
     deleteDebtLocal(id);
     if (!user) return;
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      await offlineQueue.enqueue({ entity: "debt", op: "delete", entityId: id, planId, payload: {}, memberId: null });
+      await offlineQueue.enqueue({
+        entity: "debt", op: "delete", entityId: id, planId, payload: {}, memberId: null,
+      });
       return;
     }
     const r = await withRetry(
