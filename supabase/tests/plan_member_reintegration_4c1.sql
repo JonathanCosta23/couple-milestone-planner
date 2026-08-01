@@ -17,6 +17,7 @@ DECLARE
 BEGIN
   PERFORM set_config('role', 'postgres', true);
   PERFORM set_config('request.jwt.claims', '', true);
+  PERFORM set_config('request.jwt.claim.sub', '', true);
 
   INSERT INTO auth.users (id, email, aud, role) VALUES
     (u, 'ownership-reintegration-a@test.local', 'authenticated', 'authenticated'),
@@ -49,10 +50,13 @@ BEGIN
   PERFORM set_config('role', 'authenticated', true);
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', u::text, 'role', 'authenticated')::text, true);
+  PERFORM set_config('request.jwt.claim.sub', u::text, true);
+  ASSERT auth.uid()=u, 'auth.uid do titular não foi configurado para remoção';
   PERFORM public.remove_plan_partner_v1(p);
 
   PERFORM set_config('role', 'postgres', true);
   PERFORM set_config('request.jwt.claims', '', true);
+  PERFORM set_config('request.jwt.claim.sub', '', true);
   UPDATE public.plan_members
      SET identity_status='verified', cpf_last4='1234'
    WHERE id=parceiro;
@@ -60,9 +64,24 @@ BEGIN
     (member_id, plan_id, user_id, cpf_hmac, hmac_key_version)
   VALUES (parceiro, p, u, repeat('a', 64), '1');
 
+  ASSERT EXISTS (
+    SELECT 1 FROM public.plan_members
+     WHERE id=parceiro AND plan_id=p AND user_id=u
+       AND status='removed' AND identity_status='verified'
+       AND cpf_last4 ~ '^[0-9]{4}$'
+  ), 'pré-condição pública da identidade não foi persistida';
+  ASSERT EXISTS (
+    SELECT 1 FROM public.plan_member_private_identity
+     WHERE member_id=parceiro AND plan_id=p AND user_id=u
+       AND cpf_hmac ~ '^[a-f0-9]{64}$'
+       AND hmac_key_version='1'
+  ), 'pré-condição privada da identidade não foi persistida';
+
   PERFORM set_config('role', 'authenticated', true);
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', u2::text, 'role', 'authenticated')::text, true);
+  PERFORM set_config('request.jwt.claim.sub', u2::text, true);
+  ASSERT auth.uid()=u2, 'auth.uid cross-user não foi configurado';
   BEGIN
     PERFORM public.reintegrate_plan_member_v1(p, parceiro);
   EXCEPTION WHEN no_data_found THEN
@@ -80,6 +99,19 @@ BEGIN
 
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', u::text, 'role', 'authenticated')::text, true);
+  PERFORM set_config('request.jwt.claim.sub', u::text, true);
+  ASSERT auth.uid()=u, 'auth.uid do proprietário não foi restaurado';
+  ASSERT EXISTS (
+    SELECT 1 FROM public.plan_members
+     WHERE id=parceiro AND status='removed'
+       AND identity_status='verified' AND cpf_last4='1234'
+  ), 'identidade pública mudou após tentativa cross-user';
+  ASSERT EXISTS (
+    SELECT 1 FROM public.plan_member_private_identity
+     WHERE member_id=parceiro AND plan_id=p AND user_id=u
+       AND cpf_hmac ~ '^[a-f0-9]{64}$' AND hmac_key_version='1'
+  ), 'identidade privada mudou após tentativa cross-user';
+
   j := public.reintegrate_plan_member_v1(p, parceiro);
   ASSERT (j->>'member_id')::uuid=parceiro, 'membro reintegrado incorreto';
   ASSERT j->>'mode'='casal', 'mode deveria ser casal';
