@@ -1,4 +1,5 @@
-import { Loader2, Settings, LogOut, Cloud } from "lucide-react";
+import { Loader2, Settings, LogOut, Cloud, HeartHandshake } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,16 +39,6 @@ const SECTION_SUBTITLES: Record<NavSection, string> = {
 
 const SECTION_ORDER: NavSection[] = ["inicio", "execucao", "patrimonio", "projecao", "mais"];
 
-/**
- * Header sticky do app. Exibe:
- * - Logo/nome do produto
- * - Indicador de sincronização (salvando/salvo)
- * - Navegação inline (apenas desktop)
- * - Menu do usuário (avatar com inicial → configurações/sair)
- * - Toggle de tema
- *
- * Extraído do Index.tsx para reduzir acoplamento.
- */
 export function AppHeader({
   user,
   syncing,
@@ -69,14 +60,20 @@ export function AppHeader({
             aria-level={2}
             className="text-sm font-bold text-gradient lg:text-base truncate"
           >
-            Plano do Milhão — Planejamento Financeiro
+            Plano do Milhão, Planejamento Financeiro
           </div>
           <p className="hidden sm:block text-[10px] text-muted-foreground truncate">
             {SECTION_LABELS[navSection]} · {SECTION_SUBTITLES[navSection]}
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Cloud sync indicator */}
+          <Link
+            to="/elo"
+            className="hidden sm:flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-2.5 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/10"
+          >
+            <HeartHandshake className="h-3.5 w-3.5" /> ELO Casal
+          </Link>
+
           {syncing ? (
             <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
               <Loader2 className="w-3 h-3 animate-spin" />
@@ -89,7 +86,6 @@ export function AppHeader({
             </div>
           )}
 
-          {/* Desktop inline nav */}
           {showDesktopNav && (
             <nav className="hidden lg:flex items-center gap-1">
               {SECTION_ORDER.map((s) => (
@@ -108,7 +104,6 @@ export function AppHeader({
             </nav>
           )}
 
-          {/* User menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -124,6 +119,11 @@ export function AppHeader({
                 <p className="text-xs text-muted-foreground truncate">{user.email}</p>
               </div>
               <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/elo">
+                  <HeartHandshake className="w-4 h-4 mr-2" /> ELO Casal
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={onOpenSettings}>
                 <Settings className="w-4 h-4 mr-2" /> Configurações
               </DropdownMenuItem>
