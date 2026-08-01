@@ -64,6 +64,14 @@ jobs:
       - name: Reset database from migrations
         run: supabase db reset --local
 
+      - name: Run financial privilege matrix
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -v ON_ERROR_STOP=1 \
+            -h 127.0.0.1 -p 54322 -U postgres -d postgres \
+            -f supabase/tests/ownership_privileges_4c1.sql
+
       - name: Run ownership SQL contract
         env:
           PGPASSWORD: postgres
