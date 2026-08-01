@@ -19,7 +19,6 @@ DECLARE
   v_primary uuid;
   v_partner uuid;
   v_json jsonb;
-  v_ok boolean;
 BEGIN
   INSERT INTO auth.users (id, email, aud, role)
   VALUES (owner_id, 'hardening@test.local', 'authenticated', 'authenticated')
@@ -41,19 +40,19 @@ BEGIN
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', owner_id::text, 'role', 'authenticated')::text, true);
 
-  -- 1. authenticated atualiza coluna permitida e o COMMIT lógico segue válido.
+  -- 1. authenticated atualiza coluna permitida.
   UPDATE public.plans SET goal_amount = 2000000 WHERE id = v_plan;
   ASSERT (SELECT goal_amount FROM public.plans WHERE id = v_plan) = 2000000,
     'authenticated deveria atualizar goal_amount';
 
-  -- 2. authenticated NÃO pode atualizar updated_at diretamente.
+  -- 2. authenticated NAO pode atualizar updated_at diretamente.
   BEGIN
     UPDATE public.plans SET updated_at = now() WHERE id = v_plan;
     RAISE EXCEPTION 'FALHA: authenticated atualizou updated_at';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
 
-  -- 3. authenticated NÃO pode inserir nem deletar planos.
+  -- 3. authenticated NAO pode inserir nem deletar planos.
   BEGIN
     INSERT INTO public.plans (user_id, mode, goal_amount, initial_amount,
                               monthly_contribution, goal_years, goal_months)
@@ -67,19 +66,19 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
 
-  -- 4. authenticated NÃO pode chamar a função auxiliar do constraint trigger.
+  -- 4. authenticated NAO pode chamar a funcao auxiliar do constraint trigger.
   BEGIN
     PERFORM public.assert_plan_mode_consistency_for(v_plan);
     RAISE EXCEPTION 'FALHA: authenticated executou assert_plan_mode_consistency_for';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
 
-  -- 5. Preview de remoção: contrato mínimo, sem duplicar os cenários de L9.
+  -- 5. Contrato minimo do preview (cenarios completos: plan_member_lifecycle.sql L9).
   v_json := public.get_plan_member_removal_impact_v1(v_plan, v_partner);
   ASSERT v_json ? 'impact_category' AND v_json ? 'data_coverage',
     'preview deveria expor impact_category e data_coverage';
   ASSERT NOT (v_json::text ILIKE '%cpf%' OR v_json::text ILIKE '%hmac%'),
-    'preview não pode expor identidade';
+    'preview nao pode expor identidade';
 
   PERFORM set_config('role', 'postgres', true);
   DELETE FROM public.plan_members WHERE plan_id = v_plan;
@@ -88,7 +87,7 @@ BEGIN
   RAISE NOTICE 'plan_privileges_hardening: OK';
 END $$;
 
--- 8. Estado inconsistente é bloqueado no COMMIT pelo constraint trigger.
+-- 6. Estado inconsistente e bloqueado pelo constraint trigger.
 DO $$
 DECLARE
   owner_id uuid := '00000000-0000-0000-0000-000000000c02';
@@ -104,9 +103,8 @@ BEGIN
   INSERT INTO public.plan_members (plan_id, user_id, name, is_primary, role, status)
   VALUES (v_plan, owner_id, 'Titular', true, 'titular', 'active');
   BEGIN
-    -- casal sem parceiro ativo: deve falhar ao checar a consistência.
     PERFORM public.assert_plan_mode_consistency_for(v_plan);
-    RAISE EXCEPTION 'FALHA: estado inconsistente não foi bloqueado';
+    RAISE EXCEPTION 'FALHA: estado inconsistente nao foi bloqueado';
   EXCEPTION WHEN check_violation THEN
     RAISE NOTICE 'constraint trigger bloqueou estado inconsistente: OK';
   END;
