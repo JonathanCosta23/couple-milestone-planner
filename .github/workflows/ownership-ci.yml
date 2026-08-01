@@ -38,7 +38,17 @@ jobs:
       - name: Verify Node.js
         run: node --version
 
-      - name: Install dependencies
+      - name: Refresh lockfile in runner
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Upload refreshed package lock
+        uses: actions/upload-artifact@v5
+        with:
+          name: package-lock-node24
+          path: package-lock.json
+          retention-days: 1
+
+      - name: Install dependencies reproducibly
         run: npm ci --no-audit --no-fund
 
       - name: Run application CI
