@@ -1,7 +1,6 @@
 /**
- * useAssetActions — handler de domínio para Investimentos (assets).
- * - Valida member_id antes de chamar o Supabase (evita erro de FK).
- * - Mantém fallback de soft-delete (deactivateAsset) quando delete falha.
+ * useAssetActions — handler de domínio para Investimentos.
+ * Criação e troca de titular exigem membro ativo e ownership individual.
  */
 import { useCallback } from "react";
 import { toast } from "sonner";
@@ -14,12 +13,10 @@ import { withRetry, logger } from "@/lib/logger";
 interface Deps {
   user: { id: string } | null;
   planId: string | null;
-  /** Resolve um member.id real e ativo do plano para o profileId informado. */
   resolveMemberId: (profileId?: string) => string | null;
   addInvestmentLocal: (inv: Investment) => void;
   updateInvestmentLocal: (id: string, updates: Partial<Investment>) => void;
   deleteInvestmentLocal: (id: string) => void;
-  /** Necessário para rollback otimista em update/delete. */
   getInvestmentById?: (id: string) => Investment | undefined;
 }
 
@@ -30,75 +27,94 @@ export interface AssetActions {
 }
 
 const NO_MEMBER_MSG =
-  "Não foi possível vincular esse investimento a um participante válido do plano. Atualize os participantes e tente novamente.";
+  "Não foi possível vincular esse investimento a um participante ativo do plano.";
 
 export function useAssetActions(deps: Deps): AssetActions {
-  const { user, planId, resolveMemberId, addInvestmentLocal, updateInvestmentLocal, deleteInvestmentLocal, getInvestmentById } = deps;
+  const {
+    user, planId, resolveMemberId,
+    addInvestmentLocal, updateInvestmentLocal, deleteInvestmentLocal, getInvestmentById,
+  } = deps;
   const writer = useAssetWriter();
   const offlineQueue = useOfflineQueue();
 
   const add = useCallback(async (inv: Investment) => {
-    // Regra: investimento exige member_id válido. Validamos ANTES de mutar o
-    // estado local — evita órfão na UI/localStorage quando o titular é inválido.
+    let memberId: string | null = null;
     if (user && planId) {
-      const memberId = resolveMemberId(inv.profileId);
+      memberId = resolveMemberId(inv.profileId);
       if (!memberId) {
         toast.error(NO_MEMBER_MSG);
         return;
       }
     }
-    addInvestmentLocal(inv);
-    if (!user || !planId) return;
-    const memberId = resolveMemberId(inv.profileId)!;
+
+    addInvestmentLocal({ ...inv, ownershipScope: inv.ownershipScope ?? "individual" });
+    if (!user || !planId || !memberId) return;
+
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      const payload = investmentToAssetPayload(inv, { userId: user.id, planId, memberId });
-      await offlineQueue.enqueue({ entity: "asset", op: "create", entityId: inv.id, planId, payload, memberId });
+      const payload = investmentToAssetPayload(inv, {
+        userId: user.id, planId, memberId, ownershipScope: "individual",
+      });
+      await offlineQueue.enqueue({
+        entity: "asset", op: "create", entityId: inv.id, planId, payload, memberId,
+      });
       toast.success("Sem conexão — salvaremos quando a internet voltar.");
       logger.warn("writer.asset.offline.enqueued", { userId: user.id, planId });
       return;
     }
+
     const r = await withRetry(
       () => writer.createAsset(planId, inv, memberId),
       { event: "writer.asset.create", context: { userId: user.id, planId } },
     );
     if (r.error) {
-      // Rollback otimista: nada foi persistido no servidor; remove da UI/cache.
       deleteInvestmentLocal(inv.id);
       toast.error(`Falha ao salvar investimento: ${toFriendlyError(r.error)}`);
     } else if (r.data) {
-      updateInvestmentLocal(inv.id, { id: r.data.id } as Partial<Investment>);
+      updateInvestmentLocal(inv.id, {
+        id: r.data.id,
+        ownershipScope: r.data.ownership_scope,
+        profileId: r.data.member_id ?? inv.profileId,
+      });
     }
   }, [user, planId, writer, resolveMemberId, addInvestmentLocal, updateInvestmentLocal, deleteInvestmentLocal, offlineQueue]);
 
   const update = useCallback(async (id: string, updates: Partial<Investment>) => {
-    // Só resolvemos memberId quando o titular foi explicitamente alterado.
-    // `undefined` sinaliza ao writer "não tocar no vínculo existente".
-    const titularChanged = updates.profileId !== undefined;
-    const memberId: string | null | undefined = titularChanged
+    const ownerChanged = updates.profileId !== undefined;
+    const memberId: string | null | undefined = ownerChanged
       ? resolveMemberId(updates.profileId)
       : undefined;
-    if (titularChanged && !memberId) {
+    if (ownerChanged && !memberId) {
       toast.error(NO_MEMBER_MSG);
       return;
     }
+
     const prev = getInvestmentById?.(id);
-    updateInvestmentLocal(id, updates);
+    const localPatch: Partial<Investment> = ownerChanged
+      ? { ...updates, ownershipScope: "individual" }
+      : updates;
+    updateInvestmentLocal(id, localPatch);
     if (!user || !planId) return;
+
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      const payload = investmentToAssetPayload(updates, { userId: user.id, planId, memberId });
-      // Passa `memberId ?? null` para a fila só quando o titular foi tocado;
-      // caso contrário marca null para representar "campo não-alterado" no
-      // metadado (o payload já não contém member_id).
-      await offlineQueue.enqueue({ entity: "asset", op: "update", entityId: id, planId, payload, memberId: memberId ?? null });
+      const payload = investmentToAssetPayload(localPatch, {
+        userId: user.id,
+        planId,
+        memberId,
+        ownershipScope: ownerChanged ? "individual" : undefined,
+      });
+      await offlineQueue.enqueue({
+        entity: "asset", op: "update", entityId: id, planId, payload,
+        memberId: memberId ?? null,
+      });
       toast.success("Sem conexão — sua alteração ficou em fila.");
       return;
     }
+
     const r = await withRetry(
-      () => writer.updateAsset(planId, id, updates, memberId),
+      () => writer.updateAsset(planId, id, localPatch, memberId),
       { event: "writer.asset.update", context: { userId: user.id, planId } },
     );
     if (r.error) {
-      // Rollback otimista: restaura o snapshot anterior quando disponível.
       if (prev) updateInvestmentLocal(id, prev);
       toast.error(`Falha ao atualizar investimento: ${toFriendlyError(r.error)}`);
     }
@@ -109,7 +125,9 @@ export function useAssetActions(deps: Deps): AssetActions {
     deleteInvestmentLocal(id);
     if (!user) return;
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      await offlineQueue.enqueue({ entity: "asset", op: "delete", entityId: id, planId, payload: {}, memberId: null });
+      await offlineQueue.enqueue({
+        entity: "asset", op: "delete", entityId: id, planId, payload: {}, memberId: null,
+      });
       return;
     }
     const r = await withRetry(
@@ -120,7 +138,6 @@ export function useAssetActions(deps: Deps): AssetActions {
       logger.warn("writer.asset.delete.fallback_deactivate", { userId: user.id });
       const deact = await writer.deactivateAsset(id);
       if (deact.error) {
-        // Restaura o item local: nem hard nem soft delete funcionaram.
         if (prev) addInvestmentLocal(prev);
         toast.error(`Falha ao remover investimento: ${toFriendlyError(deact.error)}`);
       }
