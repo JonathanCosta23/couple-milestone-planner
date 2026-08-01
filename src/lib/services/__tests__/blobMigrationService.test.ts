@@ -1,90 +1,219 @@
 /**
- * blobMigrationService — A regra de ouro: blob legado SÓ migra para as tabelas
- * normalizadas quando estas estão vazias para o plano. Tabelas com dados
- * vencem sobre o blob, evitando duplicação na fonte de verdade.
+ * blobMigrationService — dados normalizados vencem; ownership ambíguo em
+ * casal nunca é atribuído silenciosamente ao titular.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-
-/** Chain só para o count (.select(...,{count,head}).eq().eq()). */
-function countChain(count: number) {
-  return {
-    select: vi.fn(() => ({
-      eq: vi.fn(() => ({
-        eq: vi.fn(() => Promise.resolve({ count, error: null })),
-      })),
-    })),
-  };
-}
-/** Chain para o insert (.insert(rows).select("id")). */
-function insertChain(result: { data: unknown[] | null; error: unknown | null }) {
-  return {
-    insert: vi.fn(() => ({
-      select: vi.fn(() => Promise.resolve(result)),
-    })),
-  };
-}
 
 const fromMock = vi.fn();
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { from: (...args: unknown[]) => fromMock(...args) },
 }));
 
-import { migrateBlobToTables, previewBlobMigration } from "@/lib/services/blobMigrationService";
+import {
+  buildBlobOwnershipResolver,
+  migrateBlobToTables,
+  previewBlobMigration,
+} from "@/lib/services/blobMigrationService";
 import type { AppData } from "@/lib/models";
 import type { PlanMemberRow } from "@/hooks/usePlan";
 
 const baseAppData = {
+  mode: "individual",
+  primaryProfile: { id: "profile-primary", name: "Ana" },
+  investments: [
+    {
+      id: "a1", name: "Tesouro", type: "tesouro-selic", institution: "Tesouro",
+      currentBalance: 1000, monthlyContribution: 0, annualRate: 0,
+      startDate: "2026-01-01", profileId: "profile-primary", active: true,
+      createdAt: "2026-01-01", updatedAt: "2026-01-01",
+    },
+  ],
   incomes: [
-    { id: "i1", label: "Salário", amount: 5000, recurrence: "monthly", type: "salary", startDate: "2026-01" },
+    {
+      id: "i1", profileId: "profile-primary", label: "Salário", amount: 5000,
+      recurrence: "monthly", type: "salary", active: true, startDate: "2026-01",
+    },
   ],
   expenses: [
-    { id: "e1", name: "Aluguel", category: "moradia", amount: 1800, priority: "essential", type: "fixed", recurrence: "monthly" },
+    {
+      id: "e1", name: "Aluguel", category: "moradia", amount: 1800,
+      priority: "essential", type: "fixed", recurrence: "monthly",
+      responsibleProfileId: "profile-primary", ownership: "individual",
+      status: "pending", monthKey: "2026-01", createdAt: "2026-01-01",
+      updatedAt: "2026-01-01",
+    },
   ],
   debts: [
-    { id: "d1", name: "Cartão", type: "credit_card", totalAmount: 3000, monthlyPayment: 500, interestRate: 0.12, payoffPriority: 1, active: true },
+    {
+      id: "d1", name: "Cartão", type: "credit-card", totalAmount: 3000,
+      monthlyPayment: 500, interestRate: 0.12, payoffPriority: 1, active: true,
+      profileId: "profile-primary", currentInstallment: 1, totalInstallments: 6,
+      dueDay: 10, risk: "high", startDate: "2026-01-01",
+      createdAt: "2026-01-01", updatedAt: "2026-01-01",
+    },
   ],
 } as unknown as AppData;
 
-const members: PlanMemberRow[] = [
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  { id: "m-primary", is_primary: true, is_active: true } as any,
+const individualMembers: PlanMemberRow[] = [
+  {
+    id: "m-primary", is_primary: true, is_active: true, status: "active",
+  } as PlanMemberRow,
 ];
+
+const coupleMembers: PlanMemberRow[] = [
+  {
+    id: "m-primary", is_primary: true, is_active: true, status: "active",
+  } as PlanMemberRow,
+  {
+    id: "m-partner", is_primary: false, is_active: true, status: "active",
+  } as PlanMemberRow,
+];
+
+function tableMock(args: {
+  existing?: Partial<Record<string, number>>;
+  errors?: Partial<Record<string, { message: string; code?: string }>>;
+  inserted?: Record<string, Array<Record<string, unknown>>>;
+}) {
+  return (table: string) => ({
+    select: vi.fn(() => ({
+      eq: vi.fn(() => Promise.resolve({
+        count: args.existing?.[table] ?? 0,
+        error: null,
+      })),
+    })),
+    insert: vi.fn((rows: Array<Record<string, unknown>>) => {
+      if (args.inserted) args.inserted[table] = rows;
+      const error = args.errors?.[table] ?? null;
+      return {
+        select: vi.fn(() => Promise.resolve({
+          data: error ? null : rows.map((_, index) => ({ id: `${table}-${index}` })),
+          error,
+        })),
+      };
+    }),
+  });
+}
 
 beforeEach(() => fromMock.mockReset());
 
-describe("blobMigrationService", () => {
-  it("previewBlobMigration conta itens do blob sem persistir", () => {
-    const preview = previewBlobMigration(baseAppData);
-    expect(preview).toEqual({ incomes: 1, expenses: 1, debts: 1, hasAnything: true });
-    expect(previewBlobMigration(null)).toEqual({ incomes: 0, expenses: 0, debts: 0, hasAnything: false });
+describe("previewBlobMigration", () => {
+  it("conta todas as categorias sem persistir", () => {
+    expect(previewBlobMigration(baseAppData)).toEqual({
+      assets: 1, incomes: 1, expenses: 1, debts: 1, hasAnything: true,
+    });
+    expect(previewBlobMigration(null)).toEqual({
+      assets: 0, incomes: 0, expenses: 0, debts: 0, hasAnything: false,
+    });
+  });
+});
+
+describe("buildBlobOwnershipResolver", () => {
+  it("identifica titular inequivocamente", () => {
+    const resolve = buildBlobOwnershipResolver(baseAppData, individualMembers);
+    expect(resolve("profile-primary")).toEqual({
+      memberId: "m-primary", ownershipScope: "individual",
+    });
   });
 
-  it("NÃO migra quando tabelas normalizadas já têm dados (dados normalizados vencem)", async () => {
-    fromMock
-      .mockImplementationOnce(() => countChain(1)) // income
-      .mockImplementationOnce(() => countChain(1)) // expenses
-      .mockImplementationOnce(() => countChain(1)); // debts
+  it("em casal, profile desconhecido vira needs_review", () => {
+    const coupleData = { ...baseAppData, mode: "casal" } as AppData;
+    const resolve = buildBlobOwnershipResolver(coupleData, coupleMembers);
+    expect(resolve(undefined)).toEqual({
+      memberId: null, ownershipScope: "needs_review",
+    });
+    expect(resolve("profile-desconhecido")).toEqual({
+      memberId: null, ownershipScope: "needs_review",
+    });
+  });
+});
 
-    const res = await migrateBlobToTables("user-1", "plan-1", baseAppData, members);
+describe("migrateBlobToTables", () => {
+  it("não duplica categorias já normalizadas e contabiliza ignored", async () => {
+    fromMock.mockImplementation(tableMock({
+      existing: { assets: 1, income: 1, expenses: 1, debts: 1 },
+    }));
 
-    expect(res).toEqual({ incomes: 0, expenses: 0, debts: 0, errors: [] });
-    expect(fromMock).toHaveBeenCalledTimes(3);
+    const result = await migrateBlobToTables(
+      "user-1", "plan-1", baseAppData, individualMembers,
+    );
+
+    expect(result).toEqual({
+      assets: 0,
+      incomes: 0,
+      expenses: 0,
+      debts: 0,
+      individualCreated: 0,
+      needsReviewCreated: 0,
+      ignored: 4,
+      errors: [],
+    });
   });
 
-  it("migra blob para tabelas vazias e propaga erros por categoria", async () => {
-    fromMock
-      .mockImplementationOnce(() => countChain(0))                                       // income count
-      .mockImplementationOnce(() => insertChain({ data: [{ id: "i-new" }], error: null })) // income insert
-      .mockImplementationOnce(() => countChain(0))                                       // expenses count
-      .mockImplementationOnce(() => insertChain({ data: null, error: { message: "violou rls" } })) // expenses insert
-      .mockImplementationOnce(() => countChain(0))                                       // debts count
-      .mockImplementationOnce(() => insertChain({ data: [{ id: "d-new" }], error: null })); // debts insert
+  it("migra ownership individual sem enviar user_id", async () => {
+    const inserted: Record<string, Array<Record<string, unknown>>> = {};
+    fromMock.mockImplementation(tableMock({ inserted }));
 
-    const res = await migrateBlobToTables("user-1", "plan-1", baseAppData, members);
+    const result = await migrateBlobToTables(
+      "user-1", "plan-1", baseAppData, individualMembers,
+    );
 
-    expect(res.incomes).toBe(1);
-    expect(res.debts).toBe(1);
-    expect(res.expenses).toBe(0);
-    expect(res.errors).toEqual([expect.stringContaining("Gastos")]);
+    expect(result.assets).toBe(1);
+    expect(result.incomes).toBe(1);
+    expect(result.expenses).toBe(1);
+    expect(result.debts).toBe(1);
+    expect(result.individualCreated).toBe(4);
+    expect(result.needsReviewCreated).toBe(0);
+
+    for (const rows of Object.values(inserted)) {
+      expect(rows[0].member_id).toBe("m-primary");
+      expect(rows[0].ownership_scope).toBe("individual");
+      expect(rows[0]).not.toHaveProperty("user_id");
+    }
+  });
+
+  it("migração ambígua em casal produz needs_review", async () => {
+    const inserted: Record<string, Array<Record<string, unknown>>> = {};
+    const ambiguous = {
+      ...baseAppData,
+      mode: "casal",
+      primaryProfile: { id: "p1", name: "Ana" },
+      partner: { profile: { id: "p2", name: "Bia" } },
+      incomes: [{ ...baseAppData.incomes[0], profileId: "desconhecido" }],
+      expenses: [{
+        ...baseAppData.expenses[0],
+        responsibleProfileId: undefined,
+        ownership: "shared",
+      }],
+      debts: [{ ...baseAppData.debts[0], profileId: undefined }],
+      investments: [{ ...baseAppData.investments[0], profileId: undefined }],
+    } as unknown as AppData;
+    fromMock.mockImplementation(tableMock({ inserted }));
+
+    const result = await migrateBlobToTables(
+      "user-1", "plan-1", ambiguous, coupleMembers,
+    );
+
+    expect(result.needsReviewCreated).toBe(4);
+    expect(result.individualCreated).toBe(0);
+    for (const rows of Object.values(inserted)) {
+      expect(rows[0].member_id).toBeNull();
+      expect(rows[0].ownership_scope).toBe("needs_review");
+    }
+  });
+
+  it("propaga erro seguro por categoria sem contar criação", async () => {
+    fromMock.mockImplementation(tableMock({
+      errors: { expenses: { message: "violou rls", code: "42501" } },
+    }));
+
+    const result = await migrateBlobToTables(
+      "user-1", "plan-1", baseAppData, individualMembers,
+    );
+
+    expect(result.assets).toBe(1);
+    expect(result.incomes).toBe(1);
+    expect(result.expenses).toBe(0);
+    expect(result.debts).toBe(1);
+    expect(result.errors).toEqual([expect.stringContaining("Gastos")]);
   });
 });
