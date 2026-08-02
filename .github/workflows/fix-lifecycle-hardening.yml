@@ -27,18 +27,17 @@ jobs:
           from pathlib import Path
           path = Path('src/hooks/useDataLifecycle.ts')
           text = path.read_text()
-          old = '''    if (claimLocalCacheOwner(user.id)) {
-              if (typeof window !== "undefined") {
-                window.location.reload();
-                return;
-              }
-            }
-            void runInitialSync();'''
-          new = '''    claimLocalCacheOwner(user.id);
-            void runInitialSync();'''
-          if old not in text:
-              raise SystemExit('expected lifecycle block not found')
-          path.write_text(text.replace(old, new, 1))
+          start_token = "    if (claimLocalCacheOwner(user.id)) {"
+          end_token = "    void runInitialSync();"
+          start = text.find(start_token)
+          if start < 0:
+              raise SystemExit('claim block start not found')
+          end_start = text.find(end_token, start)
+          if end_start < 0:
+              raise SystemExit('claim block end not found')
+          end = end_start + len(end_token)
+          replacement = "    claimLocalCacheOwner(user.id);\n    void runInitialSync();"
+          path.write_text(text[:start] + replacement + text[end:])
           PY
 
       - name: Commit source fix
