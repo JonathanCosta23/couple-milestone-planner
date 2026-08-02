@@ -7,7 +7,7 @@
  */
 import { lazy, Suspense, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, Upload, Settings, ArrowLeft, ChevronDown, Trash2 } from "lucide-react";
+import { Download, Upload, RotateCcw, Settings, ArrowLeft, ChevronDown } from "lucide-react";
 import { PlanModeSelector } from "@/components/plan/PlanModeSelector";
 import { SharePlan } from "@/components/plan/SharePlan";
 import { NotificationSettings } from "@/components/plan/NotificationSettings";
@@ -58,7 +58,7 @@ export interface SettingsHubProps {
   onSignOut: () => void;
   /** Fluxo específico de troca de conta MCP (limpeza + signOut + /login?redirect=/connect). */
   onSwitchAccount: () => void | Promise<void>;
-  onOpenDeleteAccount: () => void;
+  onOpenReset: () => void;
 }
 
 export function SettingsHub({
@@ -67,7 +67,7 @@ export function SettingsHub({
   planActions, emotionalGoal, emotionalGoalCustom, onSaveFinancialProfile,
   planSettingsInitial, onSavePlanSettings, planCloudReady,
   settingsFocus, onSettingsFocusHandled,
-  onExport, onTriggerImport, onSignOut, onSwitchAccount, onOpenDeleteAccount,
+  onExport, onTriggerImport, onSignOut, onSwitchAccount, onOpenReset,
 }: SettingsHubProps) {
   const [profileOpen, setProfileOpen] = useState(false);
   return (
@@ -170,14 +170,14 @@ export function SettingsHub({
           Zona de risco
         </h3>
         <p className="text-xs text-muted-foreground px-1">
-          A exclusão remove permanentemente a conta e todos os dados vinculados.
+          Ações destrutivas. Não podem ser desfeitas.
         </p>
         <Button
           variant="outline"
           className="w-full justify-start h-12 rounded-xl border-destructive/40 text-destructive hover:text-destructive hover:bg-destructive/5"
-          onClick={onOpenDeleteAccount}
+          onClick={onOpenReset}
         >
-          <Trash2 className="w-4 h-4 mr-2.5" /> Excluir conta permanentemente
+          <RotateCcw className="w-4 h-4 mr-2.5" /> Resetar plano
         </Button>
       </section>
     </div>

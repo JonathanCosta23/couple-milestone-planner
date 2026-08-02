@@ -58,7 +58,7 @@ const ImportDialog = lazy(() => import("@/components/plan/ImportDialog").then(m 
 const DataMigrationDialog = lazy(() => import("@/components/auth/DataMigrationDialog").then(m => ({ default: m.DataMigrationDialog })));
 const BlobMigrationDialog = lazy(() => import("@/components/auth/BlobMigrationDialog").then(m => ({ default: m.BlobMigrationDialog })));
 import { PlanModeChip } from "@/components/plan/PlanModeChip";
-import { DeleteAccountDialog } from "@/components/account/DeleteAccountDialog";
+import { ResetPlanDialog } from "@/components/plan/ResetPlanDialog";
 import { LegalFooter } from "@/components/plan/LegalDialogs";
 import { ConsentGate } from "@/components/auth/ConsentGate";
 import { SettingsHub } from "@/pages/index/SettingsHub";
@@ -163,7 +163,7 @@ const Index = () => {
     useCelebratedMilestones(user?.id, cloudPlanRow?.id ?? null);
   const [showQuickDeposit, setShowQuickDeposit] = useState(false);
   const [showFinancialSetup, setShowFinancialSetup] = useState(false);
-  const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
 
   // ── Bloco 1 da Fase 4: ciclo de vida unificado ──
   const lifecycle = useDataLifecycle({
@@ -305,9 +305,6 @@ const Index = () => {
     }
     await signOut();
     toast.success("Até logo! 👋");
-    if (typeof window !== "undefined") {
-      window.location.replace("/login");
-    }
   };
 
   // Navegador da SPA usado exclusivamente para o fluxo dedicado de troca de
@@ -606,7 +603,7 @@ const Index = () => {
                 onTriggerImport={exportImport.triggerFilePicker}
                 onSignOut={handleSignOut}
                 onSwitchAccount={handleMcpSwitchAccount}
-                onOpenDeleteAccount={() => setShowDeleteAccountDialog(true)}
+                onOpenReset={() => setShowResetDialog(true)}
               />
             )}
           </div>
@@ -701,14 +698,13 @@ const Index = () => {
         config={data.config}
       />
 
-      <DeleteAccountDialog
-        open={showDeleteAccountDialog}
-        onOpenChange={setShowDeleteAccountDialog}
+      <ResetPlanDialog
+        open={showResetDialog}
+        onOpenChange={setShowResetDialog}
         userId={user?.id}
-        userEmail={user?.email}
       />
 
-      <LegalFooter onRequestDeleteAccount={() => setShowDeleteAccountDialog(true)} />
+      <LegalFooter onRequestReset={() => setShowResetDialog(true)} />
     </div>
     </ConsentGate>
   );

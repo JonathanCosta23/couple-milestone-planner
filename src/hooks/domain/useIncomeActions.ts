@@ -1,6 +1,6 @@
 /**
  * useIncomeActions — handler de domínio para Renda.
- * Encapsula cache otimista, Supabase, fila offline e rollback.
+ * Encapsula: cache local otimista + persistência (Supabase) + toast + rebind de id.
  */
 import { useCallback } from "react";
 import { toast } from "sonner";
@@ -17,6 +17,7 @@ interface Deps {
   addIncomeLocal: (income: Income) => void;
   updateIncomeLocal: (id: string, updates: Partial<Income>) => void;
   deleteIncomeLocal: (id: string) => void;
+  /** Necessário para rollback otimista em update/delete. */
   getIncomeById?: (id: string) => Income | undefined;
 }
 
@@ -26,34 +27,17 @@ export interface IncomeActions {
   remove: (id: string) => Promise<void>;
 }
 
-const NO_MEMBER_MSG =
-  "Selecione um participante ativo para esta renda antes de salvar.";
-
 export function useIncomeActions(deps: Deps): IncomeActions {
-  const {
-    user, planId, resolveMemberId,
-    addIncomeLocal, updateIncomeLocal, deleteIncomeLocal, getIncomeById,
-  } = deps;
+  const { user, planId, resolveMemberId, addIncomeLocal, updateIncomeLocal, deleteIncomeLocal, getIncomeById } = deps;
   const writer = useIncomeWriter();
   const offlineQueue = useOfflineQueue();
 
   const add = useCallback(async (income: Income) => {
-    let memberId: string | null = null;
-    if (user && planId) {
-      memberId = resolveMemberId(income.profileId);
-      if (!memberId) {
-        toast.error(NO_MEMBER_MSG);
-        return;
-      }
-    }
-
-    addIncomeLocal({ ...income, ownershipScope: income.ownershipScope ?? "individual" });
-    if (!user || !planId || !memberId) return;
-
+    addIncomeLocal(income);
+    if (!user || !planId) return;
+    const memberId = resolveMemberId(income.profileId);
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      const payload = incomeToPayload(income, {
-        userId: user.id, planId, memberId, ownershipScope: "individual",
-      });
+      const payload = incomeToPayload(income, { userId: user.id, planId, memberId });
       const r = await offlineQueue.enqueue({
         entity: "income", op: "create", entityId: income.id, planId, payload, memberId,
       });
@@ -61,7 +45,6 @@ export function useIncomeActions(deps: Deps): IncomeActions {
       logger.warn("writer.income.offline.enqueued", { userId: user.id, planId });
       return;
     }
-
     const r = await withRetry(
       () => writer.createIncome(planId, income, memberId),
       { event: "writer.income.create", context: { userId: user.id, planId } },
@@ -70,48 +53,29 @@ export function useIncomeActions(deps: Deps): IncomeActions {
       deleteIncomeLocal(income.id);
       toast.error(`Falha ao salvar renda: ${toFriendlyError(r.error)}`);
     } else if (r.data) {
-      updateIncomeLocal(income.id, {
-        id: r.data.id,
-        ownershipScope: r.data.ownership_scope,
-        profileId: r.data.member_id ?? income.profileId,
-      });
+      updateIncomeLocal(income.id, { id: r.data.id } as Partial<Income>);
     }
   }, [user, planId, writer, resolveMemberId, addIncomeLocal, updateIncomeLocal, deleteIncomeLocal, offlineQueue]);
 
   const update = useCallback(async (id: string, updates: Partial<Income>) => {
-    const ownerChanged = updates.profileId !== undefined;
-    const memberId: string | null | undefined = ownerChanged
+    // Só resolve memberId quando o titular foi explicitamente alterado.
+    const titularChanged = updates.profileId !== undefined;
+    const memberId: string | null | undefined = titularChanged
       ? resolveMemberId(updates.profileId)
       : undefined;
-    if (ownerChanged && !memberId) {
-      toast.error(NO_MEMBER_MSG);
-      return;
-    }
-
     const prev = getIncomeById?.(id);
-    const localPatch: Partial<Income> = ownerChanged
-      ? { ...updates, ownershipScope: "individual" }
-      : updates;
-    updateIncomeLocal(id, localPatch);
+    updateIncomeLocal(id, updates);
     if (!user || !planId) return;
-
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      const payload = incomeToPayload(localPatch, {
-        userId: user.id,
-        planId,
-        memberId,
-        ownershipScope: ownerChanged ? "individual" : undefined,
-      });
+      const payload = incomeToPayload(updates, { userId: user.id, planId, memberId });
       await offlineQueue.enqueue({
-        entity: "income", op: "update", entityId: id, planId, payload,
-        memberId: memberId ?? null,
+        entity: "income", op: "update", entityId: id, planId, payload, memberId: memberId ?? null,
       });
       toast.success("Sem conexão — sua alteração ficou em fila.");
       return;
     }
-
     const r = await withRetry(
-      () => writer.updateIncome(planId, id, localPatch, memberId),
+      () => writer.updateIncome(planId, id, updates, memberId),
       { event: "writer.income.update", context: { userId: user.id, planId } },
     );
     if (r.error) {
@@ -125,9 +89,12 @@ export function useIncomeActions(deps: Deps): IncomeActions {
     deleteIncomeLocal(id);
     if (!user) return;
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      await offlineQueue.enqueue({
+      const r = await offlineQueue.enqueue({
         entity: "income", op: "delete", entityId: id, planId, payload: {}, memberId: null,
       });
+      if (r.coalesced) {
+        // create pendente foi cancelado: não precisa avisar nada além do toast padrão.
+      }
       return;
     }
     const r = await withRetry(

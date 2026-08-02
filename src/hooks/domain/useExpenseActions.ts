@@ -1,7 +1,9 @@
 /**
  * useExpenseActions — handler de domínio para Gastos.
- * Operações comuns preservam ownership; criação e troca de responsável exigem
- * participante ativo e usam scope individual.
+ *
+ * Inclui também as operações derivadas que historicamente viviam apenas em
+ * memória (`duplicate`, `markPaid`, `convertToRecurring`). Agora todas
+ * passam pelo writer real, mantendo a fonte única de verdade.
  */
 import { useCallback } from "react";
 import { toast } from "sonner";
@@ -19,7 +21,9 @@ interface Deps {
   addExpenseLocal: (expense: Expense) => void;
   updateExpenseLocal: (id: string, updates: Partial<Expense>) => void;
   deleteExpenseLocal: (id: string) => void;
+  // Para convertToRecurring — recurring expense é template local (sem tabela própria).
   addRecurringExpenseLocal?: (recurring: RecurringExpense) => void;
+  // Para duplicate — precisamos do estado atual para ler o gasto fonte.
   getExpenseById?: (id: string) => Expense | undefined;
 }
 
@@ -32,11 +36,6 @@ export interface ExpenseActions {
   convertToRecurring: (id: string) => Promise<void>;
 }
 
-const NO_MEMBER_MSG =
-  "Selecione um participante ativo para este gasto antes de salvar.";
-const SCOPE_LOCKED_MSG =
-  "A propriedade compartilhada será habilitada em uma etapa específica de revisão.";
-
 export function useExpenseActions(deps: Deps): ExpenseActions {
   const {
     user, planId, resolveMemberId,
@@ -47,92 +46,45 @@ export function useExpenseActions(deps: Deps): ExpenseActions {
   const offlineQueue = useOfflineQueue();
 
   const add = useCallback(async (expense: Expense) => {
-    let memberId: string | null = null;
-    if (user && planId) {
-      memberId = resolveMemberId(expense.responsibleProfileId);
-      if (!memberId) {
-        toast.error(NO_MEMBER_MSG);
-        return;
-      }
-    }
-
-    const localExpense: Expense = {
-      ...expense,
-      ownership: "individual",
-      ownershipScope: "individual",
-    };
-    addExpenseLocal(localExpense);
-    if (!user || !planId || !memberId) return;
-
+    addExpenseLocal(expense);
+    if (!user || !planId) return;
+    const memberId = resolveMemberId(expense.responsibleProfileId);
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      const payload = expenseToPayload(localExpense, {
-        userId: user.id, planId, memberId, ownershipScope: "individual",
-      });
-      await offlineQueue.enqueue({
-        entity: "expense", op: "create", entityId: expense.id, planId, payload, memberId,
-      });
+      const payload = expenseToPayload(expense, { userId: user.id, planId, memberId });
+      await offlineQueue.enqueue({ entity: "expense", op: "create", entityId: expense.id, planId, payload, memberId });
       toast.success("Sem conexão — salvaremos quando a internet voltar.");
       logger.warn("writer.expense.offline.enqueued", { userId: user.id, planId });
       return;
     }
-
     const r = await withRetry(
-      () => writer.createExpense(planId, localExpense, memberId),
+      () => writer.createExpense(planId, expense, memberId),
       { event: "writer.expense.create", context: { userId: user.id, planId } },
     );
     if (r.error) {
       deleteExpenseLocal(expense.id);
       toast.error(`Falha ao salvar gasto: ${toFriendlyError(r.error)}`);
     } else if (r.data) {
-      updateExpenseLocal(expense.id, {
-        id: r.data.id,
-        ownership: r.data.ownership_scope,
-        ownershipScope: r.data.ownership_scope,
-        responsibleProfileId: r.data.member_id ?? expense.responsibleProfileId,
-      });
+      updateExpenseLocal(expense.id, { id: r.data.id } as Partial<Expense>);
     }
   }, [user, planId, writer, resolveMemberId, addExpenseLocal, updateExpenseLocal, deleteExpenseLocal, offlineQueue]);
 
   const update = useCallback(async (id: string, updates: Partial<Expense>) => {
-    const requestedScope = updates.ownershipScope ?? updates.ownership;
-    if (requestedScope !== undefined && requestedScope !== "individual") {
-      toast.error(SCOPE_LOCKED_MSG);
-      return;
-    }
-
-    const ownerChanged = updates.responsibleProfileId !== undefined;
-    const memberId: string | null | undefined = ownerChanged
+    // Só resolve memberId quando o responsável foi explicitamente alterado.
+    const titularChanged = updates.responsibleProfileId !== undefined;
+    const memberId: string | null | undefined = titularChanged
       ? resolveMemberId(updates.responsibleProfileId)
       : undefined;
-    if (ownerChanged && !memberId) {
-      toast.error(NO_MEMBER_MSG);
-      return;
-    }
-
     const prev = getExpenseById?.(id);
-    const localPatch: Partial<Expense> = ownerChanged
-      ? { ...updates, ownership: "individual", ownershipScope: "individual" }
-      : updates;
-    updateExpenseLocal(id, localPatch);
+    updateExpenseLocal(id, updates);
     if (!user || !planId) return;
-
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      const payload = expenseToPayload(localPatch, {
-        userId: user.id,
-        planId,
-        memberId,
-        ownershipScope: ownerChanged ? "individual" : undefined,
-      });
-      await offlineQueue.enqueue({
-        entity: "expense", op: "update", entityId: id, planId, payload,
-        memberId: memberId ?? null,
-      });
+      const payload = expenseToPayload(updates, { userId: user.id, planId, memberId });
+      await offlineQueue.enqueue({ entity: "expense", op: "update", entityId: id, planId, payload, memberId: memberId ?? null });
       toast.success("Sem conexão — sua alteração ficou em fila.");
       return;
     }
-
     const r = await withRetry(
-      () => writer.updateExpense(planId, id, localPatch, memberId),
+      () => writer.updateExpense(planId, id, updates, memberId),
       { event: "writer.expense.update", context: { userId: user.id, planId } },
     );
     if (r.error) {
@@ -146,9 +98,7 @@ export function useExpenseActions(deps: Deps): ExpenseActions {
     deleteExpenseLocal(id);
     if (!user) return;
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      await offlineQueue.enqueue({
-        entity: "expense", op: "delete", entityId: id, planId, payload: {}, memberId: null,
-      });
+      await offlineQueue.enqueue({ entity: "expense", op: "delete", entityId: id, planId, payload: {}, memberId: null });
       return;
     }
     const r = await withRetry(
@@ -161,57 +111,41 @@ export function useExpenseActions(deps: Deps): ExpenseActions {
     }
   }, [user, planId, writer, deleteExpenseLocal, addExpenseLocal, getExpenseById, offlineQueue]);
 
+  // ---- Operações derivadas (agora persistidas) ----
+
   const duplicate = useCallback(async (id: string) => {
     const source = getExpenseById?.(id);
     if (!source) {
       toast.error("Gasto não encontrado para duplicar.");
       return;
     }
-    const memberId = user && planId
-      ? resolveMemberId(source.responsibleProfileId)
-      : null;
-    if (user && planId && !memberId) {
-      toast.error(NO_MEMBER_MSG);
-      return;
-    }
-
     const copy: Expense = {
       ...source,
       id: generateId(),
       name: `${source.name} (cópia)`,
       status: "pending",
-      ownership: "individual",
-      ownershipScope: "individual",
       paidDate: undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     addExpenseLocal(copy);
-    if (!user || !planId || !memberId) return;
-
+    if (!user || !planId) return;
+    const memberId = resolveMemberId(copy.responsibleProfileId);
+    // Sprint 1, Item 2: enfileira offline em vez de só avisar.
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      const payload = expenseToPayload(copy, {
-        userId: user.id, planId, memberId, ownershipScope: "individual",
-      });
-      const r = await offlineQueue.enqueue({
-        entity: "expense", op: "create", entityId: copy.id, planId, payload, memberId,
-      });
+      const payload = expenseToPayload(copy, { userId: user.id, planId, memberId });
+      const r = await offlineQueue.enqueue({ entity: "expense", op: "create", entityId: copy.id, planId, payload, memberId });
       if (r.enqueued) toast.success("Sem conexão — duplicaremos quando a internet voltar.");
       logger.warn("writer.expense.offline.enqueued", { userId: user.id, planId, action: "duplicate" });
       return;
     }
-
     const r = await withRetry(
       () => writer.createExpense(planId, copy, memberId),
       { event: "writer.expense.duplicate", context: { userId: user.id, planId } },
     );
-    if (r.error) {
-      deleteExpenseLocal(copy.id);
-      toast.error(`Falha ao duplicar gasto: ${toFriendlyError(r.error)}`);
-    } else if (r.data) {
-      updateExpenseLocal(copy.id, { id: r.data.id } as Partial<Expense>);
-    }
-  }, [user, planId, writer, resolveMemberId, addExpenseLocal, updateExpenseLocal, deleteExpenseLocal, getExpenseById, offlineQueue]);
+    if (r.error) toast.error(`Falha ao duplicar gasto: ${toFriendlyError(r.error)}`);
+    else if (r.data) updateExpenseLocal(copy.id, { id: r.data.id } as Partial<Expense>);
+  }, [user, planId, writer, resolveMemberId, addExpenseLocal, updateExpenseLocal, getExpenseById, offlineQueue]);
 
   const markPaid = useCallback(async (id: string) => {
     const patch: Partial<Expense> = {
@@ -221,11 +155,10 @@ export function useExpenseActions(deps: Deps): ExpenseActions {
     };
     updateExpenseLocal(id, patch);
     if (!user || !planId) return;
+    // Sprint 1, Item 2: cobre offline.
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      const payload = expenseToPayload(patch, { userId: user.id, planId });
-      const r = await offlineQueue.enqueue({
-        entity: "expense", op: "update", entityId: id, planId, payload, memberId: null,
-      });
+      const payload = expenseToPayload(patch, { userId: user.id, planId, memberId: null });
+      const r = await offlineQueue.enqueue({ entity: "expense", op: "update", entityId: id, planId, payload, memberId: null });
       if (r.enqueued) toast.success("Sem conexão — registraremos como pago quando a internet voltar.");
       logger.warn("writer.expense.offline.enqueued", { userId: user.id, planId, action: "markPaid" });
       return;
@@ -243,6 +176,7 @@ export function useExpenseActions(deps: Deps): ExpenseActions {
       toast.error("Gasto não encontrado para converter.");
       return;
     }
+    // 1) Mantém template local (RecurringExpense ainda não tem tabela própria).
     const recurring: RecurringExpense = {
       id: generateId(),
       name: source.name,
@@ -251,7 +185,6 @@ export function useExpenseActions(deps: Deps): ExpenseActions {
       subcategory: source.subcategory,
       type: source.type,
       ownership: source.ownership,
-      ownershipScope: source.ownershipScope,
       responsibleProfileId: source.responsibleProfileId,
       priority: source.priority,
       active: true,
@@ -259,18 +192,17 @@ export function useExpenseActions(deps: Deps): ExpenseActions {
       createdAt: new Date().toISOString(),
     };
     addRecurringExpenseLocal?.(recurring);
-
+    // 2) Persiste no banco marcando o gasto fonte como recorrente (round-trip real).
     const patch: Partial<Expense> = {
       recurrence: "monthly",
       updatedAt: new Date().toISOString(),
     };
     updateExpenseLocal(id, patch);
     if (!user || !planId) return;
+    // Sprint 1, Item 2: cobre offline.
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      const payload = expenseToPayload(patch, { userId: user.id, planId });
-      const r = await offlineQueue.enqueue({
-        entity: "expense", op: "update", entityId: id, planId, payload, memberId: null,
-      });
+      const payload = expenseToPayload(patch, { userId: user.id, planId, memberId: null });
+      const r = await offlineQueue.enqueue({ entity: "expense", op: "update", entityId: id, planId, payload, memberId: null });
       if (r.enqueued) toast.success("Sem conexão — converteremos em recorrente quando a internet voltar.");
       logger.warn("writer.expense.offline.enqueued", { userId: user.id, planId, action: "convertToRecurring" });
       return;

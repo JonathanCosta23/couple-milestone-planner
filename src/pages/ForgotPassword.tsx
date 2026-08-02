@@ -50,7 +50,6 @@ export default function ForgotPassword() {
           content="Enviamos um link seguro por e-mail para você redefinir sua senha e voltar ao Plano do Milhão."
         />
         <meta property="og:url" content="https://couple-milestone-planner.lovable.app/forgot-password" />
-        <link rel="canonical" href="https://couple-milestone-planner.lovable.app/forgot-password" />
       </Helmet>
       <div className="w-full max-w-md space-y-4">
         <Link
@@ -59,10 +58,9 @@ export default function ForgotPassword() {
         >
           <ArrowLeft className="w-4 h-4" /> Voltar para entrar
         </Link>
-        <h1 className="text-2xl font-bold text-gradient text-center">Recuperar senha</h1>
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Enviar link de recuperação</CardTitle>
+            <CardTitle>Recuperar senha</CardTitle>
             <CardDescription>
               Enviaremos um link seguro para redefinir sua senha, se este e-mail estiver cadastrado.
             </CardDescription>

@@ -15,7 +15,6 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 
 import { migrateLocalToCloud } from "@/lib/services/dataMigrationService";
-import { claimLocalCacheOwner, scopedStorageKey } from "@/lib/services/localCacheOwner";
 
 const LEGACY_PLAN_KEY = "plano-do-milhao-v6";
 const BACKUP_KEY = "plano-do-milhao-pre-migration-backup";
@@ -57,8 +56,7 @@ beforeEach(() => {
   fromMock.mockReset();
   rpcMock.mockReset();
   localStorage.clear();
-  claimLocalCacheOwner("user-1");
-  localStorage.setItem(scopedStorageKey(LEGACY_PLAN_KEY, "user-1") as string, JSON.stringify(localPlan));
+  localStorage.setItem(LEGACY_PLAN_KEY, JSON.stringify(localPlan));
   rpcMock.mockResolvedValue({
     data: { plan: { id: "plan-1" }, members: [{ id: "m1" }] },
     error: null,
@@ -97,7 +95,7 @@ describe("migrateLocalToCloud", () => {
   it("mantém o backup local disponível após falha parcial", async () => {
     fromMock.mockImplementation(() => makePlansTable({ message: "boom", code: "42501" }));
     await migrateLocalToCloud("user-1");
-    const backup = localStorage.getItem(scopedStorageKey(BACKUP_KEY, "user-1") as string);
+    const backup = localStorage.getItem(BACKUP_KEY);
     expect(backup).toBeTruthy();
     expect(JSON.parse(backup as string)[LEGACY_PLAN_KEY]).toBeTruthy();
   });

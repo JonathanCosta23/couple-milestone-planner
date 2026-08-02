@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
-import { clearProductLocalCache } from "@/lib/services/localCacheOwner";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -42,10 +41,9 @@ export function useAuth() {
   }, []);
 
   const signOut = useCallback(async () => {
-    clearProductLocalCache(user?.id);
     const { error } = await supabase.auth.signOut();
     return { error };
-  }, [user?.id]);
+  }, []);
 
   const resetPassword = useCallback(async (email: string) => {
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {

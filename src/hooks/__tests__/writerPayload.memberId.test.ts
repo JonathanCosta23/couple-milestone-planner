@@ -1,5 +1,13 @@
 /**
- * Contrato de ownership dos helpers `*ToPayload`.
+ * Garante que os helpers `*toPayload` respeitam a regra crítica:
+ *   - `memberId === undefined`  → NÃO incluir `member_id` no payload.
+ *     (update parcial preserva o vínculo existente no banco.)
+ *   - `memberId === null`       → incluir `member_id: null` explicitamente.
+ *     (intenção explícita de limpar o vínculo.)
+ *   - `memberId === "uuid"`     → incluir `member_id: "uuid"`.
+ *
+ * Regressão evita o bug em que atualizar valor/categoria/etc. apagava o
+ * `member_id` por acidente, deixando dado financeiro órfão.
  */
 import { describe, it, expect } from "vitest";
 import { investmentToAssetPayload } from "@/hooks/useAssetWriter";
@@ -7,72 +15,51 @@ import { incomeToPayload } from "@/hooks/useIncomeWriter";
 import { expenseToPayload } from "@/hooks/useExpenseWriter";
 import { debtToPayload } from "@/hooks/useDebtWriter";
 
-const ctx = (memberId?: string | null, ownershipScope?: "individual" | "shared" | "needs_review") => ({
+const ctx = (memberId?: string | null) => ({
   userId: "user-1",
   planId: "plan-1",
   ...(memberId !== undefined ? { memberId } : {}),
-  ...(ownershipScope !== undefined ? { ownershipScope } : {}),
 });
 
-const factories = [
-  ["asset", () => investmentToAssetPayload({ currentBalance: 100 }, ctx("m1", "individual"))],
-  ["income", () => incomeToPayload({ amount: 5000 }, ctx("m1", "individual"))],
-  ["expense", () => expenseToPayload({ amount: 200 }, ctx("m1", "individual"))],
-  ["debt", () => debtToPayload({ totalAmount: 1000 }, ctx("m1", "individual"))],
-] as const;
-
-describe("writers: ownership em CREATE normal", () => {
-  for (const [name, factory] of factories) {
-    it(`${name} envia member_id e ownership_scope individual`, () => {
-      const payload = factory();
-      expect(payload.member_id).toBe("m1");
-      expect(payload.ownership_scope).toBe("individual");
-      expect(payload.plan_id).toBe("plan-1");
-      expect(payload).not.toHaveProperty("user_id");
-    });
-  }
-});
-
-describe("writers: update preserva ownership existente", () => {
-  it("asset omite member_id e ownership_scope quando não fornecidos", () => {
+describe("writers: member_id em payload", () => {
+  it("investmentToAssetPayload omite member_id quando não fornecido", () => {
     const payload = investmentToAssetPayload({ currentBalance: 100 }, ctx());
-    expect(payload).not.toHaveProperty("member_id");
-    expect(payload).not.toHaveProperty("ownership_scope");
+    expect("member_id" in payload).toBe(false);
   });
 
-  it("income omite ownership em update de valor", () => {
+  it("investmentToAssetPayload define member_id quando passado", () => {
+    const payload = investmentToAssetPayload({ currentBalance: 100 }, ctx("m1"));
+    expect(payload.member_id).toBe("m1");
+  });
+
+  it("investmentToAssetPayload aceita null como limpeza explícita", () => {
+    const payload = investmentToAssetPayload({ currentBalance: 100 }, ctx(null));
+    expect(payload.member_id).toBeNull();
+  });
+
+  it("incomeToPayload omite member_id quando não fornecido", () => {
     const payload = incomeToPayload({ amount: 5000 }, ctx());
-    expect(payload).not.toHaveProperty("member_id");
-    expect(payload).not.toHaveProperty("ownership_scope");
+    expect("member_id" in payload).toBe(false);
+    expect(payload.amount).toBe(5000);
   });
 
-  it("expense omite ownership em update de categoria", () => {
-    const payload = expenseToPayload({ category: "moradia" }, ctx());
-    expect(payload).not.toHaveProperty("member_id");
-    expect(payload).not.toHaveProperty("ownership_scope");
+  it("incomeToPayload mantém member_id quando passado", () => {
+    const payload = incomeToPayload({ amount: 5000 }, ctx("m1"));
+    expect(payload.member_id).toBe("m1");
   });
 
-  it("debt omite ownership em update de saldo", () => {
+  it("expenseToPayload omite member_id em update parcial", () => {
+    const payload = expenseToPayload({ amount: 200 }, ctx());
+    expect("member_id" in payload).toBe(false);
+  });
+
+  it("debtToPayload omite member_id em update parcial", () => {
     const payload = debtToPayload({ totalAmount: 1000 }, ctx());
-    expect(payload).not.toHaveProperty("member_id");
-    expect(payload).not.toHaveProperty("ownership_scope");
+    expect("member_id" in payload).toBe(false);
   });
 
-  it("member_id null sem scope não vira shared nem needs_review", () => {
-    const payload = expenseToPayload({ amount: 1 }, ctx(null));
-    expect(payload.member_id).toBeNull();
-    expect(payload).not.toHaveProperty("ownership_scope");
-  });
-
-  it("needs_review exige member_id null explícito", () => {
-    const payload = expenseToPayload({ amount: 1 }, ctx(null, "needs_review"));
-    expect(payload.member_id).toBeNull();
-    expect(payload.ownership_scope).toBe("needs_review");
-  });
-
-  it("shared com member_id é rejeitado antes do banco", () => {
-    expect(() => expenseToPayload({ amount: 1 }, ctx("m1", "shared"))).toThrow(
-      "ownership_member_mismatch",
-    );
+  it("debtToPayload preserva member_id quando fornecido", () => {
+    const payload = debtToPayload({ totalAmount: 1000 }, ctx("m2"));
+    expect(payload.member_id).toBe("m2");
   });
 });
