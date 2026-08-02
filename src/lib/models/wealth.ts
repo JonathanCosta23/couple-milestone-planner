@@ -1,6 +1,7 @@
 /**
  * Patrimônio: investimentos, classificação de segurança e buckets patrimoniais.
  */
+import type { OwnershipScope } from "./ownership";
 
 export type InvestmentType =
   | "tesouro-selic"
@@ -94,6 +95,7 @@ export interface Investment {
   startDate: string;
   maturityDate?: string;
   profileId?: string;
+  ownershipScope?: OwnershipScope;
   notes?: string;
   active: boolean;
   createdAt: string;

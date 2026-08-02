@@ -1,16 +1,5 @@
 /**
- * usePlan — Hook canônico (Fase 1.B)
- *
- * Lê plans + plan_members do Supabase. É a fonte única de verdade para:
- * - modo do plano (individual / casal)
- * - lista de membros com nomes dinâmicos
- * - configurações principais (meta, premissas, datas)
- *
- * Roda a migração automática do localStorage → banco normalizado na primeira
- * carga após login (idempotente, com backup local prévio).
- *
- * Componentes devem consumir este hook ao invés de `useAppData`/`usePlanData`
- * para qualquer leitura de modo, nomes ou configuração.
+ * usePlan — Hook canônico para plano e participantes.
  */
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +29,8 @@ export interface PlanRow {
   engine_version: string;
 }
 
+export type PlanMemberStatus = "active" | "removed" | "pending_invitation";
+
 export interface PlanMemberRow {
   id: string;
   plan_id: string;
@@ -48,6 +39,8 @@ export interface PlanMemberRow {
   role: string;
   is_primary: boolean;
   is_active: boolean;
+  /** Campo canônico de lifecycle; is_active permanece por compatibilidade. */
+  status: PlanMemberStatus;
   age: number | null;
   avatar_color: string | null;
 }
@@ -65,9 +58,7 @@ interface UsePlanReturn extends UsePlanState {
   primaryMember: PlanMemberRow | null;
   partnerMember: PlanMemberRow | null;
   isCouple: boolean;
-  /** Nome dinâmico do titular para exibição; nunca hardcoded. */
   primaryName: string;
-  /** Nome dinâmico do parceiro; null em individual. */
   partnerName: string | null;
 }
 
@@ -90,13 +81,15 @@ export function usePlan(): UsePlanReturn {
       .limit(1);
 
     if (planErr) {
-      setState((s) => ({ ...s, loading: false, error: planErr.message }));
+      setState((current) => ({ ...current, loading: false, error: planErr.message }));
       return null;
     }
 
     const plan = (plans?.[0] ?? null) as PlanRow | null;
     if (!plan) {
-      setState((s) => ({ ...s, plan: null, members: [], loading: false, error: null }));
+      setState((current) => ({
+        ...current, plan: null, members: [], loading: false, error: null,
+      }));
       return null;
     }
 
@@ -108,7 +101,9 @@ export function usePlan(): UsePlanReturn {
       .order("is_primary", { ascending: false });
 
     if (memErr) {
-      setState((s) => ({ ...s, plan, members: [], loading: false, error: memErr.message }));
+      setState((current) => ({
+        ...current, plan, members: [], loading: false, error: memErr.message,
+      }));
       return plan;
     }
 
@@ -124,11 +119,10 @@ export function usePlan(): UsePlanReturn {
 
   const refresh = useCallback(async () => {
     if (!user) return;
-    setState((s) => ({ ...s, loading: true }));
+    setState((current) => ({ ...current, loading: true }));
     await fetchPlan(user.id);
   }, [user, fetchPlan]);
 
-  // Boot: roda migração automática se necessário e depois carrega o plano.
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
@@ -138,24 +132,26 @@ export function usePlan(): UsePlanReturn {
 
     let cancelled = false;
     (async () => {
-      setState((s) => ({ ...s, loading: true, migrating: true }));
+      setState((current) => ({ ...current, loading: true, migrating: true }));
       try {
         await migrateLocalToCloud(user.id);
       } catch {
-        // Migração nunca deve bloquear o app; segue para fetch.
+        // Migração nunca bloqueia a leitura canônica do plano.
       }
       if (cancelled) return;
-      setState((s) => ({ ...s, migrating: false }));
+      setState((current) => ({ ...current, migrating: false }));
       await fetchPlan(user.id);
     })();
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [user, authLoading, fetchPlan]);
 
-  const primaryMember = state.members.find((m) => m.is_primary) ?? state.members[0] ?? null;
-  const partnerMember = state.members.find((m) => !m.is_primary && m.is_active) ?? null;
+  const primaryMember = state.members.find((member) => member.is_primary)
+    ?? state.members[0]
+    ?? null;
+  const partnerMember = state.members.find(
+    (member) => !member.is_primary && member.status === "active",
+  ) ?? null;
   const isCouple = state.plan?.mode === "casal";
 
   return {

@@ -1,12 +1,11 @@
 /**
- * useIncomeWriter — Persistência real de fontes de renda na tabela `income`.
- * Espelha useAssetWriter. RLS garante isolamento por user_id.
- * Trigger validate_flow_member_link() resolve member_id no modo individual.
+ * useIncomeWriter — Persistência de renda com ownership explícito.
  */
 import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import type { Income } from "@/lib/models";
+import type { Income, OwnershipScope } from "@/lib/models";
+import { applyOwnershipPatch } from "@/lib/models";
 import { trackWriterChange } from "@/lib/services/auditService";
 
 export interface IncomeRow {
@@ -14,6 +13,7 @@ export interface IncomeRow {
   plan_id: string;
   user_id: string;
   member_id: string | null;
+  ownership_scope: OwnershipScope;
   source: string;
   income_type: string;
   amount: number;
@@ -25,17 +25,11 @@ export interface IncomeRow {
   updated_at: string;
 }
 
-interface WriterResult<T> {
-  data: T | null;
-  error: string | null;
-}
+interface WriterResult<T> { data: T | null; error: string | null }
 
 const RECURRENCE_TO_TYPE: Record<Income["recurrence"], string> = {
-  monthly: "salary",
-  biweekly: "salary",
-  weekly: "salary",
-  yearly: "bonus",
-  "one-time": "other",
+  monthly: "salary", biweekly: "salary", weekly: "salary",
+  yearly: "bonus", "one-time": "other",
 };
 
 function normalizeDate(value?: string | null): string | null {
@@ -49,12 +43,12 @@ function normalizeDate(value?: string | null): string | null {
 }
 
 export function incomeRowToModel(row: IncomeRow): Income {
-  const recurrence: Income["recurrence"] =
-    row.income_type === "bonus" ? "yearly" :
-    row.is_recurring === false ? "one-time" : "monthly";
+  const recurrence: Income["recurrence"] = row.income_type === "bonus"
+    ? "yearly" : row.is_recurring === false ? "one-time" : "monthly";
   return {
     id: row.id,
     profileId: row.member_id ?? "",
+    ownershipScope: row.ownership_scope,
     label: row.source ?? "",
     amount: Number(row.amount ?? 0),
     type: (row.income_type as Income["type"]) ?? "other",
@@ -67,15 +61,13 @@ export function incomeRowToModel(row: IncomeRow): Income {
 
 export function incomeToPayload(
   inc: Partial<Income>,
-  ctx: { userId: string; planId: string; memberId?: string | null },
+  ctx: { userId: string; planId: string; memberId?: string | null; ownershipScope?: OwnershipScope },
 ): Record<string, unknown> {
-  const payload: Record<string, unknown> = {
-    user_id: ctx.userId,
-    plan_id: ctx.planId,
-  };
-  // member_id: só entra no payload quando explicitado (`null` = limpar,
-  // valor = setar). `undefined` significa "não tocar".
-  if (ctx.memberId !== undefined) payload.member_id = ctx.memberId;
+  const payload: Record<string, unknown> = { plan_id: ctx.planId };
+  applyOwnershipPatch(payload, {
+    memberId: ctx.memberId,
+    ownershipScope: ctx.ownershipScope ?? inc.ownershipScope,
+  });
   if (inc.label !== undefined) payload.source = inc.label || "Renda";
   if (inc.type !== undefined) payload.income_type = inc.type;
   else if (inc.recurrence !== undefined) payload.income_type = RECURRENCE_TO_TYPE[inc.recurrence];
@@ -86,80 +78,84 @@ export function incomeToPayload(
   return payload;
 }
 
+function ownershipAudit(row: IncomeRow): Record<string, unknown> {
+  return { ownership_scope: row.ownership_scope, member_id_present: Boolean(row.member_id), origin: "writer" };
+}
+
 export function useIncomeWriter() {
   const { user } = useAuth();
 
-  const listIncome = useCallback(
-    async (planId: string): Promise<WriterResult<IncomeRow[]>> => {
-      const uid = user?.id;
-      if (!uid) return { data: null, error: "Usuário não autenticado." };
-      const { data, error } = await supabase
-        .from("income").select("*")
-        .eq("plan_id", planId).eq("user_id", uid)
-        .order("created_at", { ascending: true });
-      if (error) return { data: null, error: error.message };
-      return { data: (data ?? []) as IncomeRow[], error: null };
-    },
-    [user],
-  );
+  const listIncome = useCallback(async (planId: string): Promise<WriterResult<IncomeRow[]>> => {
+    const uid = user?.id;
+    if (!uid) return { data: null, error: "Usuário não autenticado." };
+    const { data, error } = await supabase.from("income").select("*")
+      .eq("plan_id", planId).eq("user_id", uid).order("created_at", { ascending: true });
+    if (error) return { data: null, error: error.message };
+    return { data: (data ?? []) as IncomeRow[], error: null };
+  }, [user]);
 
-  const createIncome = useCallback(
-    async (planId: string, income: Income, memberId?: string | null): Promise<WriterResult<IncomeRow>> => {
-      const uid = user?.id;
-      if (!uid) return { data: null, error: "Usuário não autenticado." };
-      const payload = incomeToPayload(income, { userId: uid, planId, memberId });
-      if (!payload.source) payload.source = "Renda";
-      if (!payload.income_type) payload.income_type = "salary";
-      const { data, error } = await supabase
-        .from("income").insert(payload as never).select().single();
-      if (error || !data) return { data: null, error: error?.message ?? "Falha ao criar renda." };
-      void trackWriterChange({
-        userId: uid, planId, entity: "income",
-        entityId: (data as IncomeRow).id, action: "create",
-        newValue: data as unknown as Record<string, unknown>,
-        event: "income_created",
+  const createIncome = useCallback(async (
+    planId: string, income: Income, memberId?: string | null,
+  ): Promise<WriterResult<IncomeRow>> => {
+    const uid = user?.id;
+    if (!uid) return { data: null, error: "Usuário não autenticado." };
+    if (!memberId) return { data: null, error: "member_required" };
+    let payload: Record<string, unknown>;
+    try {
+      payload = incomeToPayload(income, {
+        userId: uid, planId, memberId, ownershipScope: "individual",
       });
-      return { data: data as IncomeRow, error: null };
-    },
-    [user],
-  );
+    } catch (err) {
+      return { data: null, error: err instanceof Error ? err.message : "ownership_required" };
+    }
+    if (!payload.source) payload.source = "Renda";
+    if (!payload.income_type) payload.income_type = "salary";
+    const { data, error } = await supabase.from("income").insert(payload as never).select().single();
+    if (error || !data) return { data: null, error: error?.message ?? "Falha ao criar renda." };
+    const row = data as IncomeRow;
+    void trackWriterChange({
+      userId: uid, planId, entity: "income", entityId: row.id, action: "create",
+      newValue: ownershipAudit(row), event: "income_created",
+      eventProperties: { ownership_scope: row.ownership_scope },
+    });
+    return { data: row, error: null };
+  }, [user]);
 
-  const updateIncome = useCallback(
-    async (planId: string, incomeId: string, patch: Partial<Income>, memberId?: string | null): Promise<WriterResult<IncomeRow>> => {
-      const uid = user?.id;
-      if (!uid) return { data: null, error: "Usuário não autenticado." };
-      const payload = incomeToPayload(patch, { userId: uid, planId, memberId });
-      delete payload.user_id;
-      delete payload.plan_id;
-      const { data, error } = await supabase
-        .from("income").update(payload as never)
-        .eq("id", incomeId).eq("user_id", uid).select().single();
-      if (error || !data) return { data: null, error: error?.message ?? "Falha ao atualizar renda." };
-      void trackWriterChange({
-        userId: uid, planId, entity: "income",
-        entityId: incomeId, action: "update",
-        newValue: data as unknown as Record<string, unknown>,
-        event: "income_updated",
+  const updateIncome = useCallback(async (
+    planId: string, incomeId: string, patch: Partial<Income>, memberId?: string | null,
+  ): Promise<WriterResult<IncomeRow>> => {
+    const uid = user?.id;
+    if (!uid) return { data: null, error: "Usuário não autenticado." };
+    let payload: Record<string, unknown>;
+    try {
+      payload = incomeToPayload(patch, {
+        userId: uid, planId, memberId,
+        ownershipScope: memberId === undefined ? patch.ownershipScope : memberId ? "individual" : patch.ownershipScope,
       });
-      return { data: data as IncomeRow, error: null };
-    },
-    [user],
-  );
+    } catch (err) {
+      return { data: null, error: err instanceof Error ? err.message : "ownership_required" };
+    }
+    delete payload.plan_id;
+    const { data, error } = await supabase.from("income").update(payload as never)
+      .eq("id", incomeId).eq("user_id", uid).select().single();
+    if (error || !data) return { data: null, error: error?.message ?? "Falha ao atualizar renda." };
+    const row = data as IncomeRow;
+    void trackWriterChange({
+      userId: uid, planId, entity: "income", entityId: incomeId, action: "update",
+      newValue: ownershipAudit(row), event: "income_updated",
+    });
+    return { data: row, error: null };
+  }, [user]);
 
-  const deleteIncome = useCallback(
-    async (incomeId: string): Promise<WriterResult<true>> => {
-      const uid = user?.id;
-      if (!uid) return { data: null, error: "Usuário não autenticado." };
-      const { error } = await supabase.from("income").delete().eq("id", incomeId).eq("user_id", uid);
-      if (error) return { data: null, error: error.message };
-      void trackWriterChange({
-        userId: uid, entity: "income", entityId: incomeId,
-        action: "delete", event: "income_deleted",
-      });
-      return { data: true, error: null };
-    },
-    [user],
-  );
+  const deleteIncome = useCallback(async (incomeId: string): Promise<WriterResult<true>> => {
+    const uid = user?.id;
+    if (!uid) return { data: null, error: "Usuário não autenticado." };
+    const { error } = await supabase.from("income").delete().eq("id", incomeId).eq("user_id", uid);
+    if (error) return { data: null, error: error.message };
+    void trackWriterChange({ userId: uid, entity: "income", entityId: incomeId,
+      action: "delete", event: "income_deleted" });
+    return { data: true, error: null };
+  }, [user]);
 
   return { listIncome, createIncome, updateIncome, deleteIncome };
 }

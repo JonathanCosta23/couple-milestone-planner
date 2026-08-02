@@ -1,25 +1,24 @@
 /**
- * BlobMigrationDialog — D2 = B (Migração assistida do blob legado)
- *
- * Detecta dados em `user_financial_data.app_data` (ou no AppData local) que
- * ainda não foram normalizados nas tabelas income/expenses/debts e oferece
- * ao usuário um botão "Migrar agora" com confirmação explícita.
- *
- * UX:
- * - Aparece UMA vez por sessão (controlado pelo Index.tsx).
- * - Mostra contagem real do que será migrado.
- * - Backup local automático antes da escrita.
- * - "Decidir depois" não é destrutivo; o blob continua intacto.
+ * BlobMigrationDialog — migração assistida do blob legado.
  */
 import { useState } from "react";
 import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
-import { Loader2, Database, Wallet, Receipt, AlertCircle, ShieldCheck, CheckCircle2 } from "lucide-react";
+import {
+  Loader2,
+  Database,
+  Wallet,
+  Receipt,
+  AlertCircle,
+  ShieldCheck,
+  CheckCircle2,
+  Landmark,
+} from "lucide-react";
 
 interface BlobMigrationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  counts: { incomes: number; expenses: number; debts: number };
+  counts: { assets: number; incomes: number; expenses: number; debts: number };
   loading?: boolean;
   onMigrate: () => Promise<void> | void;
   onLater: () => void;
@@ -29,7 +28,7 @@ export function BlobMigrationDialog({
   open, onOpenChange, counts, loading = false, onMigrate, onLater,
 }: BlobMigrationDialogProps) {
   const [running, setRunning] = useState(false);
-  const total = counts.incomes + counts.expenses + counts.debts;
+  const total = counts.assets + counts.incomes + counts.expenses + counts.debts;
 
   const handleMigrate = async () => {
     setRunning(true);
@@ -54,12 +53,13 @@ export function BlobMigrationDialog({
       description={
         <>
           Encontramos {total} item{total !== 1 ? "s" : ""} no formato antigo.
-          Vamos migrar para a nova estrutura, mais segura, mais rápida e
-          preparada para crescer com você. Nada será apagado.
+          Vamos migrar para a nova estrutura. Registros cujo responsável não puder
+          ser identificado ficarão marcados para revisão, sem atribuição automática.
         </>
       }
     >
       <div className="grid gap-2 py-2">
+        <Stat icon={<Landmark className="w-4 h-4 text-primary" />} label="Investimentos" value={counts.assets} />
         <Stat icon={<Wallet className="w-4 h-4 text-primary" />} label="Fontes de renda" value={counts.incomes} />
         <Stat icon={<Receipt className="w-4 h-4 text-primary" />} label="Gastos" value={counts.expenses} />
         <Stat icon={<AlertCircle className="w-4 h-4 text-primary" />} label="Dívidas" value={counts.debts} />

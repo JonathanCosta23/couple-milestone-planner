@@ -1,11 +1,11 @@
 /**
- * useDebtWriter — Persistência real de dívidas na tabela `debts`.
- * Espelha useAssetWriter. Mapa Debt (modelo) ↔ debts (tabela).
+ * useDebtWriter — Persistência de dívidas com ownership explícito.
  */
 import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import type { Debt } from "@/lib/models";
+import type { Debt, OwnershipScope } from "@/lib/models";
+import { applyOwnershipPatch } from "@/lib/models";
 import { trackWriterChange } from "@/lib/services/auditService";
 
 export interface DebtRow {
@@ -13,6 +13,7 @@ export interface DebtRow {
   plan_id: string;
   user_id: string;
   member_id: string | null;
+  ownership_scope: OwnershipScope;
   debt_type: string;
   institution: string | null;
   total_balance: number;
@@ -27,10 +28,7 @@ export interface DebtRow {
   updated_at: string;
 }
 
-interface WriterResult<T> {
-  data: T | null;
-  error: string | null;
-}
+interface WriterResult<T> { data: T | null; error: string | null }
 
 const PRIORITY_TO_DB: Record<number, string> = { 1: "high", 2: "medium", 3: "low" };
 const PRIORITY_FROM_DB: Record<string, number> = { high: 1, medium: 2, low: 3 };
@@ -49,10 +47,9 @@ export function debtRowToModel(row: DebtRow): Debt {
   const monthlyPayment = Number(row.monthly_payment ?? 0);
   const total = Number(row.total_balance ?? 0);
   const totalInstallments = monthlyPayment > 0 ? Math.max(1, Math.ceil(total / monthlyPayment)) : 1;
-  const risk: Debt["risk"] =
-    row.interest_rate >= 0.10 ? "toxic" :
-    row.interest_rate >= 0.05 ? "high" :
-    row.interest_rate >= 0.02 ? "medium" : "low";
+  const risk: Debt["risk"] = row.interest_rate >= 0.10 ? "toxic"
+    : row.interest_rate >= 0.05 ? "high"
+    : row.interest_rate >= 0.02 ? "medium" : "low";
   return {
     id: row.id,
     name: row.institution || row.debt_type || "Dívida",
@@ -70,6 +67,7 @@ export function debtRowToModel(row: DebtRow): Debt {
     endDate: row.end_date ?? undefined,
     active: row.is_active,
     profileId: row.member_id ?? undefined,
+    ownershipScope: row.ownership_scope,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -77,21 +75,18 @@ export function debtRowToModel(row: DebtRow): Debt {
 
 export function debtToPayload(
   debt: Partial<Debt>,
-  ctx: { userId: string; planId: string; memberId?: string | null },
+  ctx: { userId: string; planId: string; memberId?: string | null; ownershipScope?: OwnershipScope },
 ): Record<string, unknown> {
-  const payload: Record<string, unknown> = {
-    user_id: ctx.userId,
-    plan_id: ctx.planId,
-  };
-  if (ctx.memberId !== undefined) payload.member_id = ctx.memberId;
+  const payload: Record<string, unknown> = { plan_id: ctx.planId };
+  applyOwnershipPatch(payload, {
+    memberId: ctx.memberId,
+    ownershipScope: ctx.ownershipScope ?? debt.ownershipScope,
+  });
   if (debt.type !== undefined) payload.debt_type = debt.type;
-  if (debt.creditor !== undefined || debt.name !== undefined) {
-    payload.institution = debt.creditor ?? debt.name ?? null;
-  }
+  if (debt.creditor !== undefined || debt.name !== undefined) payload.institution = debt.creditor ?? debt.name ?? null;
   if (debt.totalAmount !== undefined) payload.total_balance = debt.totalAmount;
   if (debt.monthlyPayment !== undefined) payload.monthly_payment = debt.monthlyPayment;
   if (debt.interestRate !== undefined) {
-    // Modelo armazena anual; tabela armazena mensal.
     payload.interest_rate = debt.interestRate / 12;
     payload.effective_cost = debt.interestRate / 12;
   }
@@ -102,97 +97,94 @@ export function debtToPayload(
   return payload;
 }
 
+function ownershipAudit(row: DebtRow): Record<string, unknown> {
+  return { ownership_scope: row.ownership_scope, member_id_present: Boolean(row.member_id), origin: "writer" };
+}
+
 export function useDebtWriter() {
   const { user } = useAuth();
 
-  const listDebts = useCallback(
-    async (planId: string): Promise<WriterResult<DebtRow[]>> => {
-      const uid = user?.id;
-      if (!uid) return { data: null, error: "Usuário não autenticado." };
-      const { data, error } = await supabase
-        .from("debts").select("*")
-        .eq("plan_id", planId).eq("user_id", uid)
-        .order("created_at", { ascending: true });
-      if (error) return { data: null, error: error.message };
-      return { data: (data ?? []) as DebtRow[], error: null };
-    },
-    [user],
-  );
+  const listDebts = useCallback(async (planId: string): Promise<WriterResult<DebtRow[]>> => {
+    const uid = user?.id;
+    if (!uid) return { data: null, error: "Usuário não autenticado." };
+    const { data, error } = await supabase.from("debts").select("*")
+      .eq("plan_id", planId).eq("user_id", uid).order("created_at", { ascending: true });
+    if (error) return { data: null, error: error.message };
+    return { data: (data ?? []) as DebtRow[], error: null };
+  }, [user]);
 
-  const createDebt = useCallback(
-    async (planId: string, debt: Debt, memberId?: string | null): Promise<WriterResult<DebtRow>> => {
-      const uid = user?.id;
-      if (!uid) return { data: null, error: "Usuário não autenticado." };
-      const payload = debtToPayload(debt, { userId: uid, planId, memberId });
-      if (!payload.debt_type) payload.debt_type = debt.type ?? "loan";
-      const { data, error } = await supabase
-        .from("debts").insert(payload as never).select().single();
-      if (error || !data) return { data: null, error: error?.message ?? "Falha ao criar dívida." };
-      void trackWriterChange({
-        userId: uid, planId, entity: "debt",
-        entityId: (data as DebtRow).id, action: "create",
-        newValue: data as unknown as Record<string, unknown>,
-        event: "debt_created",
+  const createDebt = useCallback(async (
+    planId: string, debt: Debt, memberId?: string | null,
+  ): Promise<WriterResult<DebtRow>> => {
+    const uid = user?.id;
+    if (!uid) return { data: null, error: "Usuário não autenticado." };
+    if (!memberId) return { data: null, error: "member_required" };
+    let payload: Record<string, unknown>;
+    try {
+      payload = debtToPayload(debt, {
+        userId: uid, planId, memberId, ownershipScope: "individual",
       });
-      return { data: data as DebtRow, error: null };
-    },
-    [user],
-  );
+    } catch (err) {
+      return { data: null, error: err instanceof Error ? err.message : "ownership_required" };
+    }
+    if (!payload.debt_type) payload.debt_type = debt.type ?? "loan";
+    const { data, error } = await supabase.from("debts").insert(payload as never).select().single();
+    if (error || !data) return { data: null, error: error?.message ?? "Falha ao criar dívida." };
+    const row = data as DebtRow;
+    void trackWriterChange({
+      userId: uid, planId, entity: "debt", entityId: row.id, action: "create",
+      newValue: ownershipAudit(row), event: "debt_created",
+      eventProperties: { ownership_scope: row.ownership_scope },
+    });
+    return { data: row, error: null };
+  }, [user]);
 
-  const updateDebt = useCallback(
-    async (planId: string, debtId: string, patch: Partial<Debt>, memberId?: string | null): Promise<WriterResult<DebtRow>> => {
-      const uid = user?.id;
-      if (!uid) return { data: null, error: "Usuário não autenticado." };
-      const payload = debtToPayload(patch, { userId: uid, planId, memberId });
-      delete payload.user_id;
-      delete payload.plan_id;
-      const { data, error } = await supabase
-        .from("debts").update(payload as never)
-        .eq("id", debtId).eq("user_id", uid).select().single();
-      if (error || !data) return { data: null, error: error?.message ?? "Falha ao atualizar dívida." };
-      void trackWriterChange({
-        userId: uid, planId, entity: "debt",
-        entityId: debtId, action: "update",
-        newValue: data as unknown as Record<string, unknown>,
-        event: "debt_updated",
+  const updateDebt = useCallback(async (
+    planId: string, debtId: string, patch: Partial<Debt>, memberId?: string | null,
+  ): Promise<WriterResult<DebtRow>> => {
+    const uid = user?.id;
+    if (!uid) return { data: null, error: "Usuário não autenticado." };
+    let payload: Record<string, unknown>;
+    try {
+      payload = debtToPayload(patch, {
+        userId: uid, planId, memberId,
+        ownershipScope: memberId === undefined ? patch.ownershipScope : memberId ? "individual" : patch.ownershipScope,
       });
-      return { data: data as DebtRow, error: null };
-    },
-    [user],
-  );
+    } catch (err) {
+      return { data: null, error: err instanceof Error ? err.message : "ownership_required" };
+    }
+    delete payload.plan_id;
+    const { data, error } = await supabase.from("debts").update(payload as never)
+      .eq("id", debtId).eq("user_id", uid).select().single();
+    if (error || !data) return { data: null, error: error?.message ?? "Falha ao atualizar dívida." };
+    const row = data as DebtRow;
+    void trackWriterChange({
+      userId: uid, planId, entity: "debt", entityId: debtId, action: "update",
+      newValue: ownershipAudit(row), event: "debt_updated",
+    });
+    return { data: row, error: null };
+  }, [user]);
 
-  const deactivateDebt = useCallback(
-    async (debtId: string): Promise<WriterResult<true>> => {
-      const uid = user?.id;
-      if (!uid) return { data: null, error: "Usuário não autenticado." };
-      const { error } = await supabase.from("debts").update({ is_active: false })
-        .eq("id", debtId).eq("user_id", uid);
-      if (error) return { data: null, error: error.message };
-      void trackWriterChange({
-        userId: uid, entity: "debt", entityId: debtId,
-        action: "delete", event: "debt_deleted",
-        eventProperties: { soft: true },
-      });
-      return { data: true, error: null };
-    },
-    [user],
-  );
+  const deactivateDebt = useCallback(async (debtId: string): Promise<WriterResult<true>> => {
+    const uid = user?.id;
+    if (!uid) return { data: null, error: "Usuário não autenticado." };
+    const { error } = await supabase.from("debts").update({ is_active: false })
+      .eq("id", debtId).eq("user_id", uid);
+    if (error) return { data: null, error: error.message };
+    void trackWriterChange({ userId: uid, entity: "debt", entityId: debtId,
+      action: "delete", event: "debt_deleted", eventProperties: { soft: true } });
+    return { data: true, error: null };
+  }, [user]);
 
-  const deleteDebt = useCallback(
-    async (debtId: string): Promise<WriterResult<true>> => {
-      const uid = user?.id;
-      if (!uid) return { data: null, error: "Usuário não autenticado." };
-      const { error } = await supabase.from("debts").delete().eq("id", debtId).eq("user_id", uid);
-      if (error) return { data: null, error: error.message };
-      void trackWriterChange({
-        userId: uid, entity: "debt", entityId: debtId,
-        action: "delete", event: "debt_deleted",
-        eventProperties: { soft: false },
-      });
-      return { data: true, error: null };
-    },
-    [user],
-  );
+  const deleteDebt = useCallback(async (debtId: string): Promise<WriterResult<true>> => {
+    const uid = user?.id;
+    if (!uid) return { data: null, error: "Usuário não autenticado." };
+    const { error } = await supabase.from("debts").delete().eq("id", debtId).eq("user_id", uid);
+    if (error) return { data: null, error: error.message };
+    void trackWriterChange({ userId: uid, entity: "debt", entityId: debtId,
+      action: "delete", event: "debt_deleted", eventProperties: { soft: false } });
+    return { data: true, error: null };
+  }, [user]);
 
   return { listDebts, createDebt, updateDebt, deactivateDebt, deleteDebt };
 }

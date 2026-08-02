@@ -496,9 +496,9 @@ BEGIN
   VALUES (p, u, 'T', true,'titular','active') RETURNING id INTO titular;
   INSERT INTO public.plan_members (plan_id, user_id, name, is_primary, role, status)
   VALUES (p, u, 'P', false,'parceiro','active') RETURNING id INTO parceiro;
-  INSERT INTO public.expenses (plan_id, user_id, member_id, category, expense_type,
-                               is_essential, amount, is_recurring)
-  VALUES (p, u, parceiro, 'moradia', 'fixed', true, 1500, true);
+  INSERT INTO public.expenses (plan_id, user_id, member_id, ownership_scope,
+                     category, expense_type, is_essential, amount, is_recurring)
+VALUES (p, u, parceiro, 'individual', 'moradia', 'fixed', true, 1500, true);
 
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', u::text, 'role','authenticated')::text, true);
@@ -716,19 +716,20 @@ BEGIN
   VALUES (p, u, 'P', false,'parceiro','active') RETURNING id INTO parceiro;
 
   -- Dados vinculados ao parceiro
-  INSERT INTO public.assets (plan_id, user_id, member_id, asset_type,
-    invested_amount, current_amount, net_estimated,
-    has_fgc, has_sovereign_guarantee, mark_to_market, is_active)
-  VALUES (p, u, parceiro, 'renda_fixa', 100, 100, 100, true, false, false, true);
-  INSERT INTO public.income (plan_id, user_id, member_id, source, income_type, amount)
-  VALUES (p, u, parceiro, 'Salário', 'salary', 5000);
-  INSERT INTO public.expenses (plan_id, user_id, member_id, category, expense_type,
-                               is_essential, amount, is_recurring)
-  VALUES (p, u, parceiro, 'moradia', 'fixed', true, 1500, true),
-         (p, u, parceiro, 'lazer', 'variable', false, 200, false);
-  INSERT INTO public.debts (plan_id, user_id, member_id, debt_type, total_balance,
-                            monthly_payment, interest_rate, effective_cost)
-  VALUES (p, u, parceiro, 'cartao', 1000, 100, 0.1, 0.12);
+  INSERT INTO public.assets (plan_id, user_id, member_id, ownership_scope, asset_type,
+  invested_amount, current_amount, net_estimated,
+  has_fgc, has_sovereign_guarantee, mark_to_market, is_active)
+VALUES (p, u, parceiro, 'individual', 'renda_fixa', 100, 100, 100, true, false, false, true);
+  INSERT INTO public.income (plan_id, user_id, member_id, ownership_scope,
+                     source, income_type, amount)
+VALUES (p, u, parceiro, 'individual', 'Salário', 'salary', 5000);
+  INSERT INTO public.expenses (plan_id, user_id, member_id, ownership_scope,
+                     category, expense_type, is_essential, amount, is_recurring)
+VALUES (p, u, parceiro, 'individual', 'moradia', 'fixed', true, 1500, true),
+       (p, u, parceiro, 'individual', 'lazer', 'variable', false, 200, false);
+  INSERT INTO public.debts (plan_id, user_id, member_id, ownership_scope,
+                    debt_type, total_balance, monthly_payment, interest_rate, effective_cost)
+VALUES (p, u, parceiro, 'individual', 'cartao', 1000, 100, 0.1, 0.12);
   INSERT INTO public.monthly_tracking (user_id, plan_id, year, month, month_key)
   VALUES (u, p, 2026, 7, '2026-07') RETURNING id INTO mt;
   INSERT INTO public.monthly_member_tracking (user_id, monthly_tracking_id, plan_member_id)
@@ -773,8 +774,9 @@ BEGIN
 
   -- Legado: registros sem member_id, FGC sem holder e blob não vazio
   PERFORM set_config('role','postgres', true);
-  INSERT INTO public.income (plan_id, user_id, member_id, source, income_type, amount)
-  VALUES (p, u, NULL, 'Legado', 'other', 100);
+  INSERT INTO public.income (plan_id, user_id, member_id, ownership_scope,
+                     source, income_type, amount)
+VALUES (p, u, NULL, 'needs_review', 'Legado', 'other', 100);
   INSERT INTO public.fgc_guarantee_events
     (user_id, holder_member_id, event_date, gross_credit_amount,
      guaranteed_amount_received, tax_withheld, source_type)
@@ -904,9 +906,9 @@ BEGIN
   VALUES (p, u, 'R1', false,'parceiro','removed') RETURNING id INTO removido_1;
   INSERT INTO public.plan_members (plan_id, user_id, name, is_primary, role, status)
   VALUES (p, u, 'R2', false,'parceiro','removed') RETURNING id INTO removido_2;
-  INSERT INTO public.expenses (plan_id, user_id, member_id, category, expense_type,
-                               is_essential, amount, is_recurring)
-  VALUES (p, u, titular, 'moradia', 'fixed', true, 1000, true);
+  INSERT INTO public.expenses (plan_id, user_id, member_id, ownership_scope,
+                     category, expense_type, is_essential, amount, is_recurring)
+VALUES (p, u, titular, 'individual', 'moradia', 'fixed', true, 1000, true);
   SELECT count(*) INTO expenses_before FROM public.expenses WHERE plan_id = p;
 
   PERFORM set_config('request.jwt.claims',
