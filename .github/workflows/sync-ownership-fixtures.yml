@@ -1,0 +1,107 @@
+name: Sync ownership SQL fixtures
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Add explicit ownership to legacy lifecycle fixtures
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("supabase/tests/plan_member_lifecycle.sql")
+          text = path.read_text(encoding="utf-8")
+
+          replacements = [
+              (
+                  """  INSERT INTO public.expenses (plan_id, user_id, member_id, category, expense_type,
+                                       is_essential, amount, is_recurring)
+                  VALUES (p, u, parceiro, 'moradia', 'fixed', true, 1500, true);""",
+                  """  INSERT INTO public.expenses (plan_id, user_id, member_id, ownership_scope,
+                                       category, expense_type, is_essential, amount, is_recurring)
+                  VALUES (p, u, parceiro, 'individual', 'moradia', 'fixed', true, 1500, true);""",
+              ),
+              (
+                  """  INSERT INTO public.assets (plan_id, user_id, member_id, asset_type,
+                    invested_amount, current_amount, net_estimated,
+                    has_fgc, has_sovereign_guarantee, mark_to_market, is_active)
+                  VALUES (p, u, parceiro, 'renda_fixa', 100, 100, 100, true, false, false, true);""",
+                  """  INSERT INTO public.assets (plan_id, user_id, member_id, ownership_scope, asset_type,
+                    invested_amount, current_amount, net_estimated,
+                    has_fgc, has_sovereign_guarantee, mark_to_market, is_active)
+                  VALUES (p, u, parceiro, 'individual', 'renda_fixa', 100, 100, 100, true, false, false, true);""",
+              ),
+              (
+                  """  INSERT INTO public.income (plan_id, user_id, member_id, source, income_type, amount)
+                  VALUES (p, u, parceiro, 'Salário', 'salary', 5000);""",
+                  """  INSERT INTO public.income (plan_id, user_id, member_id, ownership_scope,
+                                     source, income_type, amount)
+                  VALUES (p, u, parceiro, 'individual', 'Salário', 'salary', 5000);""",
+              ),
+              (
+                  """  INSERT INTO public.expenses (plan_id, user_id, member_id, category, expense_type,
+                                       is_essential, amount, is_recurring)
+                  VALUES (p, u, parceiro, 'moradia', 'fixed', true, 1500, true),
+                         (p, u, parceiro, 'lazer', 'variable', false, 200, false);""",
+                  """  INSERT INTO public.expenses (plan_id, user_id, member_id, ownership_scope,
+                                       category, expense_type, is_essential, amount, is_recurring)
+                  VALUES (p, u, parceiro, 'individual', 'moradia', 'fixed', true, 1500, true),
+                         (p, u, parceiro, 'individual', 'lazer', 'variable', false, 200, false);""",
+              ),
+              (
+                  """  INSERT INTO public.debts (plan_id, user_id, member_id, debt_type, total_balance,
+                                      monthly_payment, interest_rate, effective_cost)
+                  VALUES (p, u, parceiro, 'cartao', 1000, 100, 0.1, 0.12);""",
+                  """  INSERT INTO public.debts (plan_id, user_id, member_id, ownership_scope,
+                                      debt_type, total_balance, monthly_payment, interest_rate, effective_cost)
+                  VALUES (p, u, parceiro, 'individual', 'cartao', 1000, 100, 0.1, 0.12);""",
+              ),
+              (
+                  """  INSERT INTO public.income (plan_id, user_id, member_id, source, income_type, amount)
+                  VALUES (p, u, NULL, 'Legado', 'other', 100);""",
+                  """  INSERT INTO public.income (plan_id, user_id, member_id, ownership_scope,
+                                     source, income_type, amount)
+                  VALUES (p, u, NULL, 'needs_review', 'Legado', 'other', 100);""",
+              ),
+              (
+                  """  INSERT INTO public.expenses (plan_id, user_id, member_id, category, expense_type,
+                                       is_essential, amount, is_recurring)
+                  VALUES (p, u, titular, 'moradia', 'fixed', true, 1000, true);""",
+                  """  INSERT INTO public.expenses (plan_id, user_id, member_id, ownership_scope,
+                                       category, expense_type, is_essential, amount, is_recurring)
+                  VALUES (p, u, titular, 'individual', 'moradia', 'fixed', true, 1000, true);""",
+              ),
+          ]
+
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f"Fixture esperada não encontrada:\n{old}")
+              text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding="utf-8")
+
+      - name: Commit fixture update
+        shell: bash
+        run: |
+          if git diff --quiet -- supabase/tests/plan_member_lifecycle.sql; then
+            echo "Fixtures já sincronizadas"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/tests/plan_member_lifecycle.sql
+          git commit -m "test: declara ownership nas fixtures de lifecycle"
+          git push origin HEAD:${{ github.head_ref }}
