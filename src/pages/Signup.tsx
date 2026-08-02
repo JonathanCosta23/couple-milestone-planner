@@ -19,6 +19,7 @@ export default function Signup() {
           content="Crie sua conta gratuita e comece hoje seu planejamento financeiro do zero ao primeiro milhão."
         />
         <meta property="og:url" content="https://couple-milestone-planner.lovable.app/signup" />
+        <link rel="canonical" href="https://couple-milestone-planner.lovable.app/signup" />
       </Helmet>
       <AuthPage
         mode="signup"
