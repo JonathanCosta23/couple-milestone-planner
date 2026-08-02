@@ -17,9 +17,8 @@ DROP FUNCTION IF EXISTS public.elo_members_guard_immutable();
 DROP FUNCTION IF EXISTS public.elo_households_guard_immutable();
 
 -- auth.admin.deleteUser performs the auth.users DELETE. This BEFORE DELETE
--- trigger removes every public row owned by the same user inside that database
--- transaction. Any cleanup failure aborts the account deletion instead of
--- leaving a partially deleted account.
+-- trigger removes every public base-table row owned by the same user inside
+-- that database transaction. Any cleanup failure aborts account deletion.
 CREATE OR REPLACE FUNCTION public.cleanup_application_data_before_auth_delete()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -39,6 +38,10 @@ BEGIN
         ELSE 0
       END AS delete_order
     FROM information_schema.columns AS c
+    JOIN information_schema.tables AS t
+      ON t.table_schema = c.table_schema
+     AND t.table_name = c.table_name
+     AND t.table_type = 'BASE TABLE'
     WHERE c.table_schema = 'public'
       AND c.column_name = 'user_id'
     GROUP BY c.table_schema, c.table_name
