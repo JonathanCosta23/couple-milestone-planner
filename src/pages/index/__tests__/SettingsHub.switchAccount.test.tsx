@@ -64,7 +64,7 @@ describe("SettingsHub — troca de conta MCP", () => {
           onTriggerImport={vi.fn()}
           onSignOut={onSignOut}
           onSwitchAccount={onSwitchAccount}
-          onOpenReset={vi.fn()}
+          onOpenDeleteAccount={vi.fn()}
         />
       </MemoryRouter>,
     );
