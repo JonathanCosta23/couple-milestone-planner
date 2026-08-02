@@ -1,16 +1,14 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
 User-agent: *
 Allow: /
+Allow: /guia-planejamento-financeiro
+Disallow: /elo
+Disallow: /connect
+Disallow: /login
+Disallow: /signup
+Disallow: /criar-conta
+Disallow: /forgot-password
+Disallow: /recuperar-senha
+Disallow: /reset-password
+Disallow: /.lovable/
 
 Sitemap: https://couple-milestone-planner.lovable.app/sitemap.xml

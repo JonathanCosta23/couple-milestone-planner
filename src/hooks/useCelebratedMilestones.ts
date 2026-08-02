@@ -17,15 +17,17 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { logProductEvent } from "@/lib/services/auditService";
+import { scopedStorageKey } from "@/lib/services/localCacheOwner";
 
 const LOCAL_KEY_PREFIX = "plano-celebrated-milestones";
 
-function localKey(userId?: string, planId?: string | null): string {
-  if (userId && planId) return `${LOCAL_KEY_PREFIX}::${userId}::${planId}`;
-  return LOCAL_KEY_PREFIX; // legado / anônimo
+function localKey(userId?: string, planId?: string | null): string | null {
+  if (!userId || !planId) return null;
+  return scopedStorageKey(`${LOCAL_KEY_PREFIX}::${planId}`, userId);
 }
 
-function loadLocal(key: string): number[] {
+function loadLocal(key: string | null): number[] {
+  if (!key) return [];
   try {
     const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : [];
@@ -34,7 +36,8 @@ function loadLocal(key: string): number[] {
   }
 }
 
-function saveLocal(key: string, values: number[]) {
+function saveLocal(key: string | null, values: number[]) {
+  if (!key) return;
   try {
     localStorage.setItem(key, JSON.stringify(values));
   } catch {
@@ -52,7 +55,7 @@ export function useCelebratedMilestones(userId: string | undefined, planId?: str
   useEffect(() => {
     // Sem usuário: somente cache local genérico.
     if (!userId) {
-      setCelebrated(loadLocal(LOCAL_KEY_PREFIX));
+      setCelebrated([]);
       setLoaded(true);
       lastKeyRef.current = null;
       return;

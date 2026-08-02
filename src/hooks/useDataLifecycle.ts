@@ -187,12 +187,7 @@ export function useDataLifecycle({
     // Isolamento por conta: se o cache local pertencia a outro usuário deste
     // navegador, ele é apagado ANTES de qualquer sync — evitando que dados
     // financeiros de terceiros sejam enviados para a conta atual.
-    if (claimLocalCacheOwner(user.id)) {
-      if (typeof window !== "undefined") {
-        window.location.reload();
-        return;
-      }
-    }
+    claimLocalCacheOwner(user.id);
     void runInitialSync();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);

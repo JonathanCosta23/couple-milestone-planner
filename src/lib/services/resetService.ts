@@ -19,55 +19,7 @@ import { logger } from "@/lib/logger";
 import { toFriendlyError } from "@/lib/errors/friendlyError";
 import { logProductEvent } from "@/lib/services/auditService";
 import { clearAll, listDeadLetters, removeWrite } from "@/lib/offlineQueue";
-
-// Chaves do produto (mantidas em sincronia com storage.ts, appStorage.ts,
-// dataMigrationService.ts e useCelebratedMilestones.ts).
-const PRODUCT_LOCAL_STORAGE_KEYS = [
-  "plano-do-milhao",                    // legado v?
-  "plano-do-milhao-v5",                 // legado v5
-  "plano-do-milhao-v6",                 // PlanData atual
-  "plano-do-milhao-app-v7",             // AppData atual
-  "plano-do-milhao-app-v7-prev",        // backup automático do RestoreBackupButton
-  "plano-do-milhao-backup",             // backup PlanData
-  "plano-do-milhao-app-backup",         // backup AppData
-  "plano-do-milhao-pre-migration-backup",
-];
-
-/** Prefixos cujas chaves devem ser removidas (suporta múltiplos sufixos). */
-const PRODUCT_KEY_PREFIXES = [
-  "plano-celebrated-milestones",        // useCelebratedMilestones (com e sem userId/planId)
-  "plano-do-milhao",                    // qualquer outro derivado
-];
-
-function clearProductLocalStorage(): string[] {
-  const removed: string[] = [];
-  if (typeof localStorage === "undefined") return removed;
-
-  // 1. Chaves exatas conhecidas.
-  for (const key of PRODUCT_LOCAL_STORAGE_KEYS) {
-    if (localStorage.getItem(key) !== null) {
-      localStorage.removeItem(key);
-      removed.push(key);
-    }
-  }
-
-  // 2. Varredura por prefixo (cobre `plano-celebrated-milestones::uid::planId`
-  //    e quaisquer caches futuros do produto).
-  const toRemove: string[] = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (!k) continue;
-    if (PRODUCT_KEY_PREFIXES.some((p) => k.startsWith(p)) && !PRODUCT_LOCAL_STORAGE_KEYS.includes(k)) {
-      toRemove.push(k);
-    }
-  }
-  for (const k of toRemove) {
-    localStorage.removeItem(k);
-    removed.push(k);
-  }
-
-  return removed;
-}
+import { clearProductLocalCache } from "@/lib/services/localCacheOwner";
 
 async function clearOfflineQueueCompletely(userId: string): Promise<void> {
   // Pendentes
@@ -141,7 +93,7 @@ export async function resetUserPlan(userId: string): Promise<ResetResult> {
 
   // 3. localStorage (sempre limpa).
   try {
-    result.cleared.localStorageKeys = clearProductLocalStorage();
+    result.cleared.localStorageKeys = clearProductLocalCache(userId);
   } catch (err) {
     logger.warn("reset.localStorage.fail", { userId }, err);
   }
