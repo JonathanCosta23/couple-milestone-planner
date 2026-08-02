@@ -7,6 +7,7 @@ import { useCloudSync } from "@/hooks/useCloudSync";
 import { useAssetWriter, assetRowToInvestment } from "@/hooks/useAssetWriter";
 import { useDataHydration } from "@/hooks/useDataHydration";
 import { backupBeforeDestructiveOp } from "@/lib/services/dataMigrationService";
+import { claimLocalCacheOwner } from "@/lib/services/localCacheOwner";
 import {
   migrateBlobToTables,
   previewBlobMigration,
@@ -183,6 +184,15 @@ export function useDataLifecycle({
   useEffect(() => {
     if (!user || syncRanRef.current === user.id) return;
     syncRanRef.current = user.id;
+    // Isolamento por conta: se o cache local pertencia a outro usuário deste
+    // navegador, ele é apagado ANTES de qualquer sync — evitando que dados
+    // financeiros de terceiros sejam enviados para a conta atual.
+    if (claimLocalCacheOwner(user.id)) {
+      if (typeof window !== "undefined") {
+        window.location.reload();
+        return;
+      }
+    }
     void runInitialSync();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
