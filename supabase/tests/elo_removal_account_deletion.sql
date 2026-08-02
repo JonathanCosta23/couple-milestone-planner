@@ -1,5 +1,7 @@
 \set ON_ERROR_STOP on
 
+BEGIN;
+
 DO $$
 DECLARE
   v_count integer;
@@ -36,5 +38,40 @@ BEGIN
     RAISE EXCEPTION 'Authenticated users must not execute cleanup trigger function';
   END IF;
 
-  RAISE NOTICE 'ELO removal and permanent deletion contract: OK';
+  RAISE NOTICE 'ELO schema removal contract: OK';
 END $$;
+
+CREATE TABLE public.__test_account_owned_data (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  payload text NOT NULL
+);
+
+DO $$
+DECLARE
+  v_user_id uuid := '00000000-0000-0000-0000-0000000d0001';
+BEGIN
+  INSERT INTO auth.users (id, email, aud, role)
+  VALUES (v_user_id, 'permanent-delete@test.local', 'authenticated', 'authenticated');
+
+  INSERT INTO public.__test_account_owned_data (user_id, payload)
+  VALUES (v_user_id, 'must be deleted');
+
+  DELETE FROM auth.users WHERE id = v_user_id;
+
+  IF EXISTS (SELECT 1 FROM auth.users WHERE id = v_user_id) THEN
+    RAISE EXCEPTION 'Authentication user was not deleted';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM public.__test_account_owned_data WHERE user_id = v_user_id
+  ) THEN
+    RAISE EXCEPTION 'Owned application data was not deleted';
+  END IF;
+
+  RAISE NOTICE 'Permanent authentication and application-data deletion: OK';
+END $$;
+
+DROP TABLE public.__test_account_owned_data;
+
+ROLLBACK;
