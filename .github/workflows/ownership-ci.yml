@@ -8,6 +8,10 @@ on:
       - "src/hooks/**"
       - "src/lib/**"
       - "src/integrations/supabase/**"
+      - "src/components/**"
+      - "src/pages/**"
+      - "public/**"
+      - "index.html"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/ownership-ci.yml"
@@ -88,6 +92,14 @@ jobs:
 
       - name: Reset database from migrations
         run: supabase db reset --local
+
+      - name: Run ELO security contract
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -v ON_ERROR_STOP=1 \
+            -h 127.0.0.1 -p 54322 -U postgres -d postgres \
+            -f supabase/tests/elo_security_hardening.sql
 
       - name: Run financial privilege matrix
         env:
