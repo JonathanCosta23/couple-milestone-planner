@@ -26,6 +26,7 @@ export default function Login() {
           content="Acesse seu Plano do Milhão para continuar de onde parou: renda, gastos, aportes e patrimônio."
         />
         <meta property="og:url" content="https://couple-milestone-planner.lovable.app/login" />
+        <link rel="canonical" href="https://couple-milestone-planner.lovable.app/login" />
       </Helmet>
       <AuthPage
         mode="login"
