@@ -1,0 +1,52 @@
+name: Fix lifecycle after cache isolation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/fix-lifecycle-hardening.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Remove reload dependency from authenticated boot
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/hooks/useDataLifecycle.ts')
+          text = path.read_text()
+          old = '''    if (claimLocalCacheOwner(user.id)) {
+              if (typeof window !== "undefined") {
+                window.location.reload();
+                return;
+              }
+            }
+            void runInitialSync();'''
+          new = '''    claimLocalCacheOwner(user.id);
+            void runInitialSync();'''
+          if old not in text:
+              raise SystemExit('expected lifecycle block not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
+      - name: Commit source fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/hooks/useDataLifecycle.ts
+          git commit -m "fix: continue hydration after cache ownership claim"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
