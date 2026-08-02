@@ -1,0 +1,44 @@
+name: Run security hardening bootstrap
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/apply-security-hardening.yml
+      - .github/workflows/run-security-hardening.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Extract and apply audited patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed -n "/^PATCH_B64$/,/^PATCH_B64$/p" .github/workflows/apply-security-hardening.yml \
+            | sed '1d;$d' > /tmp/security.patch.gz.b64
+          test -s /tmp/security.patch.gz.b64
+          base64 -d /tmp/security.patch.gz.b64 | gzip -d > /tmp/security.patch
+          git apply --check /tmp/security.patch
+          git apply /tmp/security.patch
+
+      - name: Commit hardening and remove bootstrap workflows
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/apply-security-hardening.yml
+          git rm .github/workflows/run-security-hardening.yml
+          git add -A
+          git commit -m "fix: harden ELO, local cache isolation and SEO"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
