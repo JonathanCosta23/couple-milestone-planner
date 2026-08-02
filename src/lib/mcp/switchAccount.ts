@@ -62,6 +62,14 @@ export async function performMcpSwitchAccount(
   } catch (err) {
     logger.warn("mcp.switchAccount.local_clear.fail", {}, err);
   }
+  // Troca de conta também precisa descartar o cache financeiro local do
+  // usuário anterior — caso contrário ele vazaria para a nova conta.
+  try {
+    const { clearProductLocalCache } = await import("@/lib/services/localCacheOwner");
+    clearProductLocalCache();
+  } catch (err) {
+    logger.warn("mcp.switchAccount.planCache.clear.fail", {}, err);
+  }
   try {
     await signOut();
   } catch (err) {
