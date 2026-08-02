@@ -13,6 +13,8 @@ DROP FUNCTION IF EXISTS app_private.elo_join_household(text, text);
 DROP FUNCTION IF EXISTS app_private.elo_is_member(uuid);
 DROP FUNCTION IF EXISTS public.elo_touch_household();
 DROP FUNCTION IF EXISTS public.elo_touch_state();
+DROP FUNCTION IF EXISTS public.elo_members_guard_immutable();
+DROP FUNCTION IF EXISTS public.elo_households_guard_immutable();
 
 -- auth.admin.deleteUser performs the auth.users DELETE. This BEFORE DELETE
 -- trigger removes every public row owned by the same user inside that database
