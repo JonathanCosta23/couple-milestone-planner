@@ -304,7 +304,19 @@ const Index = () => {
       }
     }
     await signOut();
+    // Dispositivo compartilhado: apaga o cache financeiro local e recarrega
+    // para descartar também o estado em memória. Sem isso, os dados do usuário
+    // atual poderiam ser reaproveitados pela próxima conta neste navegador.
+    try {
+      const { clearProductLocalCache } = await import("@/lib/services/localCacheOwner");
+      clearProductLocalCache();
+    } catch {
+      // ignore
+    }
     toast.success("Até logo! 👋");
+    if (typeof window !== "undefined") {
+      window.location.replace("/login");
+    }
   };
 
   // Navegador da SPA usado exclusivamente para o fluxo dedicado de troca de
