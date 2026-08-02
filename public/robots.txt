@@ -1,7 +1,6 @@
 User-agent: *
 Allow: /
 Allow: /guia-planejamento-financeiro
-Disallow: /elo
 Disallow: /connect
 Disallow: /login
 Disallow: /signup

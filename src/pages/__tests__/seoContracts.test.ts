@@ -39,7 +39,6 @@ describe("SEO contracts", () => {
     expect(sitemap).toContain("/guia-planejamento-financeiro</loc>");
     for (const privateRoute of [
       "/protected",
-      "/elo",
       "/connect",
       "/login",
       "/signup",
@@ -52,7 +51,7 @@ describe("SEO contracts", () => {
 
   it("blocks private and authentication routes in robots.txt", () => {
     const robots = source("public/robots.txt");
-    for (const route of ["/elo", "/connect", "/login", "/signup", "/forgot-password"]) {
+    for (const route of ["/connect", "/login", "/signup", "/forgot-password"]) {
       expect(robots).toContain(`Disallow: ${route}`);
     }
   });

@@ -6,7 +6,7 @@
  * Exporta:
  *  - LEGAL_DISCLAIMER: string única usada em rótulos curtos pelo app.
  *  - LegalFooter: rodapé persistente com links para os 3 documentos +
- *    atalho opcional para "Apagar meus dados".
+ *    atalho opcional para "Excluir conta permanentemente".
  */
 import { useState, type ReactNode } from "react";
 import {
@@ -109,10 +109,9 @@ const COPY: Record<LegalKind, { title: string; icon: ReactNode; body: ReactNode 
         </p>
         <p>
           <strong>Seus direitos (LGPD).</strong> Você pode exportar seus dados
-          (Perfil → Exportar) e apagar tudo a qualquer momento usando
-          <em> "Resetar plano"</em> — isso limpa o banco, o cache local e a
-          fila de sincronização. A conta de autenticação permanece e pode ser
-          excluída por solicitação.
+          em Configurações e excluir permanentemente sua conta pela Zona de
+          risco. A exclusão remove a autenticação, os dados financeiros, o
+          cache local e a fila de sincronização, sem possibilidade de recuperação.
         </p>
       </>
     ),
@@ -136,7 +135,7 @@ function LegalDialog({ kind, onOpenChange }: LegalDialogProps) {
           <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
             {body}
             <p className="text-[11px] uppercase tracking-wider pt-2 border-t border-border/40">
-              Última atualização: maio de 2026
+              Última atualização: agosto de 2026
             </p>
           </div>
         </ScrollArea>
@@ -146,12 +145,12 @@ function LegalDialog({ kind, onOpenChange }: LegalDialogProps) {
 }
 
 interface LegalFooterProps {
-  /** Quando informado, o link "Apagar meus dados" aciona o reset. */
-  onRequestReset?: () => void;
+  /** Quando informado, abre o fluxo de exclusão permanente da conta. */
+  onRequestDeleteAccount?: () => void;
 }
 
 /** Rodapé compacto com links legais e (opcional) atalho de reset. */
-export function LegalFooter({ onRequestReset }: LegalFooterProps) {
+export function LegalFooter({ onRequestDeleteAccount }: LegalFooterProps) {
   const [open, setOpen] = useState<LegalKind | null>(null);
   const buttonClass =
     "underline-offset-2 hover:underline hover:text-foreground transition-colors";
@@ -179,16 +178,16 @@ export function LegalFooter({ onRequestReset }: LegalFooterProps) {
             <button type="button" className={buttonClass} onClick={() => setOpen("privacy")}>
               Privacidade
             </button>
-            {onRequestReset && (
+            {onRequestDeleteAccount && (
               <>
                 <span aria-hidden>·</span>
                 <button
                   type="button"
                   className={`${buttonClass} text-destructive/80 hover:text-destructive inline-flex items-center gap-1`}
-                  onClick={onRequestReset}
+                  onClick={onRequestDeleteAccount}
                 >
                   <Trash2 className="w-3 h-3" aria-hidden />
-                  Apagar meus dados
+                  Excluir conta
                 </button>
               </>
             )}

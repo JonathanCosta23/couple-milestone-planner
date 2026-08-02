@@ -19,7 +19,6 @@ const Landing = lazy(() => import("./pages/Landing"));
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
-const Elo = lazy(() => import("./pages/Elo"));
 
 const queryClient = new QueryClient();
 
@@ -55,7 +54,6 @@ const App = () => (
             <Suspense fallback={<FullscreenSkeleton />}>
               <Routes>
                 <Route path="/" element={<RootRoute />} />
-                <Route path="/elo" element={<RequireAuth><Elo /></RequireAuth>} />
                 <Route path="/login" element={<RequireAnon><Login /></RequireAnon>} />
                 <Route path="/signup" element={<RequireAnon><Signup /></RequireAnon>} />
                 <Route path="/criar-conta" element={<Navigate to="/signup" replace />} />
