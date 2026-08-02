@@ -7,10 +7,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.1"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -31,8 +51,9 @@ export type Database = {
           liquidity_type: string | null
           mark_to_market: boolean
           maturity_date: string | null
-          member_id: string
+          member_id: string | null
           net_estimated: number
+          ownership_scope: string
           plan_id: string
           reference_date: string | null
           ticker_or_name: string | null
@@ -55,8 +76,9 @@ export type Database = {
           liquidity_type?: string | null
           mark_to_market?: boolean
           maturity_date?: string | null
-          member_id: string
+          member_id?: string | null
           net_estimated?: number
+          ownership_scope: string
           plan_id: string
           reference_date?: string | null
           ticker_or_name?: string | null
@@ -79,8 +101,9 @@ export type Database = {
           liquidity_type?: string | null
           mark_to_market?: boolean
           maturity_date?: string | null
-          member_id?: string
+          member_id?: string | null
           net_estimated?: number
+          ownership_scope?: string
           plan_id?: string
           reference_date?: string | null
           ticker_or_name?: string | null
@@ -152,6 +175,7 @@ export type Database = {
           is_active: boolean
           member_id: string | null
           monthly_payment: number
+          ownership_scope: string
           plan_id: string
           priority: string | null
           start_date: string | null
@@ -170,6 +194,7 @@ export type Database = {
           is_active?: boolean
           member_id?: string | null
           monthly_payment?: number
+          ownership_scope: string
           plan_id: string
           priority?: string | null
           start_date?: string | null
@@ -188,6 +213,7 @@ export type Database = {
           is_active?: boolean
           member_id?: string | null
           monthly_payment?: number
+          ownership_scope?: string
           plan_id?: string
           priority?: string | null
           start_date?: string | null
@@ -245,100 +271,6 @@ export type Database = {
         }
         Relationships: []
       }
-      elo_households: {
-        Row: {
-          created_at: string
-          created_by: string
-          id: string
-          invite_code: string
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string
-          id?: string
-          invite_code?: string
-          name?: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          id?: string
-          invite_code?: string
-          name?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      elo_members: {
-        Row: {
-          created_at: string
-          display_name: string
-          household_id: string
-          id: string
-          role: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          display_name: string
-          household_id: string
-          id?: string
-          role?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          display_name?: string
-          household_id?: string
-          id?: string
-          role?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "elo_members_household_id_fkey"
-            columns: ["household_id"]
-            isOneToOne: false
-            referencedRelation: "elo_households"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      elo_state: {
-        Row: {
-          data: Json
-          household_id: string
-          updated_at: string
-          updated_by: string | null
-          version: number
-        }
-        Insert: {
-          data?: Json
-          household_id: string
-          updated_at?: string
-          updated_by?: string | null
-          version?: number
-        }
-        Update: {
-          data?: Json
-          household_id?: string
-          updated_at?: string
-          updated_by?: string | null
-          version?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "elo_state_household_id_fkey"
-            columns: ["household_id"]
-            isOneToOne: true
-            referencedRelation: "elo_households"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       expenses: {
         Row: {
           amount: number
@@ -352,6 +284,7 @@ export type Database = {
           member_id: string | null
           month_key: string | null
           notes: string | null
+          ownership_scope: string
           plan_id: string
           subcategory: string | null
           updated_at: string
@@ -369,6 +302,7 @@ export type Database = {
           member_id?: string | null
           month_key?: string | null
           notes?: string | null
+          ownership_scope: string
           plan_id: string
           subcategory?: string | null
           updated_at?: string
@@ -386,6 +320,7 @@ export type Database = {
           member_id?: string | null
           month_key?: string | null
           notes?: string | null
+          ownership_scope?: string
           plan_id?: string
           subcategory?: string | null
           updated_at?: string
@@ -704,6 +639,7 @@ export type Database = {
           member_id: string | null
           month_key: string | null
           notes: string | null
+          ownership_scope: string
           plan_id: string
           source: string
           updated_at: string
@@ -719,6 +655,7 @@ export type Database = {
           member_id?: string | null
           month_key?: string | null
           notes?: string | null
+          ownership_scope: string
           plan_id: string
           source: string
           updated_at?: string
@@ -734,6 +671,7 @@ export type Database = {
           member_id?: string | null
           month_key?: string | null
           notes?: string | null
+          ownership_scope?: string
           plan_id?: string
           source?: string
           updated_at?: string
@@ -2151,22 +2089,12 @@ export type Database = {
         Args: { p_plan_id: string }
         Returns: undefined
       }
-      elo_create_household: {
-        Args: { p_display_name?: string; p_name?: string }
-        Returns: {
-          household_id: string
-          invite_code: string
-        }[]
-      }
-      elo_join_household: {
-        Args: { p_display_name?: string; p_invite_code: string }
-        Returns: {
-          household_id: string
-          invite_code: string
-        }[]
-      }
       get_plan_member_removal_impact_v1: {
         Args: { p_member_id: string; p_plan_id: string }
+        Returns: Json
+      }
+      get_plan_ownership_review_summary_v1: {
+        Args: { p_plan_id: string }
         Returns: Json
       }
       normalize_plan_mode_v1: { Args: { p_plan_id: string }; Returns: Json }
@@ -2394,7 +2322,11 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
 } as const
+
