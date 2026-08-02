@@ -28,13 +28,19 @@ DECLARE
   v_table record;
 BEGIN
   FOR v_table IN
-    SELECT c.table_schema, c.table_name
-      FROM information_schema.columns AS c
-     WHERE c.table_schema = 'public'
-       AND c.column_name = 'user_id'
-       AND c.table_name NOT IN ('plan_members', 'plans')
-     GROUP BY c.table_schema, c.table_name
-     ORDER BY c.table_name
+    SELECT
+      c.table_schema,
+      c.table_name,
+      CASE c.table_name
+        WHEN 'plan_members' THEN 90
+        WHEN 'plans' THEN 100
+        ELSE 0
+      END AS delete_order
+    FROM information_schema.columns AS c
+    WHERE c.table_schema = 'public'
+      AND c.column_name = 'user_id'
+    GROUP BY c.table_schema, c.table_name
+    ORDER BY delete_order, c.table_name
   LOOP
     EXECUTE format(
       'DELETE FROM %I.%I WHERE user_id::text = $1::text',
@@ -42,13 +48,6 @@ BEGIN
       v_table.table_name
     ) USING OLD.id;
   END LOOP;
-
-  IF to_regclass('public.plan_members') IS NOT NULL THEN
-    DELETE FROM public.plan_members WHERE user_id::text = OLD.id::text;
-  END IF;
-  IF to_regclass('public.plans') IS NOT NULL THEN
-    DELETE FROM public.plans WHERE user_id::text = OLD.id::text;
-  END IF;
 
   RETURN OLD;
 END;
