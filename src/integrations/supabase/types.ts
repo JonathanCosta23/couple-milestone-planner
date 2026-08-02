@@ -2166,6 +2166,8 @@ export type Database = {
           invite_code: string
         }[]
       }
+      elo_member_household_of: { Args: { _user_id: string }; Returns: string }
+      elo_member_role_of: { Args: { _user_id: string }; Returns: string }
       get_plan_member_removal_impact_v1: {
         Args: { p_member_id: string; p_plan_id: string }
         Returns: Json
