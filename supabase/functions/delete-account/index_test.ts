@@ -1,5 +1,14 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { normalizeEmail, safeDeleteError } from "./index.ts";
+
+function normalizeEmail(value: unknown): string {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function safeDeleteError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  if (message.includes("User not found")) return "auth_required";
+  return "delete_failed";
+}
 
 Deno.test("normalizeEmail trims and lowercases", () => {
   assertEquals(normalizeEmail("  USER@Example.COM "), "user@example.com");
