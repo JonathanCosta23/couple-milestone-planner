@@ -1,7 +1,9 @@
 import { PlanData, DEFAULT_CONFIG, PLAN_START, CURRENT_SCHEMA_VERSION, PlanDataExportMeta, EMPTY_DEPOSIT } from "./types";
+import { readUserScopedLocalStorage, writeUserScopedLocalStorage } from "@/lib/services/localCacheOwner";
 
-const STORAGE_KEY = "plano-do-milhao-v6";
-const BACKUP_KEY = "plano-do-milhao-backup";
+export const PLAN_STORAGE_KEY = "plano-do-milhao-v6";
+export const PLAN_BACKUP_KEY = "plano-do-milhao-backup";
+const LEGACY_V5_KEY = "plano-do-milhao-v5";
 
 export function getDefaultPlanData(): PlanData {
   return {
@@ -75,10 +77,10 @@ export function normalizePlanData(parsed: Partial<PlanData>): PlanData {
 
 export function loadPlanData(): PlanData {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = readUserScopedLocalStorage(PLAN_STORAGE_KEY);
     if (!raw) {
       // Try migrating from v5
-      const v5 = localStorage.getItem("plano-do-milhao-v5");
+      const v5 = readUserScopedLocalStorage(LEGACY_V5_KEY);
       if (v5) {
         const parsed = JSON.parse(v5) as Partial<PlanData>;
         const migrated = normalizePlanData(parsed);
@@ -96,13 +98,13 @@ export function loadPlanData(): PlanData {
 
 export function savePlanData(data: PlanData): void {
   data.schemaVersion = CURRENT_SCHEMA_VERSION;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  writeUserScopedLocalStorage(PLAN_STORAGE_KEY, JSON.stringify(data));
 }
 
 /** Save a backup snapshot to localStorage before destructive operations */
 export function saveBackup(data: PlanData): void {
   try {
-    localStorage.setItem(BACKUP_KEY, JSON.stringify({
+    writeUserScopedLocalStorage(PLAN_BACKUP_KEY, JSON.stringify({
       ...data,
       _backupAt: new Date().toISOString(),
     }));
@@ -114,7 +116,7 @@ export function saveBackup(data: PlanData): void {
 /** Retrieve the last backup, if any */
 export function loadBackup(): PlanData | null {
   try {
-    const raw = localStorage.getItem(BACKUP_KEY);
+    const raw = readUserScopedLocalStorage(PLAN_BACKUP_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     delete parsed._backupAt;

@@ -17,6 +17,7 @@ import { savePlanData, saveBackup } from "@/lib/storage";
 import { logger } from "@/lib/logger";
 import type { AppData } from "@/lib/models";
 import type { PlanData } from "@/lib/types";
+import { readUserScopedLocalStorage, writeUserScopedLocalStorage } from "@/lib/services/localCacheOwner";
 
 const PRE_MIGRATION_BACKUP_KEY = "plano-do-milhao-pre-migration-backup";
 const LEGACY_PLAN_KEY = "plano-do-milhao-v6";
@@ -30,7 +31,7 @@ interface BackupSnapshot {
 
 function readBackup(): BackupSnapshot | null {
   try {
-    const raw = localStorage.getItem(PRE_MIGRATION_BACKUP_KEY);
+    const raw = readUserScopedLocalStorage(PRE_MIGRATION_BACKUP_KEY);
     if (!raw) return null;
     return JSON.parse(raw) as BackupSnapshot;
   } catch {
@@ -64,8 +65,8 @@ export function RestoreBackupButton() {
     if (!backup) return;
     try {
       // Backup do estado atual antes de restaurar — duplo seguro.
-      const currentApp = localStorage.getItem(LEGACY_APP_KEY);
-      const currentPlan = localStorage.getItem(LEGACY_PLAN_KEY);
+      const currentApp = readUserScopedLocalStorage(LEGACY_APP_KEY);
+      const currentPlan = readUserScopedLocalStorage(LEGACY_PLAN_KEY);
       if (currentPlan) {
         try {
           saveBackup(JSON.parse(currentPlan) as PlanData);
@@ -74,7 +75,7 @@ export function RestoreBackupButton() {
         }
       }
       if (currentApp) {
-        localStorage.setItem(`${LEGACY_APP_KEY}-prev`, currentApp);
+        writeUserScopedLocalStorage(`${LEGACY_APP_KEY}-prev`, currentApp);
       }
 
       // Restaura snapshot.

@@ -25,6 +25,7 @@ vi.mock("@/lib/offlineQueue", () => ({
 }));
 
 import { resetUserPlan } from "@/lib/services/resetService";
+import { claimLocalCacheOwner, scopedStorageKey } from "@/lib/services/localCacheOwner";
 
 beforeEach(() => {
   rpcMock.mockReset();
@@ -34,6 +35,7 @@ beforeEach(() => {
   listDeadLettersMock.mockClear();
   removeWriteMock.mockClear();
   localStorage.clear();
+  claimLocalCacheOwner("user-1");
 });
 
 describe("resetService.resetUserPlan", () => {
@@ -44,10 +46,14 @@ describe("resetService.resetUserPlan", () => {
     // Popula localStorage com chaves do produto (atuais, legadas e milestones
     // celebrados por usuário/plano) + uma chave de outro sistema que NÃO pode
     // ser apagada.
-    localStorage.setItem("plano-do-milhao-v6", "{}");
-    localStorage.setItem("plano-do-milhao-app-v7", "{}");
-    localStorage.setItem("plano-do-milhao-app-v7-prev", "{}");
-    localStorage.setItem("plano-celebrated-milestones::user-1::plan-1", "[1000000]");
+    const planKey = scopedStorageKey("plano-do-milhao-v6", "user-1") as string;
+    const appKey = scopedStorageKey("plano-do-milhao-app-v7", "user-1") as string;
+    const prevKey = scopedStorageKey("plano-do-milhao-app-v7-prev", "user-1") as string;
+    const milestoneKey = scopedStorageKey("plano-celebrated-milestones::plan-1", "user-1") as string;
+    localStorage.setItem(planKey, "{}");
+    localStorage.setItem(appKey, "{}");
+    localStorage.setItem(prevKey, "{}");
+    localStorage.setItem(milestoneKey, "[1000000]");
     localStorage.setItem("plano-celebrated-milestones", "[1000000]");
     localStorage.setItem("outra-app-que-nao-eh-nossa", "preserve-me");
 
@@ -63,18 +69,18 @@ describe("resetService.resetUserPlan", () => {
     expect(removeWriteMock).toHaveBeenCalledWith("w1");
 
     // localStorage: chaves do produto sumiram, alheias preservadas.
-    expect(localStorage.getItem("plano-do-milhao-v6")).toBeNull();
-    expect(localStorage.getItem("plano-do-milhao-app-v7")).toBeNull();
-    expect(localStorage.getItem("plano-do-milhao-app-v7-prev")).toBeNull();
+    expect(localStorage.getItem(planKey)).toBeNull();
+    expect(localStorage.getItem(appKey)).toBeNull();
+    expect(localStorage.getItem(prevKey)).toBeNull();
     expect(localStorage.getItem("plano-celebrated-milestones")).toBeNull();
-    expect(localStorage.getItem("plano-celebrated-milestones::user-1::plan-1")).toBeNull();
+    expect(localStorage.getItem(milestoneKey)).toBeNull();
     expect(localStorage.getItem("outra-app-que-nao-eh-nossa")).toBe("preserve-me");
 
     expect(res.cleared.localStorageKeys).toEqual(
       expect.arrayContaining([
-        "plano-do-milhao-v6",
-        "plano-do-milhao-app-v7",
-        "plano-celebrated-milestones::user-1::plan-1",
+        planKey,
+        appKey,
+        milestoneKey,
       ]),
     );
   });
@@ -91,7 +97,8 @@ describe("resetService.resetUserPlan", () => {
 
   it("falha de RPC não impede limpeza de localStorage e fila", async () => {
     rpcMock.mockResolvedValueOnce({ data: null, error: { message: "boom" } });
-    localStorage.setItem("plano-do-milhao-v6", "{}");
+    const planKey = scopedStorageKey("plano-do-milhao-v6", "user-1") as string;
+    localStorage.setItem(planKey, "{}");
 
     const res = await resetUserPlan("user-1");
 
@@ -101,7 +108,7 @@ describe("resetService.resetUserPlan", () => {
     expect(res.error).toBeTruthy();
     expect(res.cleared.rpc).toBe(false);
     expect(res.cleared.offlineQueue).toBe(true);
-    expect(localStorage.getItem("plano-do-milhao-v6")).toBeNull();
+    expect(localStorage.getItem(planKey)).toBeNull();
   });
 
   it("registra evento de auditoria crítica ao resetar com sucesso", async () => {

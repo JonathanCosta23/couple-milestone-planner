@@ -4,6 +4,9 @@ import type { User } from "@supabase/supabase-js";
 import type { AppData } from "@/lib/models";
 import type { PlanData } from "@/lib/types";
 import type { Json } from "@/integrations/supabase/types";
+import { readUserScopedLocalStorage } from "@/lib/services/localCacheOwner";
+import { PLAN_STORAGE_KEY } from "@/lib/storage";
+import { APP_STORAGE_KEY } from "@/lib/appStorage";
 
 interface CloudData {
   planData: PlanData | null;
@@ -64,8 +67,8 @@ export function useCloudSync() {
   }, []);
 
   const hasLocalData = useCallback((): boolean => {
-    const planRaw = localStorage.getItem("plano-do-milhao");
-    const appRaw = localStorage.getItem("plano-do-milhao-app-v7");
+    const planRaw = readUserScopedLocalStorage(PLAN_STORAGE_KEY);
+    const appRaw = readUserScopedLocalStorage(APP_STORAGE_KEY);
     if (!planRaw && !appRaw) return false;
 
     try {

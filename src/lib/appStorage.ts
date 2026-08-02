@@ -7,9 +7,10 @@
 import { AppData, createDefaultAppData, generateId, PlanMode, Goal } from "./models";
 import { LegacyFinancialProfile, PlanData } from "./types";
 import { loadPlanData } from "./storage";
+import { readUserScopedLocalStorage, writeUserScopedLocalStorage } from "@/lib/services/localCacheOwner";
 
-const APP_STORAGE_KEY = "plano-do-milhao-app-v7";
-const APP_BACKUP_KEY = "plano-do-milhao-app-backup";
+export const APP_STORAGE_KEY = "plano-do-milhao-app-v7";
+export const APP_BACKUP_KEY = "plano-do-milhao-app-backup";
 
 /**
  * Converte qualquer string de modo (legado ou canônico) para o canônico atual.
@@ -147,7 +148,7 @@ export function migrateFromLegacy(planData: PlanData): AppData {
 
 export function loadAppData(): AppData {
   try {
-    const raw = localStorage.getItem(APP_STORAGE_KEY);
+    const raw = readUserScopedLocalStorage(APP_STORAGE_KEY);
     if (raw) {
       return normalizeAppData(JSON.parse(raw));
     }
@@ -169,12 +170,12 @@ export function loadAppData(): AppData {
 export function saveAppData(data: AppData): void {
   data.updatedAt = new Date().toISOString();
   data.schemaVersion = "7.0.0";
-  localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(data));
+  writeUserScopedLocalStorage(APP_STORAGE_KEY, JSON.stringify(data));
 }
 
 export function saveAppBackup(data: AppData): void {
   try {
-    localStorage.setItem(APP_BACKUP_KEY, JSON.stringify({
+    writeUserScopedLocalStorage(APP_BACKUP_KEY, JSON.stringify({
       ...data,
       _backupAt: new Date().toISOString(),
     }));
@@ -185,7 +186,7 @@ export function saveAppBackup(data: AppData): void {
 
 export function loadAppBackup(): AppData | null {
   try {
-    const raw = localStorage.getItem(APP_BACKUP_KEY);
+    const raw = readUserScopedLocalStorage(APP_BACKUP_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     delete parsed._backupAt;

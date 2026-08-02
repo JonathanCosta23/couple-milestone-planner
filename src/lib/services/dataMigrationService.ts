@@ -14,6 +14,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { AppData, PlanMode as LegacyPlanMode } from "@/lib/models";
 import type { PlanData } from "@/lib/types";
+import { readUserScopedLocalStorage, writeUserScopedLocalStorage } from "@/lib/services/localCacheOwner";
 
 const LEGACY_PLAN_KEY = "plano-do-milhao-v6";
 const LEGACY_APP_KEY = "plano-do-milhao-app-v7";
@@ -48,11 +49,11 @@ interface MigrationResult {
 function backupLocalStorage(): void {
   try {
     const snapshot: Record<string, string | null> = {
-      [LEGACY_PLAN_KEY]: localStorage.getItem(LEGACY_PLAN_KEY),
-      [LEGACY_APP_KEY]: localStorage.getItem(LEGACY_APP_KEY),
+      [LEGACY_PLAN_KEY]: readUserScopedLocalStorage(LEGACY_PLAN_KEY),
+      [LEGACY_APP_KEY]: readUserScopedLocalStorage(LEGACY_APP_KEY),
       _backupAt: new Date().toISOString(),
     };
-    localStorage.setItem(PRE_MIGRATION_BACKUP_KEY, JSON.stringify(snapshot));
+    writeUserScopedLocalStorage(PRE_MIGRATION_BACKUP_KEY, JSON.stringify(snapshot));
   } catch {
     // localStorage cheio: prossegue sem backup
   }
@@ -60,7 +61,7 @@ function backupLocalStorage(): void {
 
 function readLocalPlanData(): PlanData | null {
   try {
-    const raw = localStorage.getItem(LEGACY_PLAN_KEY);
+    const raw = readUserScopedLocalStorage(LEGACY_PLAN_KEY);
     if (!raw) return null;
     return JSON.parse(raw) as PlanData;
   } catch {
@@ -70,7 +71,7 @@ function readLocalPlanData(): PlanData | null {
 
 function readLocalAppData(): AppData | null {
   try {
-    const raw = localStorage.getItem(LEGACY_APP_KEY);
+    const raw = readUserScopedLocalStorage(LEGACY_APP_KEY);
     if (!raw) return null;
     return JSON.parse(raw) as AppData;
   } catch {
