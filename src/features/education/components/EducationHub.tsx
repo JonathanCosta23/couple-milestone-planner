@@ -17,7 +17,7 @@ type Tab = "schools" | "investors" | "assets";
  * EducationHub — ponto único de acesso a Escolas, Investidores e Fichas.
  * Fica dentro de Mais > Aprender, sem criar nova aba principal.
  */
-export function EducationHub() {
+export function EducationHub({ section, embedded = false }: { section?: Tab; embedded?: boolean }) {
   const [tab, setTab] = useState<Tab>("schools");
   const [openSchool, setOpenSchool] = useState<InvestmentSchool | null>(null);
   const [openInvestor, setOpenInvestor] = useState<InvestorReference | null>(null);
@@ -26,6 +26,7 @@ export function EducationHub() {
   const schools = useInvestmentSchools();
   const investors = useInvestorReferences();
   const assets = useAssetEducationCases();
+  const activeTab = section ?? tab;
 
   const tabs: Array<{ id: Tab; label: string }> = useMemo(() => ([
     { id: "schools", label: "Escolas" },
@@ -39,7 +40,7 @@ export function EducationHub() {
 
   return (
     <div className="space-y-4">
-      <Card className="glass-card p-4 space-y-2">
+      {!embedded && <Card className="glass-card p-4 space-y-2">
         <div className="flex items-start gap-2">
           <GraduationCap className="w-4 h-4 text-primary mt-0.5" />
           <div>
@@ -49,9 +50,9 @@ export function EducationHub() {
             </p>
           </div>
         </div>
-      </Card>
+      </Card>}
 
-      <div className="flex gap-2 overflow-x-auto">
+      {!section && <div className="flex gap-2 overflow-x-auto">
         {tabs.map((t) => (
           <Button
             key={t.id}
@@ -63,9 +64,9 @@ export function EducationHub() {
             {t.label}
           </Button>
         ))}
-      </div>
+      </div>}
 
-      {tab === "schools" && (
+      {activeTab === "schools" && (
         <SectionState loading={schools.loading} error={schools.error} count={schools.data.length}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {schools.data.map((s) => <InvestmentSchoolCard key={s.id} school={s} onOpen={setOpenSchool} />)}
@@ -73,7 +74,7 @@ export function EducationHub() {
         </SectionState>
       )}
 
-      {tab === "investors" && (
+      {activeTab === "investors" && (
         <SectionState loading={investors.loading} error={investors.error} count={investors.data.length}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {investors.data.map((i) => <InvestorReferenceCard key={i.id} investor={i} onOpen={setOpenInvestor} />)}
@@ -81,7 +82,7 @@ export function EducationHub() {
         </SectionState>
       )}
 
-      {tab === "assets" && (
+      {activeTab === "assets" && (
         <SectionState loading={assets.loading} error={assets.error} count={assets.data.length}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {assets.data.map((a) => <AssetEducationCard key={a.id} asset={a} onOpen={setOpenAsset} />)}

@@ -13,7 +13,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useEducationProgress } from "@/hooks/useEducationProgress";
 
-export function MiniLessons() {
+export function MiniLessons({ embedded = false }: { embedded?: boolean }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const { user } = useAuth();
   const { isCompleted, isOpened, completedCount, markOpened, markCompleted } =
@@ -27,7 +27,7 @@ export function MiniLessons() {
 
   return (
     <div className="space-y-4">
-      <Card className="glass-card-strong p-4 text-center">
+      {!embedded && <Card className="glass-card-strong p-4 text-center">
         <GraduationCap className="w-6 h-6 text-primary mx-auto mb-2" />
         <h3 className="font-bold">Aprenda em minutos</h3>
         <p className="text-xs text-muted-foreground mt-1">
@@ -38,7 +38,8 @@ export function MiniLessons() {
             {completedCount} de {MINI_LESSONS.length} concluídas
           </p>
         )}
-      </Card>
+      </Card>}
+      {embedded && user && <p className="text-sm text-muted-foreground">{completedCount} de {MINI_LESSONS.length} lições concluídas</p>}
 
       <div className="space-y-2">
         {MINI_LESSONS.map((lesson) => (
@@ -74,14 +75,17 @@ function LessonCard({
 }) {
   return (
     <Card className="glass-card overflow-hidden">
-      <button
+      <Button
+        variant="ghost"
+        aria-expanded={expanded}
+        aria-controls={`lesson-${lesson.id}`}
         onClick={onToggle}
-        className="w-full p-4 flex items-center gap-3 text-left hover:bg-muted/30 transition-colors"
+        className="w-full h-auto p-4 flex items-center justify-start gap-3 text-left whitespace-normal hover:bg-muted/30 transition-colors"
       >
-        <span className="text-2xl">{lesson.emoji}</span>
+        <span aria-hidden="true" className="text-2xl">{lesson.emoji}</span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <p className="text-sm font-semibold truncate">{lesson.title}</p>
+            <p className="text-sm font-semibold">{lesson.title}</p>
             {completed && (
               <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
             )}
@@ -101,10 +105,10 @@ function LessonCard({
         ) : (
           <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
         )}
-      </button>
+      </Button>
 
       {expanded && (
-        <div className="px-4 pb-4 space-y-3 animate-fade-in-up">
+        <div id={`lesson-${lesson.id}`} className="px-4 pb-4 space-y-3 animate-fade-in-up">
           <div className="space-y-2">
             {lesson.content.map((line, i) => (
               <p key={i} className="text-sm text-muted-foreground leading-relaxed">

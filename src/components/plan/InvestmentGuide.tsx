@@ -12,20 +12,21 @@ const CATEGORY_LABELS: Record<string, string> = {
   advanced: "Avançado",
 };
 
-export function InvestmentGuide() {
+export function InvestmentGuide({ embedded = false, topicIds }: { embedded?: boolean; topicIds?: readonly string[] }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>("all");
 
-  const categories = ["all", ...new Set(EDUCATION_TOPICS.map(t => t.category))];
-  const filtered = activeCategory === "all" ? EDUCATION_TOPICS : EDUCATION_TOPICS.filter(t => t.category === activeCategory);
+  const topics = topicIds ? EDUCATION_TOPICS.filter(t => topicIds.includes(t.id)) : EDUCATION_TOPICS;
+  const categories = ["all", ...new Set(topics.map(t => t.category))];
+  const filtered = activeCategory === "all" ? topics : topics.filter(t => t.category === activeCategory);
 
   return (
     <div className="space-y-4">
-      <Card className="glass-card-strong p-4 text-center">
+      {!embedded && <Card className="glass-card-strong p-4 text-center">
         <BookOpen className="w-6 h-6 text-primary mx-auto mb-2" />
         <h3 className="font-bold">Entenda seus investimentos</h3>
         <p className="text-xs text-muted-foreground mt-1">Cada tipo de investimento explicado de forma simples — sem jargão, sem complicação</p>
-      </Card>
+      </Card>}
 
       {/* Category Filter */}
       <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
@@ -51,18 +52,18 @@ export function InvestmentGuide() {
 function TopicCard({ topic, expanded, onToggle }: { topic: EducationTopic; expanded: boolean; onToggle: () => void }) {
   return (
     <Card className="glass-card overflow-hidden">
-      <button onClick={onToggle} className="w-full p-4 flex items-center gap-3 text-left hover:bg-muted/30 transition-colors">
-        <span className="text-2xl">{topic.emoji}</span>
+      <Button variant="ghost" aria-expanded={expanded} aria-controls={`product-${topic.id}`} onClick={onToggle} className="w-full h-auto p-4 flex items-center justify-start gap-3 text-left whitespace-normal hover:bg-muted/30 transition-colors">
+        <span aria-hidden="true" className="text-2xl">{topic.emoji}</span>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold truncate">{topic.title}</p>
+          <p className="text-sm font-semibold">{topic.title}</p>
           <p className="text-xs text-muted-foreground line-clamp-1">{topic.summary}</p>
         </div>
         {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" /> :
          <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />}
-      </button>
+      </Button>
 
       {expanded && (
-        <div className="px-4 pb-4 space-y-3 animate-fade-in-up">
+        <div id={`product-${topic.id}`} className="px-4 pb-4 space-y-3 animate-fade-in-up">
           <div className="space-y-2 pl-1">
             {topic.content.map((line, i) => (
               <p key={i} className="text-sm text-muted-foreground leading-relaxed">{line}</p>

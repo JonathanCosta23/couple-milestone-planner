@@ -14,7 +14,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   behavior: "Comportamento",
 };
 
-export function FinancialGlossary() {
+export function FinancialGlossary({ embedded = false }: { embedded?: boolean }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -25,15 +25,16 @@ export function FinancialGlossary() {
 
   return (
     <div className="space-y-4">
-      <Card className="glass-card-strong p-4 text-center">
+      {!embedded && <Card className="glass-card-strong p-4 text-center">
         <BookOpen className="w-6 h-6 text-primary mx-auto mb-2" />
         <h3 className="font-bold">Glossário</h3>
         <p className="text-xs text-muted-foreground mt-1">Os termos que você vai encontrar por aqui — explicados sem enrolação</p>
-      </Card>
+      </Card>}
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
+          aria-label="Buscar termo no glossário"
           placeholder="Buscar termo..."
           value={query}
           onChange={e => setQuery(e.target.value)}
@@ -53,15 +54,18 @@ export function FinancialGlossary() {
       <div className="space-y-2">
         {filtered.map(term => (
           <Card key={term.id} className="glass-card overflow-hidden">
-            <button
+            <Button
+              variant="ghost"
+              aria-expanded={expandedId === term.id}
+              aria-controls={`term-${term.id}`}
               onClick={() => setExpandedId(expandedId === term.id ? null : term.id)}
-              className="w-full p-3 text-left hover:bg-muted/30 transition-colors"
+              className="w-full h-auto block p-3 text-left whitespace-normal hover:bg-muted/30 transition-colors"
             >
               <p className="text-sm font-semibold">{term.term}</p>
               <p className="text-xs text-muted-foreground line-clamp-1">{term.definition}</p>
-            </button>
+            </Button>
             {expandedId === term.id && (
-              <div className="px-3 pb-3 space-y-2 animate-fade-in-up">
+              <div id={`term-${term.id}`} className="px-3 pb-3 space-y-2 animate-fade-in-up">
                 <p className="text-sm text-muted-foreground leading-relaxed">{term.definition}</p>
                 {term.example && (
                   <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/10">

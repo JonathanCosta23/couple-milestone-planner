@@ -19,16 +19,17 @@ import {
 
 type Mode = "simple" | "detailed";
 
-export function KnowledgeLibrary() {
+export function KnowledgeLibrary({ embedded = false, excludeSlugs = [] }: { embedded?: boolean; excludeSlugs?: readonly string[] }) {
   const { topics, loading, error } = useKnowledgeTopics();
   const { user } = useAuth();
   const { byTopic, upsert } = useLearningProgress(user?.id);
   const [openTopicId, setOpenTopicId] = useState<string | null>(null);
   const openTopic = useMemo(() => topics.find((t) => t.id === openTopicId) ?? null, [topics, openTopicId]);
+  const visibleTopics = topics.filter((topic) => !excludeSlugs.includes(topic.slug));
 
   if (loading) return <p className="text-sm text-muted-foreground text-center py-6">Carregando biblioteca...</p>;
   if (error) return <p className="text-sm text-muted-foreground text-center py-6">{error}</p>;
-  if (topics.length === 0) {
+  if (visibleTopics.length === 0) {
     return (
       <Card className="glass-card p-6 text-center space-y-1">
         <p className="text-sm font-medium">Biblioteca em preparação</p>
@@ -39,31 +40,34 @@ export function KnowledgeLibrary() {
 
   return (
     <div className="space-y-4">
-      <Card className="glass-card-strong p-4 text-center">
+      {!embedded && <Card className="glass-card-strong p-4 text-center">
         <BookOpen className="w-6 h-6 text-primary mx-auto mb-2" />
         <h3 className="font-bold">Biblioteca de conhecimento</h3>
         <p className="text-xs text-muted-foreground mt-1">
           Conteúdo educacional. Não constitui recomendação de investimento.
         </p>
-      </Card>
+      </Card>}
 
       <div className="space-y-2">
-        {topics.map((topic) => {
+        {visibleTopics.map((topic) => {
           const progress = byTopic[topic.id];
           const isOpen = openTopicId === topic.id;
           return (
             <Card key={topic.id} className="glass-card overflow-hidden">
-              <button
+              <Button
+                variant="ghost"
+                aria-expanded={isOpen}
+                aria-controls={`knowledge-${topic.id}`}
                 onClick={() => {
                   const next = isOpen ? null : topic.id;
                   setOpenTopicId(next);
                   if (next) void upsert(topic.id, { status: "in_progress" });
                 }}
-                className="w-full p-4 flex items-center gap-3 text-left hover:bg-muted/30 transition-colors"
+                className="w-full h-auto p-4 flex items-center justify-start gap-3 text-left whitespace-normal hover:bg-muted/30 transition-colors"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold truncate">{topic.title}</p>
+                    <p className="text-sm font-semibold">{topic.title}</p>
                     {progress?.status === "completed" && (
                       <Badge variant="secondary" className="text-[10px]">Concluído</Badge>
                     )}
@@ -73,12 +77,14 @@ export function KnowledgeLibrary() {
                   )}
                 </div>
                 {isOpen ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />}
-              </button>
+              </Button>
               {isOpen && openTopic && (
+                <div id={`knowledge-${topic.id}`}>
                 <TopicDetail
                   topicId={topic.id}
                   onComplete={() => upsert(topic.id, { status: "completed", progress: 100 })}
                 />
+                </div>
               )}
             </Card>
           );
