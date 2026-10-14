@@ -43,14 +43,10 @@ const MonthlyTracker = lazy(() => import("@/components/plan/MonthlyTracker").the
 // ── Lazy: painéis "Perfil" e educação ──
 // NotificationSettings, SharePlan e PlanModeSelector são consumidos por
 // SettingsHub (eager) — não precisam de import lazy aqui.
-const InvestmentGuide = lazy(() => import("@/components/plan/InvestmentGuide").then(m => ({ default: m.InvestmentGuide })));
 const HowToUse = lazy(() => import("@/components/plan/HowToUse").then(m => ({ default: m.HowToUse })));
 const TrapDetector = lazy(() => import("@/components/plan/TrapDetector").then(m => ({ default: m.TrapDetector })));
-const FinancialGlossary = lazy(() => import("@/components/plan/FinancialGlossary").then(m => ({ default: m.FinancialGlossary })));
-const MiniLessons = lazy(() => import("@/components/plan/MiniLessons").then(m => ({ default: m.MiniLessons })));
-const KnowledgeLibrary = lazy(() => import("@/components/plan/KnowledgeLibrary").then(m => ({ default: m.KnowledgeLibrary })));
 const CalculatorsPanel = lazy(() => import("@/components/plan/calculators/CalculatorsPanel").then(m => ({ default: m.CalculatorsPanel })));
-const EducationHub = lazy(() => import("@/features/education/components/EducationHub").then(m => ({ default: m.EducationHub })));
+const LearningPath = lazy(() => import("@/features/education/components/LearningPath").then(m => ({ default: m.LearningPath })));
 
 // ── Lazy: modais e dialogs (só montam quando abertos) ──
 const QuickDeposit = lazy(() => import("@/components/plan/QuickDeposit").then(m => ({ default: m.QuickDeposit })));
@@ -544,19 +540,13 @@ const Index = () => {
           <ErrorBoundary area="mais" title="Não foi possível carregar esta área">
           <div className="space-y-4">
             <SubNav items={maisSubs} active={sub} onChange={setMaisSub} />
-            {sub === "aprender" && (
-              <div className="space-y-6">
-                <KnowledgeLibrary />
-                <EducationHub />
-                <MiniLessons />
-              </div>
+            {["aprender", "glossario", "investir"].includes(sub) && (
+              <LearningPath key={sub} entry={sub === "glossario" ? "glossary" : sub === "investir" ? "products" : "start"} />
             )}
-            {sub === "glossario" && <FinancialGlossary />}
             {sub === "calculadoras" && (
               <CalculatorsPanel appData={effectiveAppData} metrics={core.metrics} />
             )}
             {sub === "armadilhas" && <TrapDetector />}
-            {sub === "investir" && <InvestmentGuide />}
             {sub === "saude" && (
               <FinancialDiagnostic appData={effectiveAppData} config={data.config} monthRecords={data.monthRecords} startDate={data.startDate} core={core} />
             )}
