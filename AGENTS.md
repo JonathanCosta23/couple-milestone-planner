@@ -1,0 +1,2 @@
+# Architecture rules
+- Education is composed through LearningPath using existing content and progress providers; keep each content source in one stage and route legacy education shortcuts into this composition to avoid parallel experiences.
