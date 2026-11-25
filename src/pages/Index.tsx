@@ -115,10 +115,8 @@ const PROJECAO_SUBS = [
 
 const MAIS_SUBS_BASE = [
   { id: "aprender", label: "Educação", icon: "📚" },
-  { id: "glossario", label: "Glossário", icon: "📖" },
   { id: "calculadoras", label: "Calculadoras", icon: "🧮" },
   { id: "armadilhas", label: "Radar", icon: "🛡️" },
-  { id: "investir", label: "Investir", icon: "📈" },
   { id: "saude", label: "Saúde", icon: "🏥" },
   { id: "governanca", label: "Governança", icon: "👥" },
   { id: "ajuda", label: "Ajuda", icon: "❓" },
@@ -173,7 +171,8 @@ const Index = () => {
   // Navigation + Export/Import
   const {
     navSection, execucaoSub, patrimonioSub, projecaoSub, maisSub,
-    setNavSection, setExecucaoSub, setPatrimonioSub, setProjecaoSub, setMaisSub,
+    educationEntry,
+    setNavSection, setExecucaoSub, setPatrimonioSub, setProjecaoSub, setMaisSub, setEducationEntry,
     goToSection, navigateToTab: handleNavigateToTab,
     settingsFocus, clearSettingsFocus,
   } = useAppNavigation();
@@ -539,10 +538,15 @@ const Index = () => {
         return (
           <ErrorBoundary area="mais" title="Não foi possível carregar esta área">
           <div className="space-y-4">
-            <SubNav items={maisSubs} active={sub} onChange={setMaisSub} />
-            {["aprender", "glossario", "investir"].includes(sub) && (
-              <LearningPath key={sub} entry={sub === "glossario" ? "glossary" : sub === "investir" ? "products" : "start"} />
-            )}
+            <SubNav
+              items={maisSubs}
+              active={sub}
+              onChange={(nextSub) => {
+                if (nextSub === "aprender") setEducationEntry("start");
+                setMaisSub(nextSub);
+              }}
+            />
+            {sub === "aprender" && <LearningPath entry={educationEntry} />}
             {sub === "calculadoras" && (
               <CalculatorsPanel appData={effectiveAppData} metrics={core.metrics} />
             )}

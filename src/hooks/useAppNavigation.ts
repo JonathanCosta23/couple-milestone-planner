@@ -16,10 +16,8 @@ export const PATRIMONIO_TABS = ["ativos", "concentracao", "estrutura"] as const;
 export const PROJECAO_TABS = ["projecao", "simulador", "cdi", "jornada"] as const;
 export const MAIS_TABS = [
   "aprender",
-  "glossario",
   "calculadoras",
   "armadilhas",
-  "investir",
   "saude",
   "governanca",
   "ajuda",
@@ -47,6 +45,8 @@ export const TAB_ALIASES: Record<string, string> = {
   patrimonio: "ativos",
   // Projeção (mantém ids)
   // Mais
+  glossario: "aprender",
+  investir: "aprender",
   diagnostico: "saude",
   dados: "configuracoes",
   compartilhar: "configuracoes",
@@ -60,6 +60,14 @@ export const TAB_ALIASES: Record<string, string> = {
 /** Sub-tokens que solicitam foco na seção "Plano e meta" em Configurações. */
 const PLAN_META_FOCUS_TOKENS = new Set(["plano-meta", "editar-meta", "ajustar-plano"]);
 export type SettingsFocus = "plano-meta" | null;
+export type EducationEntry = "start" | "glossary" | "products";
+
+function educationEntryForToken(token?: string): EducationEntry | null {
+  if (token === "glossario") return "glossary";
+  if (token === "investir") return "products";
+  if (token === "aprender") return "start";
+  return null;
+}
 
 function resolveAlias(tab: string): string {
   return TAB_ALIASES[tab] ?? tab;
@@ -88,6 +96,7 @@ export function useAppNavigation() {
   const [projecaoSub, setProjecaoSub] = useState<string>("projecao");
   const [maisSub, setMaisSub] = useState<string>("configuracoes");
   const [settingsFocus, setSettingsFocus] = useState<SettingsFocus>(null);
+  const [educationEntry, setEducationEntry] = useState<EducationEntry>("start");
 
   const scrollTop = useCallback(() => {
     if (typeof window !== "undefined") {
@@ -105,6 +114,9 @@ export function useAppNavigation() {
 
   const navigateToTab = useCallback(
     (rawTab: string, rawSub?: string) => {
+      const nextEducationEntry = educationEntryForToken(rawSub) ?? educationEntryForToken(rawTab);
+      if (nextEducationEntry) setEducationEntry(nextEducationEntry);
+
       // Foco especial: qualquer alias/sub que aponte para "plano-meta" abre
       // Configurações e sinaliza a seção a ser expandida.
       if (PLAN_META_FOCUS_TOKENS.has(rawTab) || (rawSub && PLAN_META_FOCUS_TOKENS.has(rawSub))) {
@@ -183,11 +195,13 @@ export function useAppNavigation() {
     projecaoSub,
     maisSub,
     settingsFocus,
+    educationEntry,
     setNavSection,
     setExecucaoSub,
     setPatrimonioSub,
     setProjecaoSub,
     setMaisSub,
+    setEducationEntry,
     clearSettingsFocus,
     goToSection,
     navigateToTab,

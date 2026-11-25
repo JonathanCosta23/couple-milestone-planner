@@ -97,6 +97,22 @@ describe("useAppNavigation", () => {
     act(() => result.current.clearSettingsFocus());
     expect(result.current.settingsFocus).toBeNull();
   });
+
+  it("aliases 'glossario' e 'investir' abrem Educação na etapa de consulta correspondente", () => {
+    const { result } = renderHook(() => useAppNavigation());
+    act(() => result.current.navigateToTab("glossario"));
+    expect(result.current.navSection).toBe("mais");
+    expect(result.current.maisSub).toBe("aprender");
+    expect(result.current.educationEntry).toBe("glossary");
+
+    act(() => result.current.navigateToTab("investir"));
+    expect(result.current.navSection).toBe("mais");
+    expect(result.current.maisSub).toBe("aprender");
+    expect(result.current.educationEntry).toBe("products");
+
+    act(() => result.current.navigateToTab("aprender"));
+    expect(result.current.educationEntry).toBe("start");
+  });
 });
 
 describe("useAppNavigation — destinos CDI e Calculadoras", () => {
